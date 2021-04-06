@@ -239,34 +239,6 @@ public interface Client extends InterceptorProvider, MessageObserver, ConduitSel
      * @return true if the request context is a thread local
      */
     boolean isThreadLocalRequestContext();
-    
-    
-    /**
-     * Wrappers the contexts in a way that allows the contexts
-     * to be cleared and released in an try-with-resources block
-     */
-    interface Contexts extends AutoCloseable {
-        Map<String, Object> getRequestContext();
-        Map<String, Object> getResponseContext();
-    }
-    
-    default Contexts getContexts() {
-        return new Contexts() {
-            @Override
-            public void close() throws Exception {
-                getRequestContext().clear();
-                getResponseContext().clear();
-            }
-            @Override
-            public Map<String, Object> getRequestContext() {
-                return Client.this.getRequestContext();
-            }
-            @Override
-            public Map<String, Object> getResponseContext() {
-                return Client.this.getResponseContext();
-            }
-        };
-    }
 
 
     Endpoint getEndpoint();
@@ -311,4 +283,21 @@ public interface Client extends InterceptorProvider, MessageObserver, ConduitSel
      * @return the Bus
      */
     Bus getBus();
+
+    /**
+     * if {@link Client#isThreadLocalRequestContext()} it will clean the request context map. This method
+     * allows to avoid potential leaks programmatically, instead of waiting the garbage collector intervention.
+     */
+    default void clearThreadLocalRequestContexts() {
+
+    }
+
+    /**
+     * It will clean the response context map. This method allows to avoid potential leaks programmatically, instead
+     * of waiting the garbage collector intervention.
+     */
+    default void clearThreadLocalResponseContexts() {
+
+    }
+
 }
