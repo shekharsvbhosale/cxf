@@ -19,9 +19,12 @@
 
 package org.apache.cxf.systest.jaxrs;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -37,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -185,13 +189,9 @@ public class BookStore {
         String dStr = dBuilder.toString();
         if (!lStr.equals(dStr)) {
             throw new InternalServerErrorException();
-        } else if ("".equalsIgnoreCase(lStr)) {
-            lStr = "0";
         }
-
         return new Book("cxf", Long.parseLong(lStr));
     }
-
     @GET
     @Path("/")
     public Book getBookRoot() {
@@ -351,21 +351,6 @@ public class BookStore {
     public Book echoXmlBook(Book book) {
         return book;
     }
-    
-    @POST
-    @Path("/echoxmlbook-i18n")
-    @Produces("application/xml")
-    public Response echoXmlBooki18n(Book book, @HeaderParam(HttpHeaders.CONTENT_LANGUAGE) String language) {
-        return Response.ok(new Book(book.getName() + "-" + language, book.getId())).build();
-    }
-
-    // Only books with id consisting of 3 or 4 digits of the numbers between 5 and 9 are accepted
-    @POST
-    @Path("/echoxmlbookregex/{id : [5-9]{3,4}}")
-    @Produces("application/xml")
-    public Book echoXmlBookregex(Book book, @PathParam("id") String id) {
-        return book;
-    }
 
     @POST
     @Path("/emptyform")
@@ -409,11 +394,6 @@ public class BookStore {
     @Path("/beanparamsub")
     public BookStoreSub getBeanParamBookSub() {
         return new BookStoreSub(this);
-    }
-
-    @Path("/querysub")
-    public BookStoreQuerySub getQuerySub() {
-        return new BookStoreQuerySub();
     }
 
     @GET
@@ -1435,6 +1415,30 @@ public class BookStore {
     }
 
     @GET
+    @Path("/books/streamingoutput")
+    @Produces("text/xml")
+    public Response getBookStreamingOutput(@QueryParam("times") @DefaultValue("1") int times,
+                                           @QueryParam("delay") @DefaultValue("0") long delay) {
+        final StreamingOutput streamWritingError = outputStream -> {
+            try (PrintWriter writer = new PrintWriter(outputStream, true);
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(getBufferedBook()))) {
+                final String readLine = reader.readLine();
+                for (int i = 0; i < times; i++) {
+                    writer.println(readLine);
+                    if (i < times - 1) {    // skip the delay in case of the last message
+                        TimeUnit.MILLISECONDS.sleep(delay);
+                    }
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new InternalServerErrorException();
+            }
+        };
+
+        return Response.ok(streamWritingError).build();
+    }
+
+    @GET
     @Path("/books/fail-late")
     @Produces("application/bar")
     public StreamingOutput writeToStreamAndFail() {
@@ -1516,8 +1520,7 @@ public class BookStore {
         String ct1 = httpHeaders.getMediaType().toString();
         String ct2 = httpHeaders.getRequestHeader("Content-Type").get(0);
         String ct3 = httpHeaders.getRequestHeaders().getFirst("Content-Type");
-        if (!(ct1.startsWith("application/xml") && ct2.startsWith("application/xml")
-            && ct3.startsWith("application/xml"))) {
+        if (!("application/xml".equals(ct1) && ct1.equals(ct2) && ct1.equals(ct3))) {
             throw new RuntimeException("Unexpected content type");
         }
 
@@ -1713,15 +1716,6 @@ public class BookStore {
     }
 
 
-    @POST
-    @Path("/empty202")
-    @Consumes("text/plain")
-    @Produces("text/plain")
-    public Response empty202(String name) {
-        return Response.accepted().build();
-    }
-
-
     @GET
     @Path("/cd/{CDId}/")
     public CD getCD() {
@@ -1751,7 +1745,7 @@ public class BookStore {
                 header("SomeHeader1", "\"some text, some more text\"").
                 header("SomeHeader2", "\"some text\"").
                 header("SomeHeader2", "\"quoted,text\"").
-                header("SomeHeader2", "\"and backslash\\\"").
+                header("SomeHeader2", "\"even more text\"").
                 header("SomeHeader3", "\"some text, some more text with inlined \\\"\"").
                 header("SomeHeader4", "\"\"").
                 build();
@@ -2012,7 +2006,7 @@ public class BookStore {
         public long getId4() {
             return id4;
         }
-
+        
         @QueryParam("id4")
         public void setId4(long id4) {
             this.id4 = id4;
@@ -2037,7 +2031,7 @@ public class BookStore {
         public void setId2(long id2) {
             this.id2 = id2;
         }
-
+        
         public long getId2() {
             return id2;
         }
@@ -2046,7 +2040,7 @@ public class BookStore {
         public void setId3(long id3) {
             this.id3 = id3;
         }
-
+        
         public long getId3() {
             return id3;
         }
@@ -2259,26 +2253,6 @@ public class BookStore {
             return bookStore.getBeanParamBook(bean);
         }
     }
-
-    public static class BookStoreQuerySub {
-        @GET
-        @Path("/listofstrings")
-        @Produces("text/xml")
-        public Book getBookFromListStrings(@QueryParam("value") List<String> value) {
-            final StringBuilder builder = new StringBuilder();
-
-            for (String v : value) {
-                if (builder.length() > 0) {
-                    builder.append(' ');
-                }
-
-                builder.append(v);
-            }
-
-            return new Book(builder.toString(), 0L);
-        }
-    }
-
 }
 
 
