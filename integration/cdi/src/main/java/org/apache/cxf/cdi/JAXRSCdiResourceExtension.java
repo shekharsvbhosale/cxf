@@ -22,55 +22,47 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.function.BiFunction;
 
-import javax.enterprise.context.Dependent;
+import static java.util.Arrays.asList;
+
 import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.spi.AfterBeanDiscovery;
 import javax.enterprise.inject.spi.AfterDeploymentValidation;
+import javax.enterprise.inject.spi.Annotated;
+import javax.enterprise.inject.spi.AnnotatedField;
+import javax.enterprise.inject.spi.AnnotatedMethod;
 import javax.enterprise.inject.spi.AnnotatedType;
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.BeanManager;
-import javax.enterprise.inject.spi.BeforeBeanDiscovery;
 import javax.enterprise.inject.spi.BeforeShutdown;
 import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.InjectionTarget;
-import javax.enterprise.inject.spi.ProcessAnnotatedType;
 import javax.enterprise.inject.spi.ProcessBean;
 import javax.enterprise.inject.spi.ProcessProducerField;
 import javax.enterprise.inject.spi.ProcessProducerMethod;
-import javax.enterprise.inject.spi.WithAnnotations;
-import javax.inject.Singleton;
 import javax.ws.rs.ApplicationPath;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Application;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.ext.MessageBodyReader;
 import javax.ws.rs.ext.MessageBodyWriter;
 import javax.ws.rs.ext.Provider;
 
 import org.apache.cxf.Bus;
 import org.apache.cxf.bus.extension.ExtensionManagerBus;
-import org.apache.cxf.cdi.event.DisposableCreationalContext;
+import org.apache.cxf.cdi.extension.JAXRSServerFactoryCustomizationExtension;
 import org.apache.cxf.feature.Feature;
 import org.apache.cxf.jaxrs.JAXRSServerFactoryBean;
-import org.apache.cxf.jaxrs.ext.ContextClassProvider;
-import org.apache.cxf.jaxrs.ext.JAXRSServerFactoryCustomizationExtension;
-import org.apache.cxf.jaxrs.lifecycle.ResourceProvider;
-import org.apache.cxf.jaxrs.provider.ServerConfigurableFactory;
-import org.apache.cxf.jaxrs.utils.InjectionUtils;
-import org.apache.cxf.jaxrs.utils.JAXRSServerFactoryCustomizationUtils;
+import org.apache.cxf.jaxrs.provider.ConfigurableProviderWrapper;
 import org.apache.cxf.jaxrs.utils.ResourceUtils;
-
-import static java.util.Arrays.asList;
-import static java.util.Optional.ofNullable;
-import static org.apache.cxf.cdi.AbstractCXFBean.DEFAULT;
 
 /**
  * Apache CXF portable CDI extension to support initialization of JAX-RS resources.
@@ -81,15 +73,10 @@ public class JAXRSCdiResourceExtension implements Extension {
 
     private final Set< Bean< ? > > applicationBeans = new LinkedHashSet< Bean< ? > >();
     private final List< Bean< ? > > serviceBeans = new ArrayList< Bean< ? > >();
-    private final List< Bean< ? > > providerBeans = new ArrayList< Bean< ? > >();
+    private final Map< Bean<?>, Annotated > providerBeans = new HashMap<>();
     private final List< Bean< ? extends Feature > > featureBeans = new ArrayList< Bean< ? extends Feature > >();
     private final List< CreationalContext< ? > > disposableCreationalContexts =
-        new ArrayList<>();
-    private final List< Lifecycle > disposableLifecycles =
-        new ArrayList<>();
-    private final Set< Type > contextTypes = new LinkedHashSet<>();
-
-    private final Collection< String > existingStandardClasses = new HashSet<>();
+        new ArrayList< CreationalContext< ? > >();
 
     /**
      * Holder of the classified resource classes, converted to appropriate instance
@@ -98,7 +85,7 @@ public class JAXRSCdiResourceExtension implements Extension {
     private static class ClassifiedClasses {
         private List< Object > providers = new ArrayList<>();
         private List< Feature > features = new ArrayList<>();
-        private List<ResourceProvider> resourceProviders = new ArrayList<>();
+        private List< CdiResourceProvider > resourceProviders = new ArrayList<>();
 
         public void addProviders(final Collection< Object > others) {
             this.providers.addAll(others);
@@ -108,7 +95,7 @@ public class JAXRSCdiResourceExtension implements Extension {
             this.features.addAll(others);
         }
 
-        public void addResourceProvider(final ResourceProvider other) {
+        public void addResourceProvider(final CdiResourceProvider other) {
             this.resourceProviders.add(other);
         }
 
@@ -120,71 +107,9 @@ public class JAXRSCdiResourceExtension implements Extension {
             return features;
         }
 
-        public List<ResourceProvider> getResourceProviders() {
+        public List<CdiResourceProvider> getResourceProviders() {
             return resourceProviders;
         }
-    }
-
-    // observing JAXRSCdiResourceExtension a "container" can customize that value to prevent some instances
-    // to be added with the default qualifier
-    public Collection<String> getExistingStandardClasses() {
-        return existingStandardClasses;
-    }
-
-    /**
-     * Fires itsels, allows other extensions to modify this one.
-     * Typical example can be to modify existingStandardClasses to prevent CXF
-     * to own some beans it shouldn't create with default classifier.
-     *
-     * @param beforeBeanDiscovery the corresponding cdi event.
-     * @param beanManager the cdi bean manager.
-     */
-    void onStartup(@Observes final BeforeBeanDiscovery beforeBeanDiscovery, final BeanManager beanManager) {
-        final ClassLoader loader = ofNullable(Thread.currentThread().getContextClassLoader())
-                .orElseGet(ClassLoader::getSystemClassLoader);
-        boolean webHandled = false;
-        try { // OWB
-            loader.loadClass("org.apache.webbeans.web.lifecycle.WebContainerLifecycle");
-            webHandled = true;
-        } catch (final NoClassDefFoundError | ClassNotFoundException e) {
-            // ok to keep them all
-        }
-        if (!webHandled) {
-            try { // Weld
-                loader.loadClass("org.jboss.weld.module.web.WeldWebModule");
-                webHandled = true;
-            } catch (final NoClassDefFoundError | ClassNotFoundException e) {
-                // ok to keep them all
-            }
-        }
-        if (webHandled) {
-            existingStandardClasses.addAll(asList(
-                "javax.servlet.http.HttpServletRequest",
-                "javax.servlet.ServletContext"));
-        }
-        beanManager.fireEvent(this);
-    }
-
-    /**
-     * For any {@link AnnotatedType} that includes a {@link Context} injection point, this method replaces
-     * the field with the following code:
-     * <pre>
-     *     @Inject @ContextResolved T field;
-     * </pre>
-     * For any usage of T that is a valid context object in JAX-RS.
-     *
-     * It also has a side effect of capturing the context object type, in case no
-     * {@link org.apache.cxf.jaxrs.ext.ContextClassProvider} was registered for the type.
-     *
-     * @param processAnnotatedType the annotated type being investigated
-     * @param <X> the generic type of that processAnnotatedType
-     */
-    public <X> void convertContextsToCdi(@Observes @WithAnnotations({Context.class})
-                                             ProcessAnnotatedType<X> processAnnotatedType) {
-        AnnotatedType<X> annotatedType = processAnnotatedType.getAnnotatedType();
-        DelegateContextAnnotatedType<X> type = new DelegateContextAnnotatedType<>(annotatedType);
-        contextTypes.addAll(type.getContextFieldTypes());
-        processAnnotatedType.setAnnotatedType(type);
     }
 
     @SuppressWarnings("unchecked")
@@ -194,19 +119,14 @@ public class JAXRSCdiResourceExtension implements Extension {
         } else if (event.getAnnotated().isAnnotationPresent(Path.class)) {
             serviceBeans.add(event.getBean());
         } else if (event.getAnnotated().isAnnotationPresent(Provider.class)) {
-            providerBeans.add(event.getBean());
+            providerBeans.put(event.getBean(), event.getAnnotated());
         } else if (event.getBean().getTypes().contains(javax.ws.rs.core.Feature.class)) {
-            providerBeans.add(event.getBean());
+            providerBeans.put(event.getBean(), event.getAnnotated());
         } else if (event.getBean().getTypes().contains(Feature.class)) {
             featureBeans.add((Bean< ? extends Feature >)event.getBean());
         } else if (CdiBusBean.CXF.equals(event.getBean().getName())
                 && Bus.class.isAssignableFrom(event.getBean().getBeanClass())) {
             hasBus = true;
-        } else if (event.getBean().getQualifiers().contains(DEFAULT)) {
-            event.getBean().getTypes().stream()
-                .filter(e -> Object.class != e && InjectionUtils.STANDARD_CONTEXT_CLASSES.contains(e.getTypeName()))
-                .findFirst()
-                .ifPresent(type -> existingStandardClasses.add(type.getTypeName()));
         }
     }
     
@@ -228,11 +148,6 @@ public class JAXRSCdiResourceExtension implements Extension {
                 busBean,
                 Bus.class,
                 beanManager.createCreationalContext(busBean));
-        
-        // Adding the extension for dynamic providers registration and instantiation
-        if (bus.getExtension(ServerConfigurableFactory.class) == null) {
-            bus.setExtension(new CdiServerConfigurableFactory(beanManager), ServerConfigurableFactory.class);
-        }
 
         for (final Bean< ? > application: applicationBeans) {
             final Application instance = (Application)beanManager.getReference(
@@ -269,57 +184,19 @@ public class JAXRSCdiResourceExtension implements Extension {
                 beanManager.createInjectionTarget(busAnnotatedType);
             event.addBean(new CdiBusBean(busInjectionTarget));
         }
-
         if (applicationBeans.isEmpty() && !serviceBeans.isEmpty()) {
             final DefaultApplicationBean applicationBean = new DefaultApplicationBean();
             applicationBeans.add(applicationBean);
             event.addBean(applicationBean);
-        } else {
-            // otherwise will be ambiguous since we scanned it with default qualifier already
-            existingStandardClasses.add(Application.class.getName());
-        }
-
-        // always add the standard context classes
-        InjectionUtils.STANDARD_CONTEXT_CLASSES.stream()
-                .map(this::toClass)
-                .filter(Objects::nonNull)
-                .forEach(contextTypes::add);
-        // add custom contexts
-        contextTypes.addAll(getCustomContextClasses());
-        // register all of the context types
-        contextTypes.forEach(
-            t -> event.addBean(new ContextProducerBean(t, !existingStandardClasses.contains(t.getTypeName()))));
-    }
-
-    /**
-     * Registers created CreationalContext instances for disposal
-     */
-    public void registerCreationalContextForDisposal(@Observes final DisposableCreationalContext event) {
-        synchronized (disposableCreationalContexts) {
-            disposableCreationalContexts.add(event.getContext());
         }
     }
-    
+
     /**
      * Releases created CreationalContext instances
      */
     public void release(@Observes final BeforeShutdown event) {
-        synchronized (disposableCreationalContexts) {
-            for (final CreationalContext<?> disposableCreationalContext: disposableCreationalContexts) {
-                disposableCreationalContext.release();
-            }
-            disposableCreationalContexts.clear();
-        }
-
-        disposableLifecycles.forEach(Lifecycle::destroy);
-        disposableLifecycles.clear();
-    }
-
-    private Class<?> toClass(String name) {
-        try {
-            return Class.forName(name);
-        } catch (Exception e) {
-            return null;
+        for (final CreationalContext<?> disposableCreationalContext: disposableCreationalContexts) {
+            disposableCreationalContext.release();
         }
     }
 
@@ -349,14 +226,15 @@ public class JAXRSCdiResourceExtension implements Extension {
      * @return JAXRSServerFactoryBean instance
      */
     private JAXRSServerFactoryBean createFactoryInstance(final Application application, final BeanManager beanManager) {
-        final JAXRSServerFactoryBean instance =
+
+        final JAXRSServerFactoryBean instance = 
             ResourceUtils.createApplication(application, false, false, false, bus);
         final ClassifiedClasses classified = classes2singletons(application, beanManager);
 
         instance.setProviders(classified.getProviders());
         instance.getFeatures().addAll(classified.getFeatures());
 
-        for (final ResourceProvider resourceProvider: classified.getResourceProviders()) {
+        for (final CdiResourceProvider resourceProvider: classified.getResourceProviders()) {
             instance.setResourceProvider(resourceProvider.getResourceClass(), resourceProvider);
         }
 
@@ -381,42 +259,12 @@ public class JAXRSCdiResourceExtension implements Extension {
 
             for (final Bean< ? > bean: serviceBeans) {
                 if (classes.contains(bean.getBeanClass())) {
-                    // normal scoped beans will return us a proxy in getInstance so it is singletons for us,
-                    // @Singleton is indeed a singleton
-                    // @Dependent should be a request scoped instance but for backward compat we kept it a singleton
-                    //
-                    // other scopes are considered request scoped (for jaxrs)
-                    // and are created per request (getInstance/releaseInstance)
-                    final ResourceProvider resourceProvider;
-                    if (isCxfSingleton(beanManager, bean)) {
-                        final Lifecycle lifecycle = new Lifecycle(beanManager, bean);
-                        resourceProvider = new SingletonResourceProvider(lifecycle, bean.getBeanClass());
-
-                        // if not a singleton we manage it per request
-                        // if @Singleton the container handles it
-                        // so we only need this case here
-                        if (Dependent.class == bean.getScope()) {
-                            disposableLifecycles.add(lifecycle);
-                        }
-                    } else {
-                        resourceProvider = new PerRequestResourceProvider(
-                        () -> new Lifecycle(beanManager, bean), bean.getBeanClass());
-                    }
-                    classified.addResourceProvider(resourceProvider);
+                    classified.addResourceProvider(new CdiResourceProvider(beanManager, bean));
                 }
             }
         }
 
         return classified;
-    }
-
-    boolean isCxfSingleton(final BeanManager beanManager, final Bean<?> bean) {
-        return beanManager.isNormalScope(bean.getScope()) || isConsideredSingleton(bean.getScope());
-    }
-
-    // warn: several impls use @Dependent == request so we should probably add a flag
-    private boolean isConsideredSingleton(final Class<?> scope) {
-        return Singleton.class == scope || Dependent.class == scope;
     }
 
     /**
@@ -447,7 +295,49 @@ public class JAXRSCdiResourceExtension implements Extension {
      * @return the references for all discovered JAX-RS resources
      */
     private List< Object > loadProviders(final BeanManager beanManager, Collection<Class<?>> limitedClasses) {
-        return loadBeans(beanManager, limitedClasses, providerBeans);
+        return loadBeans(beanManager, limitedClasses, providerBeans.keySet(), (bean, provider) -> {
+            final Annotated annotatedType = providerBeans.get(bean);
+            if ((AnnotatedMethod.class.isInstance(annotatedType) || AnnotatedField.class.isInstance(annotatedType))
+                    && (annotatedType.isAnnotationPresent(Consumes.class)
+                    || annotatedType.isAnnotationPresent(javax.ws.rs.Produces.class))) {
+                final boolean reader = MessageBodyReader.class.isInstance(provider);
+                final boolean writer = MessageBodyWriter.class.isInstance(provider);
+                final ConfigurableProviderWrapper wrapper;
+                if (reader && writer) {
+                    wrapper = new ConfigurableProviderWrapper.ReaderWriter<>(
+                            MessageBodyReader.class.cast(provider), MessageBodyWriter.class.cast(provider));
+                } else if (reader) {
+                    wrapper = new ConfigurableProviderWrapper.Reader<>(MessageBodyReader.class.cast(provider));
+                } else if (writer) {
+                    wrapper = new ConfigurableProviderWrapper.Writer<>(MessageBodyWriter.class.cast(provider));
+                } else {
+                    return provider;
+                }
+
+                if (reader) {
+                    Consumes consumes = annotatedType.getAnnotation(Consumes.class);
+                    if (consumes == null) {
+                        consumes = provider.getClass().getAnnotation(Consumes.class);
+                    }
+                    if (consumes != null) {
+                        wrapper.setConsumeMediaTypes(asList(consumes.value()));
+                    }
+                }
+
+                if (writer) {
+                    javax.ws.rs.Produces produces = annotatedType.getAnnotation(javax.ws.rs.Produces.class);
+                    if (produces == null) {
+                        produces = provider.getClass().getAnnotation(javax.ws.rs.Produces.class);
+                    }
+                    if (produces != null) {
+                        wrapper.setConsumeMediaTypes(asList(produces.value()));
+                    }
+                }
+
+                return wrapper;
+            }
+            return provider;
+        });
     }
 
     /**
@@ -457,7 +347,7 @@ public class JAXRSCdiResourceExtension implements Extension {
      * @return the references for all discovered JAX-RS providers
      */
     private List< Object > loadServices(final BeanManager beanManager, Collection<Class<?>> limitedClasses) {
-        return loadBeans(beanManager, limitedClasses, serviceBeans);
+        return loadBeans(beanManager, limitedClasses, serviceBeans, (a, b) -> b);
     }
 
     /**
@@ -468,16 +358,18 @@ public class JAXRSCdiResourceExtension implements Extension {
      * @return the references for all discovered JAX-RS providers
      */
     private List< Object > loadBeans(final BeanManager beanManager, Collection<Class<?>> limitedClasses,
-                                     Collection<Bean<?>> beans) {
+                                     Collection<Bean<?>> beans, final BiFunction<Bean<?>, Object, Object> processor) {
         final List< Object > instances = new ArrayList<>();
 
         for (final Bean< ? > bean: beans) {
             if (limitedClasses.isEmpty() || limitedClasses.contains(bean.getBeanClass())) {
                 instances.add(
-                      beanManager.getReference(
-                            bean,
-                            Object.class,
-                            createCreationalContext(beanManager, bean)
+                        processor.apply(
+                                bean,
+                                beanManager.getReference(
+                                    bean,
+                                    Object.class,
+                                    createCreationalContext(beanManager, bean))
                       )
                 );
             }
@@ -516,15 +408,14 @@ public class JAXRSCdiResourceExtension implements Extension {
      * @param bean JAX-RS server factory bean about to be created
      */
     private void customize(final BeanManager beanManager, final JAXRSServerFactoryBean bean) {
-        JAXRSServerFactoryCustomizationUtils.customize(bean);
         final Collection<Bean<?>> extensionBeans = beanManager.getBeans(JAXRSServerFactoryCustomizationExtension.class);
 
         for (final Bean<?> extensionBean: extensionBeans) {
             final JAXRSServerFactoryCustomizationExtension extension =
                 (JAXRSServerFactoryCustomizationExtension)beanManager.getReference(
                     extensionBean,
-                    JAXRSServerFactoryCustomizationExtension.class,
-                    createCreationalContext(beanManager, extensionBean)
+                    extensionBean.getBeanClass(),
+                    beanManager.createCreationalContext(extensionBean)
                 );
             extension.customize(bean);
         }
@@ -538,13 +429,9 @@ public class JAXRSCdiResourceExtension implements Extension {
      */
     private<T> CreationalContext< T > createCreationalContext(final BeanManager beanManager, Bean< T > bean) {
         final CreationalContext< T > creationalContext = beanManager.createCreationalContext(bean);
-        
         if (!(bean instanceof DefaultApplicationBean)) {
-            synchronized (disposableCreationalContexts) {
-                disposableCreationalContexts.add(creationalContext);
-            }
+            disposableCreationalContexts.add(creationalContext);
         }
-        
         return creationalContext;
     }
 
@@ -559,19 +446,10 @@ public class JAXRSCdiResourceExtension implements Extension {
             if (clazz.isAnnotationPresent(Path.class)) {
                 serviceBeans.add(event.getBean());
             } else if (clazz.isAnnotationPresent(Provider.class)) {
-                providerBeans.add(event.getBean());
+                providerBeans.put(event.getBean(), event.getAnnotated());
             } else if (clazz.isAnnotationPresent(ApplicationPath.class)) {
                 applicationBeans.add(event.getBean());
             } 
         }
-    }
-
-    public static Set<Class<?>> getCustomContextClasses() {
-        ServiceLoader<ContextClassProvider> classProviders = ServiceLoader.load(ContextClassProvider.class);
-        Set<Class<?>> customContextClasses = new LinkedHashSet<>();
-        for (ContextClassProvider classProvider : classProviders) {
-            customContextClasses.add(classProvider.getContextClass());
-        }
-        return Collections.unmodifiableSet(customContextClasses);
     }
 }
