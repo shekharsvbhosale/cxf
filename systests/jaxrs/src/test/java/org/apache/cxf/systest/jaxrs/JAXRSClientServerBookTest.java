@@ -21,6 +21,7 @@ package org.apache.cxf.systest.jaxrs;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -34,7 +35,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
@@ -45,7 +45,6 @@ import javax.ws.rs.ServerErrorException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.ResponseProcessingException;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Form;
@@ -55,7 +54,6 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Variant;
 import javax.ws.rs.ext.ReaderInterceptor;
 import javax.xml.bind.JAXBElement;
 import javax.xml.namespace.QName;
@@ -72,7 +70,6 @@ import org.apache.cxf.jaxrs.ext.xml.XMLSource;
 import org.apache.cxf.jaxrs.model.AbstractResourceInfo;
 import org.apache.cxf.jaxrs.provider.JAXBElementProvider;
 import org.apache.cxf.jaxrs.provider.XSLTJaxbProvider;
-import org.apache.cxf.message.Message;
 import org.apache.cxf.systest.jaxrs.BookStore.BookInfo;
 import org.apache.cxf.systest.jaxrs.BookStore.BookInfoInterface;
 import org.apache.cxf.systest.jaxrs.BookStore.BookNotReturnedException;
@@ -85,7 +82,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.InputStreamEntity;
+import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -648,7 +645,7 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
 
         Response r = wc.post(null);
         assertEquals(401, r.getStatus());
-        assertEquals("This is 401", IOUtils.toString((InputStream)r.getEntity()));
+        assertEquals("This is 401", getStringFromInputStream((InputStream)r.getEntity()));
     }
 
     @Test
@@ -816,37 +813,38 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
             "http://localhost:" + PORT + "/bookstore/books/response/123";
 
         // Add the CacheControlFeature to cache books returned by the service on the client side
-        try (CacheControlFeature cacheControlFeature = new CacheControlFeature()) {
-            cacheControlFeature.setCacheResponseInputStream(true);
-            Client client = ClientBuilder.newBuilder()
-                .register(cacheControlFeature)
-                .build();
-            WebTarget target = client.target(endpointAddress);
+        CacheControlFeature cacheControlFeature = new CacheControlFeature();
+        cacheControlFeature.setCacheResponseInputStream(true);
+        Client client = ClientBuilder.newBuilder()
+            .register(cacheControlFeature)
+            .build();
+        WebTarget target = client.target(endpointAddress);
 
-            // First call
-            Response response = target.request().get();
-            assertEquals(200, response.getStatus());
-            Book book = response.readEntity(Book.class);
-            assertEquals(123L, book.getId());
+        // First call
+        Response response = target.request().get();
+        assertEquals(200, response.getStatus());
+        Book book = response.readEntity(Book.class);
+        assertEquals(123L, book.getId());
 
-            MultivaluedMap<String, Object> headers = response.getMetadata();
-            assertFalse(headers.isEmpty());
-            Object etag = headers.getFirst("ETag");
-            assertNotNull(etag);
-            assertTrue(etag.toString().startsWith("\""));
-            assertTrue(etag.toString().endsWith("\""));
+        MultivaluedMap<String, Object> headers = response.getMetadata();
+        assertFalse(headers.isEmpty());
+        Object etag = headers.getFirst("ETag");
+        assertNotNull(etag);
+        assertTrue(etag.toString().startsWith("\""));
+        assertTrue(etag.toString().endsWith("\""));
 
-            Object cacheControl = headers.getFirst("Cache-Control");
-            assertNotNull(cacheControl);
-            assertTrue(cacheControl.toString().contains("private"));
-            assertTrue(cacheControl.toString().contains("max-age=100000"));
+        Object cacheControl = headers.getFirst("Cache-Control");
+        assertNotNull(cacheControl);
+        assertTrue(cacheControl.toString().contains("private"));
+        assertTrue(cacheControl.toString().contains("max-age=100000"));
 
-            // Now make a second call. This should be retrieved from the client's cache
-            response = target.request().get();
-            assertEquals(200, response.getStatus());
-            book = response.readEntity(Book.class);
-            assertEquals(123L, book.getId());
-        }
+        // Now make a second call. This should be retrieved from the client's cache
+        target.request().get();
+        assertEquals(200, response.getStatus());
+        book = response.readEntity(Book.class);
+        assertEquals(123L, book.getId());
+
+        cacheControlFeature.close();
     }
 
     @Test
@@ -856,39 +854,40 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
             "http://localhost:" + PORT + "/bookstore/books/response2/123";
 
         // Add the CacheControlFeature to cache books returned by the service on the client side
-        try (CacheControlFeature cacheControlFeature = new CacheControlFeature()) {
-            cacheControlFeature.setCacheResponseInputStream(true);
-            Client client = ClientBuilder.newBuilder()
-                .register(cacheControlFeature)
-                .build();
-            WebTarget target = client.target(endpointAddress);
+        CacheControlFeature cacheControlFeature = new CacheControlFeature();
+        cacheControlFeature.setCacheResponseInputStream(true);
+        Client client = ClientBuilder.newBuilder()
+            .register(cacheControlFeature)
+            .build();
+        WebTarget target = client.target(endpointAddress);
 
-            // First call
-            Response response = target.request().get();
-            assertEquals(200, response.getStatus());
-            Book book = response.readEntity(Book.class);
-            assertEquals(123L, book.getId());
+        // First call
+        Response response = target.request().get();
+        assertEquals(200, response.getStatus());
+        Book book = response.readEntity(Book.class);
+        assertEquals(123L, book.getId());
 
-            MultivaluedMap<String, Object> headers = response.getMetadata();
-            assertFalse(headers.isEmpty());
-            Object etag = headers.getFirst("ETag");
-            assertNotNull(etag);
-            assertTrue(etag.toString().startsWith("\""));
-            assertTrue(etag.toString().endsWith("\""));
+        MultivaluedMap<String, Object> headers = response.getMetadata();
+        assertFalse(headers.isEmpty());
+        Object etag = headers.getFirst("ETag");
+        assertNotNull(etag);
+        assertTrue(etag.toString().startsWith("\""));
+        assertTrue(etag.toString().endsWith("\""));
 
-            Object cacheControl = headers.getFirst("Cache-Control");
-            assertNotNull(cacheControl);
-            assertTrue(cacheControl.toString().contains("private"));
-            assertTrue(cacheControl.toString().contains("max-age=1"));
+        Object cacheControl = headers.getFirst("Cache-Control");
+        assertNotNull(cacheControl);
+        assertTrue(cacheControl.toString().contains("private"));
+        assertTrue(cacheControl.toString().contains("max-age=1"));
 
-            // Now make a second call. The value in the cache will have expired, so
-            // it should call the service again
-            Thread.sleep(1500L);
-            response = target.request().get();
-            assertEquals(200, response.getStatus());
-            book = response.readEntity(Book.class);
-            assertEquals(123L, book.getId());
-        }
+        // Now make a second call. The value in the cache will have expired, so
+        // it should call the service again
+        Thread.sleep(1500L);
+        target.request().get();
+        assertEquals(200, response.getStatus());
+        book = response.readEntity(Book.class);
+        assertEquals(123L, book.getId());
+
+        cacheControlFeature.close();
     }
 
     @Test
@@ -898,42 +897,42 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
             "http://localhost:" + PORT + "/bookstore/books/response3/123";
 
         // Add the CacheControlFeature to cache books returned by the service on the client side
-        try (CacheControlFeature cacheControlFeature = new CacheControlFeature()) {
-            cacheControlFeature.setCacheResponseInputStream(true);
-            Client client = ClientBuilder.newBuilder()
-                .register(cacheControlFeature)
-                .build();
-            WebTarget target = client.target(endpointAddress);
+        CacheControlFeature cacheControlFeature = new CacheControlFeature();
+        cacheControlFeature.setCacheResponseInputStream(true);
+        Client client = ClientBuilder.newBuilder()
+            .register(cacheControlFeature)
+            .build();
+        WebTarget target = client.target(endpointAddress);
 
-            // First call
-            Response response = target.request().get();
-            assertEquals(200, response.getStatus());
-            response.bufferEntity();
-            Book book = response.readEntity(Book.class);
-            assertEquals(123L, book.getId());
+        // First call
+        Response response = target.request().get();
+        assertEquals(200, response.getStatus());
+        Book book = response.readEntity(Book.class);
+        assertEquals(123L, book.getId());
 
-            MultivaluedMap<String, Object> headers = response.getMetadata();
-            assertFalse(headers.isEmpty());
-            Object etag = headers.getFirst("ETag");
-            assertNotNull(etag);
-            assertTrue(etag.toString().startsWith("\""));
-            assertTrue(etag.toString().endsWith("\""));
+        MultivaluedMap<String, Object> headers = response.getMetadata();
+        assertFalse(headers.isEmpty());
+        Object etag = headers.getFirst("ETag");
+        assertNotNull(etag);
+        assertTrue(etag.toString().startsWith("\""));
+        assertTrue(etag.toString().endsWith("\""));
 
-            Object cacheControl = headers.getFirst("Cache-Control");
-            assertNotNull(cacheControl);
-            assertTrue(cacheControl.toString().contains("private"));
-            assertTrue(cacheControl.toString().contains("max-age=1"));
+        Object cacheControl = headers.getFirst("Cache-Control");
+        assertNotNull(cacheControl);
+        assertTrue(cacheControl.toString().contains("private"));
+        assertTrue(cacheControl.toString().contains("max-age=1"));
 
-            // Now make a second call. The value in the clients cache will have expired, so it should call
-            // out to the service, which will return 304, and the client will re-use the cached payload
-            Thread.sleep(1500L);
-            Response response2 = target.request().get();
-            assertEquals(304, response2.getStatus());
-            assertFalse(response2.hasEntity());
-            Book book2 = response.readEntity(Book.class);
-            assertEquals(123L, book2.getId());
-        }
+        // Now make a second call. The value in the clients cache will have expired, so it should call
+        // out to the service, which will return 304, and the client will re-use the cached payload
+        Thread.sleep(1500L);
+        target.request().get();
+        assertEquals(200, response.getStatus());
+        book = response.readEntity(Book.class);
+        assertEquals(123L, book.getId());
+
+        cacheControlFeature.close();
     }
+
 
     @Test
     public void testOnewayWebClient() throws Exception {
@@ -2016,59 +2015,38 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
         assertEquals(202, r.getStatus());
         assertEquals("book", r.readEntity(String.class));
     }
-    @Test
-    public void testEchoBookWithLanguage() throws Exception {
-        final Book book = new Book("CXF in Action", 100);
-        WebClient wc = WebClient.create("http://localhost:" + PORT + "/bookstore/echoxmlbook-i18n");
-        wc.type("application/xml").accept("application/xml").language("en_CA");
-        Response r = wc.post(book);
-        assertEquals(200, r.getStatus());
-        assertEquals(book.getName() + "-en_CA", r.readEntity(Book.class).getName());
-    }
-    @Test
-    public void testEchoBookEntityWithLocale() throws Exception {
-        final Book book = new Book("CXF in Action", 100);
-        WebClient wc = WebClient.create("http://localhost:" + PORT + "/bookstore/echoxmlbook-i18n");
-        wc.type("application/xml").accept("application/xml").language("en_CA");
-        Response r = wc.post(Entity.entity(book, new Variant(MediaType.APPLICATION_XML_TYPE, Locale.UK, null)));
-        assertEquals(200, r.getStatus());
-        assertEquals(book.getName() + "-en_GB", r.readEntity(Book.class).getName());
-    }
-    @Test
-    public void testEmpty202() throws Exception {
-        WebClient wc = WebClient.create("http://localhost:" + PORT + "/bookstore/empty202");
-        WebClient.getConfig(wc).getRequestContext().put(Message.PROCESS_202_RESPONSE_ONEWAY_OR_PARTIAL, false);
-        wc.type("text/plain").accept("text/plain");
-        Response r = wc.post("book");
-        assertEquals(202, r.getStatus());
-        assertEquals("", r.readEntity(String.class));
-    }
+
     @Test
     public void testGetBookSimple() throws Exception {
         WebClient wc = WebClient.create("http://localhost:" + PORT + "/simplebooks/simple");
         Book book = wc.get(Book.class);
         assertEquals(444L, book.getId());
     }
+
     @Test(expected = ResponseProcessingException.class)
     public void testEmptyJSON() {
         doTestEmptyResponse("application/json");
     }
+
     @Test(expected = ResponseProcessingException.class)
     public void testEmptyJAXB() {
         doTestEmptyResponse("application/xml");
     }
+
     private void doTestEmptyResponse(String mt) {
         WebClient wc = WebClient.create("http://localhost:" + PORT + "/bookstore/emptybook");
         WebClient.getConfig(wc).getInInterceptors().add(new BookServer.ReplaceStatusInterceptor());
         wc.accept(mt);
         wc.get(Book.class);
     }
+
     @Test(expected = ResponseProcessingException.class)
     public void testEmptyResponseProxy() {
         BookStore store = JAXRSClientFactory.create("http://localhost:" + PORT, BookStore.class);
         WebClient.getConfig(store).getInInterceptors().add(new BookServer.ReplaceStatusInterceptor());
         store.getEmptyBook();
     }
+
     @Test
     public void testEmptyResponseProxyNullable() {
         BookStore store = JAXRSClientFactory.create("http://localhost:" + PORT, BookStore.class);
@@ -2533,18 +2511,19 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
     }
 
     private void doAddBook(String address) throws Exception {
+        File input = new File(getClass().getResource("resources/add_book.txt").toURI());
         CloseableHttpClient client = HttpClientBuilder.create().build();
         HttpPost post = new HttpPost(address);
         post.addHeader("Content-Type", "application/xml");
+        post.setEntity(new FileEntity(input, ContentType.TEXT_XML));
 
-        try (InputStream input = getClass().getResourceAsStream("resources/add_book.txt");
-            InputStream expected = getClass().getResourceAsStream("resources/expected_add_book.txt")) {
-            post.setEntity(new InputStreamEntity(input, ContentType.TEXT_XML));
-
+        try {
             CloseableHttpResponse response = client.execute(post);
             assertEquals(200, response.getStatusLine().getStatusCode());
 
-            assertEquals(stripXmlInstructionIfNeeded(IOUtils.toString(expected)),
+            InputStream expected = getClass().getResourceAsStream("resources/expected_add_book.txt");
+
+            assertEquals(stripXmlInstructionIfNeeded(getStringFromInputStream(expected)),
                          stripXmlInstructionIfNeeded(EntityUtils.toString(response.getEntity())));
         } finally {
             // Release current connection to the connection pool once you are done
@@ -2569,19 +2548,20 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
     public void testUpdateBook() throws Exception {
         String endpointAddress = "http://localhost:" + PORT + "/bookstore/books";
 
+        File input = new File(getClass().getResource("resources/update_book.txt").toURI());
         CloseableHttpClient client = HttpClientBuilder.create().build();
         HttpPut put = new HttpPut(endpointAddress);
+        put.setEntity(new FileEntity(input, ContentType.TEXT_XML));
 
-        try (InputStream input = getClass().getResourceAsStream("resources/update_book.txt");
-            InputStream expected = getClass().getResourceAsStream("resources/expected_update_book.txt")) {
-            put.setEntity(new InputStreamEntity(input, ContentType.TEXT_XML));
-
+        try {
             CloseableHttpResponse response = client.execute(put);
             assertEquals(200, response.getStatusLine().getStatusCode());
-            assertEquals(stripXmlInstructionIfNeeded(IOUtils.toString(expected)),
+            InputStream expected = getClass().getResourceAsStream("resources/expected_update_book.txt");
+            assertEquals(stripXmlInstructionIfNeeded(getStringFromInputStream(expected)),
                          stripXmlInstructionIfNeeded(EntityUtils.toString(response.getEntity())));
         } finally {
-            // Release current connection to the connection pool once you are done
+            // Release current connection to the connection pool once you are
+            // done
             put.releaseConnection();
         }
     }
@@ -2590,19 +2570,22 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
     public void testUpdateBookWithDom() throws Exception {
         String endpointAddress = "http://localhost:" + PORT + "/bookstore/bookswithdom";
 
+        File input = new File(getClass().getResource("resources/update_book.txt").toURI());
         CloseableHttpClient client = HttpClientBuilder.create().build();
         HttpPut put = new HttpPut(endpointAddress);
-        try (InputStream input = getClass().getResourceAsStream("resources/update_book.txt");
-            InputStream expected = getClass().getResourceAsStream("resources/update_book.txt")) {
-            put.setEntity(new InputStreamEntity(input, ContentType.TEXT_XML));
-
+        put.setEntity(new FileEntity(input, ContentType.TEXT_XML));
+        try {
             CloseableHttpResponse response = client.execute(put);
             assertEquals(200, response.getStatusLine().getStatusCode());
             String resp = EntityUtils.toString(response.getEntity());
-
-            assertTrue(resp.contains(IOUtils.toString(expected)));
+            InputStream expected = getClass().getResourceAsStream("resources/update_book.txt");
+            String s = getStringFromInputStream(expected);
+            //System.out.println(resp);
+            //System.out.println(s);
+            assertTrue(resp.indexOf(s) >= 0);
         } finally {
-            // Release current connection to the connection pool once you are done
+            // Release current connection to the connection pool once you are
+            // done
             put.releaseConnection();
         }
     }
@@ -2611,19 +2594,20 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
     public void testUpdateBookWithJSON() throws Exception {
         String endpointAddress = "http://localhost:" + PORT + "/bookstore/bookswithjson";
 
+        File input = new File(getClass().getResource("resources/update_book_json.txt").toURI());
         CloseableHttpClient client = HttpClientBuilder.create().build();
         HttpPut put = new HttpPut(endpointAddress);
+        put.setEntity(new FileEntity(input, ContentType.APPLICATION_JSON));
 
-        try (InputStream input = getClass().getResourceAsStream("resources/update_book_json.txt");
-            InputStream expected = getClass().getResourceAsStream("resources/expected_update_book.txt")) {
-            put.setEntity(new InputStreamEntity(input, ContentType.APPLICATION_JSON));
-
+        try {
             CloseableHttpResponse response = client.execute(put);
             assertEquals(200, response.getStatusLine().getStatusCode());
-            assertEquals(stripXmlInstructionIfNeeded(IOUtils.toString(expected)),
+            InputStream expected = getClass().getResourceAsStream("resources/expected_update_book.txt");
+            assertEquals(stripXmlInstructionIfNeeded(getStringFromInputStream(expected)),
                          stripXmlInstructionIfNeeded(EntityUtils.toString(response.getEntity())));
         } finally {
-            // Release current connection to the connection pool once you are done
+            // Release current connection to the connection pool once you are
+            // done
             put.releaseConnection();
         }
     }
@@ -2633,12 +2617,12 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
         String endpointAddress =
             "http://localhost:" + PORT + "/bookstore/books";
 
+        File input = new File(getClass().getResource("resources/update_book_not_exist.txt").toURI());
         CloseableHttpClient client = HttpClientBuilder.create().build();
         HttpPut put = new HttpPut(endpointAddress);
+        put.setEntity(new FileEntity(input, ContentType.TEXT_XML));
 
-        try (InputStream input = getClass().getResourceAsStream("resources/update_book_not_exist.txt")) {
-            put.setEntity(new InputStreamEntity(input, ContentType.TEXT_XML));
-
+        try {
             CloseableHttpResponse response = client.execute(put);
             assertEquals(304, response.getStatusLine().getStatusCode());
         } finally {
@@ -2762,8 +2746,8 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
             InputStream expected124 = getClass().getResourceAsStream("resources/expected_get_cdsjson124.txt");
 
             String content = EntityUtils.toString(response.getEntity());
-            assertTrue(content.indexOf(IOUtils.toString(expected123)) >= 0);
-            assertTrue(content.indexOf(IOUtils.toString(expected124)) >= 0);
+            assertTrue(content.indexOf(getStringFromInputStream(expected123)) >= 0);
+            assertTrue(content.indexOf(getStringFromInputStream(expected124)) >= 0);
 
         } finally {
             // Release current connection to the connection pool once you are done
@@ -2853,7 +2837,7 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
         assertEquals(3, header2.size());
         assertEquals("\"some text\"", header2.get(0));
         assertEquals("\"quoted,text\"", header2.get(1));
-        assertEquals("\"and backslash\"", header2.get(2));
+        assertEquals("\"even more text\"", header2.get(2));
 
         List<Object> header3 = r.getMetadata().get("SomeHeader3");
         assertEquals(1, header3.size());
@@ -2945,10 +2929,13 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
     }
 
 
-    private static void getAndCompareAsStrings(String address, String resourcePath, String acceptType,
-            String expectedContentType, int status) throws Exception {
-        String expected = IOUtils.toString(
-            JAXRSClientServerBookTest.class.getResourceAsStream(resourcePath));
+    private void getAndCompareAsStrings(String address,
+                                        String resourcePath,
+                                        String acceptType,
+                                        String expectedContentType,
+                                        int status) throws Exception {
+        String expected = getStringFromInputStream(
+                              getClass().getResourceAsStream(resourcePath));
         getAndCompare(address,
                       expected,
                       acceptType,
@@ -2956,8 +2943,11 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
                       status);
     }
 
-    private static void getAndCompare(String address, String expectedValue, String acceptType, 
-            String expectedContentType, int expectedStatus) throws Exception {
+    private void getAndCompare(String address,
+                               String expectedValue,
+                               String acceptType,
+                               String expectedContentType,
+                               int expectedStatus) throws Exception {
         CloseableHttpClient client = HttpClientBuilder.create().build();
         HttpGet get = new HttpGet(address);
         get.addHeader("Accept", acceptType);
@@ -2988,12 +2978,19 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
         }
     }
 
-    private static String stripXmlInstructionIfNeeded(String str) {
+    private String stripXmlInstructionIfNeeded(String str) {
         if (str != null && str.startsWith("<?xml")) {
             int index = str.indexOf("?>");
             str = str.substring(index + 2);
         }
         return str;
     }
+
+
+
+    private String getStringFromInputStream(InputStream in) throws Exception {
+        return IOUtils.toString(in);
+    }
+
 
 }

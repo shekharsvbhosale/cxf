@@ -29,6 +29,7 @@ import brave.http.HttpServerAdapter;
 import brave.http.HttpServerHandler;
 import brave.http.HttpTracing;
 import org.apache.cxf.common.logging.LogUtils;
+import org.apache.cxf.helpers.CastUtils;
 import org.apache.cxf.phase.PhaseInterceptorChain;
 import org.apache.cxf.tracing.AbstractTracingProvider;
 import org.apache.cxf.tracing.brave.internal.HttpAdapterFactory;
@@ -78,6 +79,14 @@ public abstract class AbstractBraveProvider extends AbstractTracingProvider {
                                  final Map<String, List<Object>> responseHeaders,
                                  final int responseStatus,
                                  final TraceScopeHolder<TraceScope> holder) {
+
+        // Transfer tracing headers into the response headers
+        brave
+            .tracing()
+            .propagation()
+            .keys()
+            .forEach(key -> transferRequestHeader(requestHeaders, responseHeaders, key));
+
         if (holder == null) {
             return;
         }
@@ -115,5 +124,12 @@ public abstract class AbstractBraveProvider extends AbstractTracingProvider {
 
     private void propagateContinuationSpan(final Span continuationScope) {
         PhaseInterceptorChain.getCurrentMessage().put(Span.class, continuationScope);
+    }
+
+    private void transferRequestHeader(final Map<String, List<String>> requestHeaders,
+            final Map<String, List<Object>> responseHeaders, final String header) {
+        if (requestHeaders.containsKey(header)) {
+            responseHeaders.put(header, CastUtils.cast(requestHeaders.get(header)));
+        }
     }
 }

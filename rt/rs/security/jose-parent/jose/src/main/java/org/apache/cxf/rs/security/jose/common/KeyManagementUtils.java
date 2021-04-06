@@ -19,7 +19,6 @@
 
 package org.apache.cxf.rs.security.jose.common;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -57,7 +56,6 @@ import org.apache.cxf.rs.security.jose.jwk.KeyOperation;
 import org.apache.cxf.rt.security.crypto.CryptoUtils;
 import org.apache.cxf.rt.security.crypto.MessageDigestUtils;
 import org.apache.cxf.rt.security.rs.PrivateKeyPasswordProvider;
-import org.apache.cxf.rt.security.rs.RSSecurityConstants;
 
 /**
  * Encryption helpers
@@ -317,7 +315,8 @@ public final class KeyManagementUtils {
         if (keyStorePswd == null) {
             throw new JoseException("No keystore password was defined");
         }
-        try (InputStream is = JoseUtils.getResourceStream(keyStoreLoc, bus)) {
+        try {
+            InputStream is = JoseUtils.getResourceStream(keyStoreLoc, bus);
             return CryptoUtils.loadKeyStore(is, keyStorePswd.toCharArray(), keyStoreType);
         } catch (Exception ex) {
             LOG.warning("Key store can not be loaded");
@@ -354,19 +353,13 @@ public final class KeyManagementUtils {
         }
         return null;
     }
-
     //TODO: enhance the certificate validation code
     public static void validateCertificateChain(Properties storeProperties, List<X509Certificate> inCerts) {
         Message message = PhaseInterceptorChain.getCurrentMessage();
         KeyStore ks = loadPersistKeyStore(message, storeProperties);
-        String enableRevocationProp = storeProperties.getProperty(RSSecurityConstants.RSSEC_ENABLE_REVOCATION);
-        if (enableRevocationProp == null) {
-            enableRevocationProp = (String)message.getContextualProperty(JoseConstants.RSSEC_ENABLE_REVOCATION);
-        }
-        boolean enableRevocation = enableRevocationProp != null && Boolean.parseBoolean(enableRevocationProp);
-        validateCertificateChain(ks, inCerts, enableRevocation);
+        validateCertificateChain(ks, inCerts);
     }
-    private static void validateCertificateChain(KeyStore ks, List<X509Certificate> inCerts, boolean enableRevocation) {
+    public static void validateCertificateChain(KeyStore ks, List<X509Certificate> inCerts) {
         // Initial chain validation, to be enhanced as needed
         try {
             X509CertSelector certSelect = new X509CertSelector();
@@ -377,7 +370,6 @@ public final class KeyManagementUtils {
             pbParams.setMaxPathLength(-1);
             pbParams.setRevocationEnabled(false);
             CertPathBuilderResult buildResult = CertPathBuilder.getInstance("PKIX").build(pbParams);
-            pbParams.setRevocationEnabled(enableRevocation);
             CertPath certPath = buildResult.getCertPath();
             CertPathValidator.getInstance("PKIX").validate(certPath, pbParams);
         } catch (Exception ex) {
@@ -408,13 +400,13 @@ public final class KeyManagementUtils {
             }
             return null;
         }
-        final Properties props;
+        Properties props = null;
         String propLoc =
             (String)MessageUtils.getContextualProperty(m, storeProp1, storeProp2);
         if (propLoc != null) {
             try {
                 props = JoseUtils.loadProperties(propLoc, m.getExchange().getBus());
-            } catch (IOException ex) {
+            } catch (Exception ex) {
                 LOG.warning("Properties resource is not identified");
                 throw new JoseException(ex);
             }
@@ -440,17 +432,14 @@ public final class KeyManagementUtils {
                 if (keyPassword != null) {
                     props.setProperty(JoseConstants.RSSEC_KEY_PSWD, keyPassword);
                 }
-                String signatureAlgorithm = (String)m.getContextualProperty(JoseConstants.RSSEC_SIGNATURE_ALGORITHM);
-                if (signatureAlgorithm != null) {
-                    props.setProperty(JoseConstants.RSSEC_SIGNATURE_ALGORITHM, signatureAlgorithm);
-                }
-            } else {
-                if (required) {
-                    LOG.warning("Properties resource is not identified");
-                    throw new JoseException("Properties resource is not identified");
-                }
-                props = new Properties();
             }
+        }
+        if (props == null) {
+            if (required) {
+                LOG.warning("Properties resource is not identified");
+                throw new JoseException("Properties resource is not identified");
+            }
+            props = new Properties();
         }
         return props;
     }

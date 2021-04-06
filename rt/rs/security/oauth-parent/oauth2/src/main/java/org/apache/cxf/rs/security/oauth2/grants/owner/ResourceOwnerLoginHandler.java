@@ -27,8 +27,8 @@ public interface ResourceOwnerLoginHandler {
      * Create a {@link UserSubject} for the name and password parameters, or return null if the name and password
      * are invalid.
      * @param client using the resource owner grant
-     * @param name owner name
-     * @param password owner password
+     * @param resource owner name
+     * @param resource owner password
      * @return A {@link UserSubject} representing the user, or null.
      */
     UserSubject createSubject(Client client, String name, String password);

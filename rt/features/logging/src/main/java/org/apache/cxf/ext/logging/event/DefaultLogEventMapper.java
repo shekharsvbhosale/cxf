@@ -34,7 +34,6 @@ import javax.security.auth.Subject;
 import org.apache.cxf.binding.Binding;
 import org.apache.cxf.configuration.security.AuthorizationPolicy;
 import org.apache.cxf.endpoint.Endpoint;
-import org.apache.cxf.ext.logging.MaskSensitiveHelper;
 import org.apache.cxf.helpers.CastUtils;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.message.MessageUtils;
@@ -47,24 +46,19 @@ import org.apache.cxf.ws.addressing.AddressingProperties;
 import org.apache.cxf.ws.addressing.ContextUtils;
 
 public class DefaultLogEventMapper {
-    public static final String MASKED_HEADER_VALUE = "XXX";
     private static final Set<String> DEFAULT_BINARY_CONTENT_MEDIA_TYPES;
-
     static {
-        Set<String> mediaTypes = new HashSet<>(6);
+        Set<String> mediaTypes = new HashSet<>(5);
         mediaTypes.add("application/octet-stream");
         mediaTypes.add("application/pdf");
         mediaTypes.add("image/png");
         mediaTypes.add("image/jpeg");
         mediaTypes.add("image/gif");
-        mediaTypes.add("image/bmp");
         DEFAULT_BINARY_CONTENT_MEDIA_TYPES = Collections.unmodifiableSet(mediaTypes);
     }
     private static final String MULTIPART_CONTENT_MEDIA_TYPE = "multipart";
 
     private final Set<String> binaryContentMediaTypes = new HashSet<>(DEFAULT_BINARY_CONTENT_MEDIA_TYPES);
-
-    private MaskSensitiveHelper maskSensitiveHelper = new MaskSensitiveHelper();
 
     public void addBinaryContentMediaTypes(String mediaTypes) {
         if (mediaTypes != null) {
@@ -72,7 +66,7 @@ public class DefaultLogEventMapper {
         }
     }
 
-    public LogEvent map(final Message message, final Set<String> sensitiveProtocolHeaders) {
+    public LogEvent map(Message message) {
         final LogEvent event = new LogEvent();
         event.setMessageId(getMessageId(message));
         event.setExchangeId((String)message.getExchange().get(LogEvent.KEY_EXCHANGE_ID));
@@ -90,10 +84,12 @@ public class DefaultLogEventMapper {
         event.setContentType(safeGet(message, Message.CONTENT_TYPE));
 
         Map<String, String> headerMap = getHeaders(message);
-        maskSensitiveHelper.maskHeaders(headerMap, sensitiveProtocolHeaders);
         event.setHeaders(headerMap);
 
-        event.setAddress(getAddress(message, event));
+        String uri = getUri(message);
+        if (uri != null) {
+            event.setAddress(uri);
+        }
 
         event.setPrincipal(getPrincipal(message));
         event.setBinaryContent(isBinaryContent(message));
@@ -159,19 +155,6 @@ public class DefaultLogEventMapper {
         return result;
     }
 
-    private String getAddress(Message message, LogEvent event) {
-        final Message observedMessage;
-        if (event.getType() == EventType.RESP_IN) {
-            observedMessage = message.getExchange().getOutMessage();
-        } else if (event.getType() == EventType.RESP_OUT) {
-            observedMessage = message.getExchange().getInMessage();
-        } else {
-            observedMessage = message;
-        }
-
-        return getUri(observedMessage);
-    }
-
     private String getUri(Message message) {
         String uri = safeGet(message, Message.REQUEST_URL);
         if (uri == null) {
@@ -180,7 +163,7 @@ public class DefaultLogEventMapper {
             if (uri != null && uri.startsWith("/")) {
                 if (address != null && !address.startsWith(uri)) {
                     if (address.endsWith("/") && address.length() > 1) {
-                        address = address.substring(0, address.length() - 1);
+                        address = address.substring(0, address.length());
                     }
                     uri = address + uri;
                 }
@@ -200,10 +183,6 @@ public class DefaultLogEventMapper {
         return contentType != null && binaryContentMediaTypes.contains(contentType);
     }
 
-    public boolean isBinaryContent(String contentType) {
-        return contentType != null && binaryContentMediaTypes.contains(contentType);
-    }
-    
     private boolean isMultipartContent(Message message) {
         String contentType = safeGet(message, Message.CONTENT_TYPE);
         return contentType != null && contentType.startsWith(MULTIPART_CONTENT_MEDIA_TYPE);
@@ -235,7 +214,9 @@ public class DefaultLogEventMapper {
 
     private String getOperationName(Message message) {
         String operationName = null;
-        BindingOperationInfo boi = message.getExchange().getBindingOperationInfo();
+        BindingOperationInfo boi = null;
+
+        boi = message.getExchange().getBindingOperationInfo();
 
         if (null != boi) {
             operationName = boi.getName().toString();

@@ -25,7 +25,6 @@ import java.io.Reader;
 import java.io.Writer;
 import java.net.URL;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 
 import javax.jms.ConnectionFactory;
 import javax.jms.DeliveryMode;
@@ -171,7 +170,6 @@ public abstract class AbstractJMSTester {
         return new JMSConduit(null, jmsConfig, bus);
     }
 
-
     protected JMSConduit setupJMSConduitWithObserver(EndpointInfo ei) throws IOException {
         JMSConduit jmsConduit = setupJMSConduit(ei);
         MessageObserver observer = new MessageObserver() {
@@ -186,13 +184,6 @@ public abstract class AbstractJMSTester {
         return jmsConduit;
     }
 
-    protected JMSDestination setupJMSDestination(EndpointInfo ei, 
-            Function<ConnectionFactory, ConnectionFactory> wrapper) throws IOException {
-        JMSConfiguration jmsConfig = JMSConfigFactory.createFromEndpointInfo(bus, ei, null);
-        jmsConfig.setConnectionFactory(wrapper.apply(cf));
-        return new JMSDestination(bus, ei, jmsConfig);
-    }
-    
     protected JMSDestination setupJMSDestination(EndpointInfo ei) throws IOException {
         JMSConfiguration jmsConfig = JMSConfigFactory.createFromEndpointInfo(bus, ei, null);
         jmsConfig.setConnectionFactory(cf);

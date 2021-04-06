@@ -62,13 +62,14 @@ public class LoadingByteArrayOutputStream extends ByteArrayOutputStream {
 
         @Override
         public void transferTo(File file) throws IOException {
-            try (OutputStream out = Files.newOutputStream(file.toPath());
-                WritableByteChannel channel = Channels.newChannel(out)) {
-                ByteBuffer bb = ByteBuffer.wrap(buf, 0, count);
-                while (bb.hasRemaining()) {
-                    channel.write(bb);
-                }
+            OutputStream out = Files.newOutputStream(file.toPath());
+            WritableByteChannel channel = Channels.newChannel(out);
+            ByteBuffer bb = ByteBuffer.wrap(buf, 0, count);
+            while (bb.hasRemaining()) {
+                channel.write(bb);
             }
+            channel.close();
+            out.close();
         }
 
     }

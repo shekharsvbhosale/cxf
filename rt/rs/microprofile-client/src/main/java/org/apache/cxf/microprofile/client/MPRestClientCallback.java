@@ -20,6 +20,12 @@
 package org.apache.cxf.microprofile.client;
 
 import java.lang.reflect.Type;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 
 import javax.ws.rs.client.InvocationCallback;
@@ -28,16 +34,45 @@ import org.apache.cxf.jaxrs.client.JaxrsClientCallback;
 import org.apache.cxf.message.Message;
 
 public class MPRestClientCallback<T> extends JaxrsClientCallback<T> {
+    private final ExecutorService executor;
+
     public MPRestClientCallback(InvocationCallback<T> handler,
                                 Message outMessage,
                                 Class<?> responseClass,
                                 Type outGenericType) {
         super(handler, responseClass, outGenericType);
+        ExecutorService es = outMessage.get(ExecutorService.class);
+        executor = es != null ? es : ForkJoinPool.commonPool();
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public Future<T> createFuture() {
-        return delegate.thenApply(res -> (T)res[0]);
+        return (Future<T>)CompletableFuture.supplyAsync(() -> {
+            synchronized (this) {
+                if (!isDone()) {
+                    try {
+                        this.wait();
+                    } catch (InterruptedException e) {
+                        throw new CompletionException(e);
+                    }
+                }
+            }
+            if (exception != null) {
+                throw new CompletionException(exception);
+            }
+            if (isCancelled()) {
+                throw new CancellationException();
+            }
+            if (!isDone()) {
+                throw new IllegalStateException(
+                    "CompletionStage has been notified, indicating completion, but is not completed.");
+            }
+            try {
+                return get()[0];
+            } catch (InterruptedException | ExecutionException e) {
+                throw new CompletionException(e);
+            }
+        }, executor);
     }
 }

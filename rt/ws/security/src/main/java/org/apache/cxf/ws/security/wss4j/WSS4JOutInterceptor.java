@@ -53,7 +53,6 @@ import org.apache.wss4j.dom.handler.HandlerAction;
 import org.apache.wss4j.dom.handler.RequestData;
 import org.apache.wss4j.dom.handler.WSHandlerConstants;
 import org.apache.wss4j.dom.util.WSSecurityUtil;
-import org.apache.xml.security.c14n.InvalidCanonicalizerException;
 
 public class WSS4JOutInterceptor extends AbstractWSS4JInterceptor {
 
@@ -157,17 +156,15 @@ public class WSS4JOutInterceptor extends AbstractWSS4JInterceptor {
                 return;
             }
             SoapVersion version = mc.getVersion();
+            RequestData reqData = new RequestData();
 
             /*
              * The overall try, just to have a finally at the end to perform some
              * housekeeping.
              */
             try {
-                RequestData reqData = new RequestData();
-
                 WSSConfig config = WSSConfig.getNewInstance();
                 reqData.setWssConfig(config);
-                reqData.setEncryptionSerializer(new StaxSerializer());
 
                 /*
                  * Setup any custom actions first by processing the input properties
@@ -270,9 +267,11 @@ public class WSS4JOutInterceptor extends AbstractWSS4JInterceptor {
                 if (doDebug) {
                     LOG.fine("WSS4JOutInterceptor: exit handleMessage()");
                 }
-            } catch (InvalidCanonicalizerException | WSSecurityException e) {
+            } catch (WSSecurityException e) {
                 throw new SoapFault(new Message("SECURITY_FAILED", LOG), e, version
                         .getSender());
+            } finally {
+                reqData = null;
             }
         }
 
@@ -307,7 +306,7 @@ public class WSS4JOutInterceptor extends AbstractWSS4JInterceptor {
                 (Map<?, ?>)getProperty(mc, WSS4J_ACTION_MAP));
             if (actionMap != null && !actionMap.isEmpty()) {
                 for (Map.Entry<Integer, Object> entry : actionMap.entrySet()) {
-                    final Class<?> removedAction;
+                    Class<?> removedAction = null;
 
                     // Be defensive here since the cast above is slightly risky
                     // with the handler config options not being strongly typed.

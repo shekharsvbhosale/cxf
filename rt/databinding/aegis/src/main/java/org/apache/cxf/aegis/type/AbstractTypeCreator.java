@@ -34,8 +34,7 @@ import org.apache.cxf.aegis.type.basic.ObjectType;
 import org.apache.cxf.aegis.type.collection.CollectionType;
 import org.apache.cxf.aegis.type.collection.MapType;
 import org.apache.cxf.aegis.util.NamespaceHelper;
-import org.apache.cxf.common.util.StringUtils;
-import org.apache.cxf.helpers.ServiceUtils;
+import org.apache.cxf.aegis.util.ServiceUtils;
 import org.apache.cxf.wsdl.WSDLConstants;
 import org.apache.ws.commons.schema.constants.Constants;
 
@@ -107,7 +106,7 @@ public abstract class AbstractTypeCreator implements TypeCreator {
     public AegisType createTypeForClass(TypeClassInfo info) {
 
         Class<?> javaClass = TypeUtil.getTypeRelatedClass(info.getType());
-        final AegisType result;
+        AegisType result = null;
         boolean newType = true;
         if (info.getType() instanceof TypeVariable) {
             //it's the generic type
@@ -350,7 +349,9 @@ public abstract class AbstractTypeCreator implements TypeCreator {
             ns = HTTP_CXF_APACHE_ORG_ARRAYS;
         }
 
-        String localName = "ArrayOf" + StringUtils.capitalize(type.getSchemaType().getLocalPart());
+        String first = type.getSchemaType().getLocalPart().substring(0, 1);
+        String last = type.getSchemaType().getLocalPart().substring(1);
+        String localName = "ArrayOf" + first.toUpperCase() + last;
         if (info.nonDefaultAttributes()) {
             localName += "-";
             if (info.getMinOccurs() >= 0) {

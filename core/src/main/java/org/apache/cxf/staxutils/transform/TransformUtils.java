@@ -43,16 +43,7 @@ public final class TransformUtils {
     }
 
     public static XMLStreamWriter createNewWriterIfNeeded(XMLStreamWriter writer, OutputStream os) {
-        return createNewWriterIfNeeded(writer, os, null);
-    }
-
-    public static XMLStreamWriter createNewWriterIfNeeded(XMLStreamWriter writer, OutputStream os, String encoding) {
-        if (writer != null) {
-            return writer;
-        } else if (encoding != null) {
-            return StaxUtils.createXMLStreamWriter(os, encoding);
-        }
-        return StaxUtils.createXMLStreamWriter(os);
+        return writer == null ? StaxUtils.createXMLStreamWriter(os) : writer;
     }
 
     public static XMLStreamWriter createTransformWriterIfNeeded(XMLStreamWriter writer,
@@ -78,11 +69,10 @@ public final class TransformUtils {
                                                                 Map<String, String> outAppendMap,
                                                                 Map<String, String> outAttributesMap,
                                                                 boolean attributesToElements,
-                                                                String defaultNamespace,
-                                                                String encoding) {
+                                                                String defaultNamespace) {
         if (outElementsMap != null || outDropElements != null
             || outAppendMap != null || attributesToElements) {
-            writer = new OutTransformWriter(createNewWriterIfNeeded(writer, os, encoding), outElementsMap, outAppendMap,
+            writer = new OutTransformWriter(createNewWriterIfNeeded(writer, os), outElementsMap, outAppendMap,
                                             outDropElements, outAttributesMap, attributesToElements, defaultNamespace);
         }
         return writer;

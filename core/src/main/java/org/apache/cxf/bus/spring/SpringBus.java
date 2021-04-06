@@ -110,7 +110,6 @@ public class SpringBus extends ExtensionManagerBus
         }
     }
 
-    @Override
     public void destroyBeans() {
         if (closeContext) {
             ctx.close();
@@ -118,7 +117,6 @@ public class SpringBus extends ExtensionManagerBus
         super.destroyBeans();
     }
 
-    @Override
     public String getId() {
         if (id == null) {
             try {
@@ -127,7 +125,7 @@ public class SpringBus extends ExtensionManagerBus
                 Object o = getExtension(clsbc);
                 Object o2 = clsbc.getMethod("getBundle").invoke(o);
                 String s = (String)clsb.getMethod("getSymbolicName").invoke(o2);
-                id = s + '-' + DEFAULT_BUS_ID + Integer.toString(this.hashCode());
+                id = s + "-" + DEFAULT_BUS_ID + Integer.toString(this.hashCode());
             } catch (Throwable t) {
                 id = super.getId();
             }

@@ -45,7 +45,7 @@ public final class AuthorizationUtils {
         return null;
     }
     public static String[] getBasicAuthParts(String basicAuthData) {
-        final String authDecoded;
+        String authDecoded = null;
         try {
             authDecoded = new String(Base64Utility.decode(basicAuthData));
         } catch (Exception ex) {

@@ -27,7 +27,6 @@ import java.util.Set;
 
 import javax.ws.rs.ext.ParamConverterProvider;
 
-import org.apache.cxf.common.util.StringUtils;
 import org.apache.cxf.jaxrs.ext.search.DefaultParamConverterProvider;
 import org.apache.cxf.jaxrs.ext.search.PrimitiveStatement;
 import org.apache.cxf.jaxrs.ext.search.SearchConditionVisitor;
@@ -82,7 +81,12 @@ public abstract class AbstractSearchConditionVisitor <T, E> implements SearchCon
             name = name.substring(index + 1);
             if (value != null && !InjectionUtils.isPrimitive(actualCls)) {
                 try {
-                    String nextPart = StringUtils.capitalize(names[1]);
+                    String nextPart = names[1];
+                    if (nextPart.length() == 1) {
+                        nextPart = nextPart.toUpperCase();
+                    } else {
+                        nextPart = Character.toUpperCase(nextPart.charAt(0)) + nextPart.substring(1);
+                    }
 
                     Method m = actualCls.getMethod("get" + nextPart, new Class[]{});
                     if (isCollection) {

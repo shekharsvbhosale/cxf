@@ -185,13 +185,12 @@ public class DynamicClientFactory {
      * Create a new <code>Client</code> instance using the WSDL to be loaded
      * from the specified URL and using the current classloading context.
      *
-     * @param wsdlUrl the URL to load
-     * @return a new Client loaded using the wsdlUrl parameter
+     * @param wsdlURL the URL to load
+     * @return
      */
     public Client createClient(String wsdlUrl) {
         return createClient(wsdlUrl, (QName)null, (QName)null);
     }
-
     public Client createClient(String wsdlUrl, List<String> bindingFiles) {
         return createClient(wsdlUrl, (QName)null, (QName)null, bindingFiles);
     }
@@ -201,8 +200,8 @@ public class DynamicClientFactory {
      * Create a new <code>Client</code> instance using the WSDL to be loaded
      * from the specified URL and using the current classloading context.
      *
-     * @param wsdlUrl the URL to load
-     * @return a new Client loaded using the wsdlUrl parameter
+     * @param wsdlURL the URL to load
+     * @return
      */
     public Client createClient(URL wsdlUrl) {
         return createClient(wsdlUrl, (QName)null, (QName)null);
@@ -392,7 +391,7 @@ public class DynamicClientFactory {
             LOG.log(Level.SEVERE, new Message("COULD_NOT_COMPILE_SRC", LOG, wsdlUrl).toString());
         }
         FileUtils.removeDir(src);
-        final URL[] urls;
+        URL[] urls = null;
         try {
             urls = new URL[] {classes.toURI().toURL()};
         } catch (MalformedURLException mue) {
@@ -431,7 +430,7 @@ public class DynamicClientFactory {
         // Setup the new classloader!
         ClassLoaderUtils.setThreadContextClassloader(cl);
 
-        TypeClassInitializer visitor = new TypeClassInitializer(bus, svcfo,
+        TypeClassInitializer visitor = new TypeClassInitializer(svcfo,
                                                                 intermediateModel,
                                                                 allowWrapperOps());
         visitor.walk();
@@ -444,7 +443,7 @@ public class DynamicClientFactory {
     }
 
     protected SchemaCompiler createSchemaCompiler() {
-        return JAXBUtils.createSchemaCompilerWithDefaultAllocator(new HashSet<>());
+        return JAXBUtils.createSchemaCompilerWithDefaultAllocator(new HashSet<>());    
     }
 
     protected void applySchemaCompilerOptions(SchemaCompiler compiler) {
@@ -728,15 +727,16 @@ public class DynamicClientFactory {
     }
 
     private URL composeUrl(String s) {
-        try (URIResolver resolver = new URIResolver(null, s, getClass())) {
+        try {
+            URIResolver resolver = new URIResolver(null, s, getClass());
+
             if (resolver.isResolved()) {
                 return resolver.getURI().toURL();
             }
+            throw new ServiceConstructionException(new Message("COULD_NOT_RESOLVE_URL", LOG, s));
         } catch (IOException e) {
             throw new ServiceConstructionException(new Message("COULD_NOT_RESOLVE_URL", LOG, s), e);
         }
-        
-        throw new ServiceConstructionException(new Message("COULD_NOT_RESOLVE_URL", LOG, s));
     }
 
     static class InnerErrorListener {
@@ -764,11 +764,11 @@ public class DynamicClientFactory {
                 errors.append('\n');
             }
             if (arg0.getLineNumber() > 0) {
-                errors.append(arg0.getLocalizedMessage()).append('\n')
-                    .append(" at line ").append(arg0.getLineNumber())
-                    .append(" column ").append(arg0.getColumnNumber())
-                    .append(" of schema ").append(arg0.getSystemId())
-                    .append('\n');
+                errors.append(arg0.getLocalizedMessage() + "\n"
+                    + " at line " + arg0.getLineNumber()
+                    + " column " + arg0.getColumnNumber()
+                    + " of schema " + arg0.getSystemId()
+                    + "\n");
             } else {
                 errors.append(arg0.getMessage());
                 errors.append('\n');
@@ -922,7 +922,8 @@ public class DynamicClientFactory {
         }
 
 
-        try (URIResolver resolver = new URIResolver(base, target)) {
+        try {
+            URIResolver resolver = new URIResolver(base, target);
             if (resolver.isResolved()) {
                 target = resolver.getURI().toString();
             }

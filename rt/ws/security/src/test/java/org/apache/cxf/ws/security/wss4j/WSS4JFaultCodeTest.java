@@ -63,7 +63,7 @@ public class WSS4JFaultCodeTest extends AbstractSecurityTest {
         doc = saajMsg.getSOAPPart();
 
         byte[] docbytes = getMessageBytes(doc);
-        StaxUtils.read(new ByteArrayInputStream(docbytes));
+        doc = StaxUtils.read(new ByteArrayInputStream(docbytes));
 
         WSS4JInInterceptor inHandler = new WSS4JInInterceptor();
 
@@ -72,7 +72,7 @@ public class WSS4JFaultCodeTest extends AbstractSecurityTest {
         ex.setInMessage(inmsg);
         inmsg.setContent(SOAPMessage.class, saajMsg);
 
-        inHandler.setProperty(ConfigurationConstants.ACTION, ConfigurationConstants.ENCRYPTION);
+        inHandler.setProperty(ConfigurationConstants.ACTION, ConfigurationConstants.ENCRYPT);
         inHandler.setProperty(ConfigurationConstants.DEC_PROP_FILE, "insecurity.properties");
         inHandler.setProperty(ConfigurationConstants.PW_CALLBACK_CLASS, TestPwdCallback.class.getName());
 
@@ -112,7 +112,7 @@ public class WSS4JFaultCodeTest extends AbstractSecurityTest {
         assertValid("//wsse:Security", doc);
 
         byte[] docbytes = getMessageBytes(doc);
-        StaxUtils.read(new ByteArrayInputStream(docbytes));
+        doc = StaxUtils.read(new ByteArrayInputStream(docbytes));
 
         WSS4JInInterceptor inHandler = new WSS4JInInterceptor();
 
@@ -161,7 +161,7 @@ public class WSS4JFaultCodeTest extends AbstractSecurityTest {
         assertValid("//wsse:Security", doc);
 
         byte[] docbytes = getMessageBytes(doc);
-        StaxUtils.read(new ByteArrayInputStream(docbytes));
+        doc = StaxUtils.read(new ByteArrayInputStream(docbytes));
 
         WSS4JInInterceptor inHandler = new WSS4JInInterceptor();
 
@@ -197,7 +197,7 @@ public class WSS4JFaultCodeTest extends AbstractSecurityTest {
         doc = saajMsg.getSOAPPart();
 
         byte[] docbytes = getMessageBytes(doc);
-        StaxUtils.read(new ByteArrayInputStream(docbytes));
+        doc = StaxUtils.read(new ByteArrayInputStream(docbytes));
 
         WSS4JInInterceptor inHandler = new WSS4JInInterceptor();
 
@@ -207,7 +207,7 @@ public class WSS4JFaultCodeTest extends AbstractSecurityTest {
         inmsg.setContent(SOAPMessage.class, saajMsg);
 
         inHandler.setProperty(ConfigurationConstants.ACTION,
-                              ConfigurationConstants.SIGNATURE + " "  + ConfigurationConstants.ENCRYPTION);
+                              ConfigurationConstants.SIGNATURE + " "  + ConfigurationConstants.ENCRYPT);
         inHandler.setProperty(ConfigurationConstants.DEC_PROP_FILE, "insecurity.properties");
         inHandler.setProperty(ConfigurationConstants.SIG_VER_PROP_FILE, "insecurity.properties");
         inHandler.setProperty(ConfigurationConstants.PW_CALLBACK_CLASS, TestPwdCallback.class.getName());

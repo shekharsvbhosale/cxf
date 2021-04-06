@@ -55,7 +55,6 @@ import org.opensaml.xmlsec.signature.KeyInfo;
 import org.opensaml.xmlsec.signature.Signature;
 import org.opensaml.xmlsec.signature.support.SignatureConstants;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
@@ -86,12 +85,7 @@ public class SAMLSSOResponseValidatorTest {
         validator.setClientAddress("http://apache.org");
         validator.setRequestId("12345");
         validator.setSpIdentifier("http://service.apache.org");
-
-        SSOValidatorResponse validateSamlResponse = validator.validateSamlResponse(response, false);
-        assertEquals(response.getID(), validateSamlResponse.getResponseId());
-        assertNotNull(validateSamlResponse.getAssertionElement());
-        assertNotNull(validateSamlResponse.getCreated());
-        assertNotNull(validateSamlResponse.getSessionNotOnOrAfter());
+        validator.validateSamlResponse(response, false);
     }
 
     @org.junit.Test

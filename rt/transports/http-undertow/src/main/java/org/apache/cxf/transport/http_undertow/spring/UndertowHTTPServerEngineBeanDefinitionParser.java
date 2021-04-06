@@ -224,9 +224,6 @@ public class UndertowHTTPServerEngineBeanDefinitionParser extends AbstractBeanDe
         if (paramtype.getWorkerIOThreads() != null) {
             params.setWorkerIOThreads(paramtype.getWorkerIOThreads());
         }
-        if (paramtype.getWorkerIOName() != null) {
-            params.setWorkerIOName(paramtype.getWorkerIOName());
-        }
 
         return params;
     }
@@ -292,7 +289,9 @@ public class UndertowHTTPServerEngineBeanDefinitionParser extends AbstractBeanDe
         }
 
         @PostConstruct
-        public void finalizeConfig() {
+        public void finalizeConfig()
+            throws GeneralSecurityException,
+                   IOException {
             if (tlsRef != null || threadingRef != null) {
 
                 if (threadingRef != null) {

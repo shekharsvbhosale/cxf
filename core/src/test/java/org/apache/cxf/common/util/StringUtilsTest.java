@@ -56,33 +56,4 @@ public class StringUtilsTest {
         assertEquals("http://localhost:9090",
                      StringUtils.addDefaultPortIfMissing("http://localhost", "9090"));
     }
-
-    @Test
-    public void testCapitalize() {
-        assertEquals(null, StringUtils.capitalize(null));
-        assertEquals("", StringUtils.capitalize(""));
-        assertEquals("A", StringUtils.capitalize("A"));
-        assertEquals("A", StringUtils.capitalize("a"));
-        assertEquals("Aa", StringUtils.capitalize("aa"));
-        assertEquals("Aa", StringUtils.capitalize("Aa"));
-        assertEquals("AA", StringUtils.capitalize("AA"));
-    }
-
-    @Test
-    public void testUncapitalize() {
-        assertEquals(null, StringUtils.uncapitalize(null));
-        assertEquals("", StringUtils.uncapitalize(""));
-        assertEquals("a", StringUtils.uncapitalize("A"));
-        assertEquals("a", StringUtils.uncapitalize("a"));
-        assertEquals("aa", StringUtils.uncapitalize("aa"));
-        assertEquals("aa", StringUtils.uncapitalize("Aa"));
-        assertEquals("aA", StringUtils.uncapitalize("AA"));
-    }
-
-    @Test
-    public void testToHexString() {
-        byte[] bytes = new byte[] {Byte.MIN_VALUE, 0x20, Byte.MAX_VALUE, 0x00, (byte) 0xFF};
-        String hexString = StringUtils.toHexString(bytes);
-        assertEquals(bytes.length * 2, hexString.length());
-    }
 }

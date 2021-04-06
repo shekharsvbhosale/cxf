@@ -19,6 +19,7 @@
 package org.apache.cxf.ws.security.wss4j;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.security.Provider;
 import java.security.cert.Certificate;
 import java.util.ArrayList;
@@ -65,7 +66,6 @@ import org.apache.cxf.security.transport.TLSSessionInfo;
 import org.apache.cxf.staxutils.StaxUtils;
 import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.cxf.ws.security.tokenstore.TokenStore;
-import org.apache.cxf.ws.security.tokenstore.TokenStoreException;
 import org.apache.cxf.ws.security.tokenstore.TokenStoreUtils;
 import org.apache.wss4j.common.ConfigurationConstants;
 import org.apache.wss4j.common.cache.ReplayCache;
@@ -85,7 +85,6 @@ import org.apache.wss4j.dom.processor.Processor;
 import org.apache.wss4j.dom.util.WSSecurityUtil;
 import org.apache.wss4j.dom.validate.NoOpValidator;
 import org.apache.wss4j.dom.validate.Validator;
-import org.apache.xml.security.c14n.InvalidCanonicalizerException;
 
 /**
  * Performs WS-Security inbound actions.
@@ -239,6 +238,7 @@ public class WSS4JInInterceptor extends AbstractWSS4JInterceptor {
             config = engine.getWssConfig();
         }
         reqData.setWssConfig(config);
+        reqData.setEncryptionSerializer(new StaxSerializer());
 
         // Add Audience Restrictions for SAML
         reqData.setAudienceRestrictions(SAMLUtils.getAudienceRestrictions(msg, true));
@@ -248,12 +248,6 @@ public class WSS4JInInterceptor extends AbstractWSS4JInterceptor {
         boolean doDebug = LOG.isLoggable(Level.FINE);
 
         SoapVersion version = msg.getVersion();
-        try {
-            reqData.setEncryptionSerializer(new StaxSerializer());
-        } catch (InvalidCanonicalizerException e) {
-            throw new SoapFault(new Message("SECURITY_FAILED", LOG), e, version.getReceiver());
-        }
-
         if (doDebug) {
             LOG.fine("WSS4JInInterceptor: enter handleMessage()");
         }
@@ -384,6 +378,8 @@ public class WSS4JInInterceptor extends AbstractWSS4JInterceptor {
             throw new SoapFault(new Message("STAX_EX", LOG), e, version.getSender());
         } catch (SOAPException e) {
             throw new SoapFault(new Message("SAAJ_EX", LOG), e, version.getSender());
+        } finally {
+            reqData = null;
         }
     }
     private void importNewDomToSAAJ(SOAPMessage doc, Element elem,
@@ -403,8 +399,17 @@ public class WSS4JInInterceptor extends AbstractWSS4JInterceptor {
                     getDocumentElement().getFirstChild().getNextSibling().getFirstChild();
             }
             if (document != null && node != null) {
+                Node newNode = null;
                 try {
-                    Node newNode = DOMUtils.getDomElement(document.importNode(node, true));
+                    newNode = document.importNode(node, true);
+                    if (newNode != null) {
+                        try {
+                            Method method = newNode.getClass().getMethod("getDomElement");
+                            newNode = (Element)method.invoke(newNode);
+                        } catch (java.lang.NoSuchMethodException ex) {
+                            // do nothing;
+                        }
+                    }
                     elem.getOwnerDocument().getDocumentElement().getFirstChild().
                         getNextSibling().replaceChild(newNode, node);
                     List<WSSecurityEngineResult> encryptResults = wsResult.getActionResults().get(WSConstants.ENCR);
@@ -502,7 +507,7 @@ public class WSS4JInInterceptor extends AbstractWSS4JInterceptor {
     }
 
     protected void configureReplayCaches(RequestData reqData, List<Integer> actions, SoapMessage msg)
-            throws WSSecurityException {
+        throws WSSecurityException {
         if (isNonceCacheRequired(actions, msg)) {
             ReplayCache nonceCache =
                 getReplayCache(
@@ -624,18 +629,14 @@ public class WSS4JInInterceptor extends AbstractWSS4JInterceptor {
             }
             return new DelegatingCallbackHandler(pwdCallback);
         }
-        try {
-            return getCallback(reqData);
-        } catch (TokenStoreException ex) {
-            throw new WSSecurityException(WSSecurityException.ErrorCode.FAILURE, ex);
-        }
+        return getCallback(reqData);
     }
 
-    protected CallbackHandler getCallback(RequestData reqData) throws WSSecurityException, TokenStoreException {
+    protected CallbackHandler getCallback(RequestData reqData) throws WSSecurityException {
         Object o =
             SecurityUtils.getSecurityPropertyValue(SecurityConstants.CALLBACK_HANDLER,
                                                    (SoapMessage)reqData.getMsgContext());
-        CallbackHandler cbHandler;
+        CallbackHandler cbHandler = null;
         try {
             cbHandler = SecurityUtils.getCallbackHandler(o);
         } catch (Exception ex) {
@@ -697,16 +698,18 @@ public class WSS4JInInterceptor extends AbstractWSS4JInterceptor {
      * @return      the WSSecurityEngine in use by this interceptor.
      */
     protected WSSecurityEngine getSecurityEngine(boolean utWithCallbacks) {
+        if (defaultConfig != null) {
+            WSSecurityEngine engine = new WSSecurityEngine();
+            engine.setWssConfig(defaultConfig);
+            return engine;
+        }
+
         if (!utWithCallbacks) {
             WSSConfig config = WSSConfig.getNewInstance();
             config.setValidator(WSConstants.USERNAME_TOKEN, new NoOpValidator());
             WSSecurityEngine ret = new WSSecurityEngine();
             ret.setWssConfig(config);
             return ret;
-        } else if (defaultConfig != null) {
-            WSSecurityEngine engine = new WSSecurityEngine();
-            engine.setWssConfig(defaultConfig);
-            return engine;
         }
 
         return null;
@@ -725,7 +728,7 @@ public class WSS4JInInterceptor extends AbstractWSS4JInterceptor {
      */
     protected ReplayCache getReplayCache(
         SoapMessage message, String booleanKey, String instanceKey
-    ) throws WSSecurityException {
+    ) {
         return WSS4JUtils.getReplayCache(message, booleanKey, instanceKey);
     }
 

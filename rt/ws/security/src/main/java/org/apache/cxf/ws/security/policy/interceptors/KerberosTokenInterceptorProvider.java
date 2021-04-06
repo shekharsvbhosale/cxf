@@ -44,7 +44,6 @@ import org.apache.cxf.ws.security.kerberos.KerberosClient;
 import org.apache.cxf.ws.security.kerberos.KerberosUtils;
 import org.apache.cxf.ws.security.policy.PolicyUtils;
 import org.apache.cxf.ws.security.tokenstore.SecurityToken;
-import org.apache.cxf.ws.security.tokenstore.TokenStoreException;
 import org.apache.cxf.ws.security.tokenstore.TokenStoreUtils;
 import org.apache.cxf.ws.security.wss4j.KerberosTokenInterceptor;
 import org.apache.cxf.ws.security.wss4j.PolicyBasedWSS4JInInterceptor;
@@ -116,7 +115,7 @@ public class KerberosTokenInterceptorProvider extends AbstractPolicyInterceptorP
                     return;
                 }
                 if (isRequestor(message)) {
-                    final SecurityToken tok;
+                    SecurityToken tok = null;
                     try {
                         KerberosClient client = KerberosUtils.getClient(message, "kerberos");
                         synchronized (client) {
@@ -135,15 +134,11 @@ public class KerberosTokenInterceptorProvider extends AbstractPolicyInterceptorP
                                                                       tok.getId());
                         message.getExchange().put(SecurityConstants.TOKEN_ID,
                                                   tok.getId());
-                        try {
-                            TokenStoreUtils.getTokenStore(message).add(tok);
+                        TokenStoreUtils.getTokenStore(message).add(tok);
 
-                            // Create another cache entry with the SHA1 Identifier as the key for easy retrieval
-                            if (tok.getSHA1() != null) {
-                                TokenStoreUtils.getTokenStore(message).add(tok.getSHA1(), tok);
-                            }
-                        } catch (TokenStoreException ex) {
-                            throw new Fault(ex);
+                        // Create another cache entry with the SHA1 Identifier as the key for easy retrieval
+                        if (tok.getSHA1() != null) {
+                            TokenStoreUtils.getTokenStore(message).add(tok.getSHA1(), tok);
                         }
                     }
                 } else {
@@ -249,11 +244,7 @@ public class KerberosTokenInterceptorProvider extends AbstractPolicyInterceptorP
                         KerberosServiceSecurityToken kerberosToken =
                             ((KerberosTokenSecurityEvent)event).getSecurityToken();
                         if (kerberosToken != null) {
-                            try {
-                                storeKerberosToken(message, kerberosToken);
-                            } catch (TokenStoreException ex) {
-                                throw new Fault(ex);
-                            }
+                            storeKerberosToken(message, kerberosToken);
                         }
                     }
                 } else {
@@ -268,8 +259,7 @@ public class KerberosTokenInterceptorProvider extends AbstractPolicyInterceptorP
             }
         }
 
-        private void storeKerberosToken(Message message, KerberosServiceSecurityToken kerberosToken)
-                throws TokenStoreException {
+        private void storeKerberosToken(Message message, KerberosServiceSecurityToken kerberosToken) {
             SecurityToken token = new SecurityToken(kerberosToken.getId());
             token.setTokenType(kerberosToken.getKerberosTokenValueType());
 

@@ -19,7 +19,6 @@
 package org.apache.cxf.tracing.opentracing;
 
 import java.net.URI;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -50,8 +49,8 @@ public abstract class AbstractOpenTracingClientProvider extends AbstractTracingP
 
         final Span parent = tracer.activeSpan();
         
-        final Span activeSpan;
-        final Scope scope;
+        Span activeSpan = null; 
+        Scope scope = null; 
         if (parent == null) {
             activeSpan = tracer.buildSpan(buildSpanDescription(uri.toString(), method)).start(); 
             scope = tracer.scopeManager().activate(activeSpan);
@@ -99,36 +98,6 @@ public abstract class AbstractOpenTracingClientProvider extends AbstractTracingP
             }
 
             span.setTag(Tags.HTTP_STATUS.getKey(), responseStatus);
-            span.setTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT);
-            span.finish();
-            
-            scope.close();
-        }
-    }
-    
-    protected void stopTraceSpan(final TraceScopeHolder<TraceScope> holder, final Throwable ex) {
-        if (holder == null) {
-            return;
-        }
-
-        final TraceScope traceScope = holder.getScope();
-        if (traceScope != null) {
-            Span span = traceScope.getSpan();
-            Scope scope = traceScope.getScope();
-            
-            // If the client invocation was asynchronous , the trace span has been created
-            // in another thread and should be re-attached to the current one.
-            if (holder.isDetached()) {
-                scope = tracer.scopeManager().activate(span);
-            }
-
-            span.setTag(Tags.ERROR.getKey(), Boolean.TRUE);
-            if (ex != null) {
-                final Map<String, Object> logEvent = new HashMap<>(2);
-                logEvent.put("event", Tags.ERROR.getKey());
-                logEvent.put("message", ex.getMessage());
-                span.log(logEvent);
-            }
             span.finish();
             
             scope.close();

@@ -27,7 +27,7 @@
     <parent>
         <groupId>org.apache.cxf</groupId>
         <artifactId>cxf-maven-plugins</artifactId>
-        <version>3.5.0-SNAPSHOT</version>
+        <version>3.4.0-SNAPSHOT</version>
     </parent>
     <properties>
         <cxf.module.name>org.apache.cxf.plugin.wadl2java</cxf.module.name>
@@ -99,6 +99,10 @@
             <optional>true</optional>
         </dependency>
         <dependency>
+            <groupId>org.apache.ant</groupId>
+            <artifactId>ant</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.sonatype.plexus</groupId>
             <artifactId>plexus-build-api</artifactId>
             <version>0.0.7</version>
@@ -137,7 +141,6 @@
                         <configuration>
                             <settingsFile>src/it/settings.xml</settingsFile>
                             <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
-                            <skipInvocation>${maven.test.skip.exec}</skipInvocation>
                         </configuration>
                     </execution>
                 </executions>

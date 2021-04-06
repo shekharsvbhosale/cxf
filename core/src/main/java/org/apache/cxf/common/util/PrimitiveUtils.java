@@ -81,19 +81,26 @@ public final class PrimitiveUtils {
         Object ret = value;
         if (Integer.TYPE.equals(type) || Integer.class.equals(type)) {
             ret = Integer.valueOf(value);
-        } else if (Byte.TYPE.equals(type) || Byte.class.equals(type)) {
+        }
+        if (Byte.TYPE.equals(type) || Byte.class.equals(type)) {
             ret = Byte.valueOf(value);
-        } else if (Short.TYPE.equals(type) || Short.class.equals(type)) {
+        }
+        if (Short.TYPE.equals(type) || Short.class.equals(type)) {
             ret = Short.valueOf(value);
-        } else if (Long.TYPE.equals(type) || Long.class.equals(type)) {
+        }
+        if (Long.TYPE.equals(type) || Long.class.equals(type)) {
             ret = Long.valueOf(value);
-        } else if (Float.TYPE.equals(type) || Float.class.equals(type)) {
+        }
+        if (Float.TYPE.equals(type) || Float.class.equals(type)) {
             ret = Float.valueOf(value);
-        } else if (Double.TYPE.equals(type) || Double.class.equals(type)) {
+        }
+        if (Double.TYPE.equals(type) || Double.class.equals(type)) {
             ret = Double.valueOf(value);
-        } else if (Boolean.TYPE.equals(type) || Boolean.class.equals(type)) {
+        }
+        if (Boolean.TYPE.equals(type) || Boolean.class.equals(type)) {
             ret = Boolean.valueOf(value);
-        } else if ((Character.TYPE.equals(type) || Character.class.equals(type)) && value != null) {
+        }
+        if (Character.TYPE.equals(type) || Character.class.equals(type)) {
             ret = value.charAt(0);
         }
         return ret;

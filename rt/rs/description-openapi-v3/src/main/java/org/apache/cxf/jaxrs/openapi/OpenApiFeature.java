@@ -373,10 +373,11 @@ public class OpenApiFeature extends DelegatingFeature<OpenApiFeature.Portable>
         return Portable.registerComponents(securityDefinitions);
     }
 
-    public BaseOpenApiResource createOpenApiResource() {
+    public OpenApiResource createOpenApiResource() {
         return delegate.createOpenApiResource();
     }
 
+    @Provider(value = Type.Feature, scope = Scope.Server)
     public static class Portable implements AbstractPortableFeature, SwaggerUiSupport, SwaggerProperties {
         private String version;
         private String title;
@@ -911,7 +912,7 @@ public class OpenApiFeature extends DelegatingFeature<OpenApiFeature.Portable>
             return hasComponents ? Optional.of(components) : Optional.empty();
         }
 
-        private BaseOpenApiResource createOpenApiResource() {
+        private OpenApiResource createOpenApiResource() {
             return (customizer == null) ? new OpenApiResource() : new OpenApiCustomizedResource(customizer);
         }
     }

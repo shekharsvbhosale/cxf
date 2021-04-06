@@ -27,7 +27,7 @@
   <parent>
     <artifactId>cxf-rt-rs-security-oauth-parent</artifactId>
     <groupId>org.apache.cxf</groupId>
-    <version>3.5.0-SNAPSHOT</version>
+    <version>3.4.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <properties>
@@ -38,7 +38,7 @@
       javax.annotation*;version="${cxf.osgi.javax.annotation.version}",
       javax.persistence*;resolution:=optional
     </cxf.osgi.import>
-    <compilerArguments>-Aopenjpa.source=8 -Aopenjpa.metamodel=true</compilerArguments>
+    <compilerArguments>-Aopenjpa.source=7 -Aopenjpa.metamodel=true</compilerArguments>
   </properties>
   <dependencies>
     <dependency>
@@ -70,9 +70,9 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>jakarta.persistence</groupId>
-      <artifactId>jakarta.persistence-api</artifactId>
-      <version>${cxf.persistence-api.version}</version>
+      <groupId>org.apache.geronimo.specs</groupId>
+      <artifactId>geronimo-jpa_2.0_spec</artifactId>
+      <version>${cxf.geronimo.jpa.version}</version>
       <scope>provided</scope>
       <optional>true</optional>
     </dependency>
@@ -123,18 +123,10 @@
       <scope>test</scope>
       <optional>true</optional>
         <exclusions>
-          <exclusion>
-            <groupId>javax.xml.bind</groupId>
-            <artifactId>jaxb-api</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>javax.activation</groupId>
-            <artifactId>javax.activation-api</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>javax.persistence</groupId>
-            <artifactId>javax.persistence-api</artifactId>
-          </exclusion>
+            <exclusion>
+                <groupId>javax.xml.bind</groupId>
+                <artifactId>jaxb-api</artifactId>
+            </exclusion>
         </exclusions> 
     </dependency>
     <dependency>
@@ -192,6 +184,12 @@
       <version>${cxf.aspectj.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.hibernate.javax.persistence</groupId>
+      <artifactId>hibernate-jpa-2.1-api</artifactId>
+      <version>${cxf.hibernate.jpa.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -240,29 +238,40 @@
           </execution>
         </executions>
       </plugin>
-        <!-- this tells maven to set a property pointing to the openjpa agent jar -->
-        <!-- where surefire can see it -->
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-dependency-plugin</artifactId>
-            <executions>
-                <execution>
-                    <phase>generate-test-resources</phase>
-                    <goals>
-                        <goal>properties</goal>
-                    </goals>
-                </execution>
-            </executions>
-        </plugin>
       <!-- this configures the surefire plugin to run your tests with the javaagent enabled -->
       <!-- (openJPA loadtime weaving) -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <argLine>-javaagent:${org.apache.openjpa:openjpa:jar} ${cxf.surefire.fork.vmargs}</argLine>
-          <workingDirectory>${project.build.directory}</workingDirectory>
+          <argLine>-javaagent:${project.basedir}/target/openjpa-${cxf.openjpa.version}.jar ${cxf.surefire.fork.vmargs}</argLine>
+          <workingDirectory>${project.basedir}/target</workingDirectory>
         </configuration>
+      </plugin>
+      <!-- this tells maven to copy the openjpa agent jar into your target/ directory -->
+      <!-- where surefire can see it -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.apache.openjpa</groupId>
+                  <artifactId>openjpa</artifactId>
+                  <version>${cxf.openjpa.version}</version>
+                  <outputDirectory>${project.build.directory}</outputDirectory>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

@@ -285,7 +285,7 @@ public class Headers {
                 String key = HttpHeaderHelper.getHeaderKey(entry.getKey());
                 List<String> old = headers.get(key);
                 if (old != null) {
-                    List<String> nl = new ArrayList<>(old.size() + entry.getValue().size());
+                    List<String> nl = new ArrayList<>(old.size() + entry.getValue().size()); 
                     nl.addAll(old);
                     nl.addAll(entry.getValue());
                     headers.put(key, nl);
@@ -306,8 +306,7 @@ public class Headers {
      *
      * @param logger     The Logger to log to.
      * @param level   The Logging Level.
-     * @param headersMap The Message protocol headers.
-     * @param logSensitiveHeaders whether to log sensitive headers
+     * @param headers The Message protocol headers.
      */
     static void logProtocolHeaders(Logger logger, Level level,
                                    Map<String, List<Object>> headersMap,
@@ -371,7 +370,7 @@ public class Headers {
     }
 
     public String determineContentType() {
-        String ct;
+        String ct = null;
         List<Object> ctList = CastUtils.cast(headers.get(Message.CONTENT_TYPE));
         if (ctList != null && ctList.size() == 1 && ctList.get(0) != null) {
             ct = ctList.get(0).toString();
@@ -423,7 +422,8 @@ public class Headers {
     /**
      * Copy the request headers into the message.
      *
-     * @param req the current servlet request
+     * @param message the current message
+     * @param headers the current set of headers
      */
     protected void copyFromRequest(HttpServletRequest req) {
 
@@ -495,11 +495,12 @@ public class Headers {
     private boolean isSingleHeader(String header) {
         return HTTP_HEADERS_SETCOOKIE.equalsIgnoreCase(header) || HTTP_HEADERS_LINK.equalsIgnoreCase(header);
     }
-
+    
     /**
      * Copy the response headers into the response.
      *
-     * @param response the current ServletResponse
+     * @param message the current message
+     * @param headers the current set of headers
      */
     protected void copyToResponse(HttpServletResponse response) {
         String contentType = getContentTypeFromMessage();

@@ -270,13 +270,7 @@ public class InvocationBuilderImpl implements Invocation.Builder {
         if (hd != null) {
             value = hd.toString(value);
         }
-        
-        // If value is null then all current headers of the same name should be removed
-        if (value == null) {
-            webClient.replaceHeader(name, value);
-        } else {
-            webClient.header(name, value);
-        }
+        webClient.header(name, value);
     }
 
     @Override

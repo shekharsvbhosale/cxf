@@ -18,8 +18,6 @@
  */
 package org.apache.cxf.transport.jms.util;
 
-import java.util.Enumeration;
-
 import javax.jms.Connection;
 import javax.jms.Destination;
 import javax.jms.ExceptionListener;
@@ -28,7 +26,6 @@ import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.MessageProducer;
 import javax.jms.Queue;
-import javax.jms.QueueBrowser;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.transaction.TransactionManager;
@@ -45,7 +42,6 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class MessageListenerTest {
 
@@ -65,7 +61,7 @@ public class MessageListenerTest {
             new PollingMessageListenerContainer(connection, dest, listenerHandler, exListener);
         connection.close(); // Simulate connection problem
         container.start();
-        Awaitility.await().until(() -> exListener.exception != null);
+        Awaitility.await().until(() -> !container.isRunning());
         JMSException ex = exListener.exception;
         assertNotNull(ex);
         assertEquals("The connection is already closed", ex.getMessage());
@@ -88,12 +84,11 @@ public class MessageListenerTest {
 
         connection.close(); // Simulate connection problem
         container.start();
-        Awaitility.await().until(() -> exListener.exception != null);
+        Awaitility.await().until(() -> !container.isRunning());
         JMSException ex = exListener.exception;
         assertNotNull(ex);
         // Closing the pooled connection will result in a NPE when using it
-        assertTrue(ex.getMessage().contains("Wrapped exception.") 
-                   && ex.getMessage().contains("null"));
+        assertEquals("Wrapped exception. null", ex.getMessage());
     }
 
     @Test
@@ -164,13 +159,13 @@ public class MessageListenerTest {
         assertNumMessagesInQueue("At the start the DLQ should be empty", connection, dlq, 0, 0L);
 
         sendMessage(connection, dest, TestMessage.OK);
-        assertNumMessagesInQueue("This message should be committed", connection, dest, 0, 3500L);
+        assertNumMessagesInQueue("This message should be committed", connection, dest, 0, 1000L);
 
         sendMessage(connection, dest, TestMessage.FAILFIRST);
-        assertNumMessagesInQueue("Should succeed on second try", connection, dest, 0, 3500L);
+        assertNumMessagesInQueue("Should succeed on second try", connection, dest, 0, 2000L);
 
         sendMessage(connection, dest, TestMessage.FAIL);
-        assertNumMessagesInQueue("Should be rolled back", connection, dlq, 1, 3500L);
+        assertNumMessagesInQueue("Should be rolled back", connection, dlq, 1, 2500L);
     }
 
     private static Connection createConnection(String name) throws JMSException {
@@ -184,7 +179,7 @@ public class MessageListenerTest {
 
     private static Connection createXAConnection(String name, TransactionManager tm) throws JMSException {
         ActiveMQXAConnectionFactory cf = new ActiveMQXAConnectionFactory("vm://" + name
-                                                                         + "?broker.persistent=false&jms.xaAckMode=1");
+                                                                         + "?broker.persistent=false");
         cf.setRedeliveryPolicy(redeliveryPolicy());
         XaPooledConnectionFactory cfp = new XaPooledConnectionFactory(cf);
         cfp.setTransactionManager(tm);
@@ -202,24 +197,19 @@ public class MessageListenerTest {
     }
 
     private static void assertNumMessagesInQueue(String message, Connection connection, Queue queue,
-                                          int expectedNum, long timeout) throws JMSException, InterruptedException {
-        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-        QueueBrowser browser = session.createBrowser(queue);
-        int actualNum = 0;
-        for (long startTime = System.currentTimeMillis(); System.currentTimeMillis() - startTime < timeout;
-            Thread.sleep(100L)) {
-            actualNum = 0;
-            for (Enumeration<?> messages = browser.getEnumeration(); messages.hasMoreElements(); actualNum++) {
-                messages.nextElement();
-            }
+                                          int expectedNum, long timeout) throws JMSException,
+        InterruptedException {
+        long startTime = System.currentTimeMillis();
+        int actualNum;
+        do {
+            actualNum = JMSUtil.getNumMessages(connection, queue);
             if (actualNum == expectedNum) {
                 break;
             }
             //System.out.println("Messages in queue " + queue.getQueueName() + ": " + actualNum
             //                   + ", expecting: " + expectedNum);
-        }
-        browser.close();
-        session.close();
+            Thread.sleep(100L);
+        } while ((System.currentTimeMillis() - startTime < timeout) && expectedNum != actualNum);
         assertEquals(message + " -> number of messages on queue", expectedNum, actualNum);
     }
 

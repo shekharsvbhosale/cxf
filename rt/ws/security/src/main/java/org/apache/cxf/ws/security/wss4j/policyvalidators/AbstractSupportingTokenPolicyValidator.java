@@ -569,7 +569,7 @@ public abstract class AbstractSupportingTokenPolicyValidator extends AbstractSec
     /**
      * Check that a WSSecurityEngineResult corresponding to a signature or encryption uses the same
      * signing/encrypting credential as one of the tokens.
-     * @param result a WSSecurityEngineResult corresponding to a signature or encryption
+     * @param signatureResult a WSSecurityEngineResult corresponding to a signature or encryption
      * @param tokenResult A list of WSSecurityEngineResults corresponding to tokens
      * @return
      */
@@ -647,7 +647,7 @@ public abstract class AbstractSupportingTokenPolicyValidator extends AbstractSec
 
         if (parts.isBody()) {
             SOAPMessage soapMessage = message.getContent(SOAPMessage.class);
-            final Element soapBody;
+            Element soapBody = null;
             try {
                 soapBody = soapMessage.getSOAPBody();
             } catch (SOAPException ex) {
@@ -662,7 +662,7 @@ public abstract class AbstractSupportingTokenPolicyValidator extends AbstractSec
 
         for (Header h : parts.getHeaders()) {
             SOAPMessage soapMessage = message.getContent(SOAPMessage.class);
-            final Element soapHeader;
+            Element soapHeader = null;
             try {
                 soapHeader = soapMessage.getSOAPHeader();
             } catch (SOAPException ex) {

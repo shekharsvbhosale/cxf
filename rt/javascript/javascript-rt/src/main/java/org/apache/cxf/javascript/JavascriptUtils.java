@@ -454,8 +454,7 @@ public class JavascriptUtils {
      * Generate code to serialize an xs:any. There is too much duplicate code
      * with the element serializer; fix that some day.
      *
-     * @param itemInfo
-     * @param prefix
+     * @param elementInfo
      * @param schemaCollection
      */
     public void generateCodeToSerializeAny(ParticleInfo itemInfo, String prefix,
@@ -534,13 +533,13 @@ public class JavascriptUtils {
     public static XmlSchemaAnnotated getObjectAnnotated(XmlSchemaObject object, QName contextName) {
 
         if (!(object instanceof XmlSchemaAnnotated)) {
-            throw unsupportedConstruct("NON_ANNOTATED_ATTRIBUTE",
+            unsupportedConstruct("NON_ANNOTATED_ATTRIBUTE",
                                                 object.getClass().getSimpleName(),
                                                 contextName, object);
         }
         if (!(object instanceof XmlSchemaAttribute)
             && !(object instanceof XmlSchemaAnyAttribute)) {
-            throw unsupportedConstruct("EXOTIC_ATTRIBUTE",
+            unsupportedConstruct("EXOTIC_ATTRIBUTE",
                                                 object.getClass().getSimpleName(), contextName,
                                                 object);
         }
@@ -557,7 +556,7 @@ public class JavascriptUtils {
                                                       XmlSchema currentSchema) {
 
         if (!(object instanceof XmlSchemaParticle)) {
-            throw unsupportedConstruct("NON_PARTICLE_CHILD",
+            unsupportedConstruct("NON_PARTICLE_CHILD",
                                                 object.getClass().getSimpleName(),
                                                 contextName, object);
         }
@@ -566,14 +565,14 @@ public class JavascriptUtils {
             QName groupName = ((XmlSchemaGroupRef) object).getRefName();
             XmlSchemaGroup group = currentSchema.getGroupByName(groupName);
             if (group == null) {
-                throw unsupportedConstruct("MISSING_GROUP",
+                unsupportedConstruct("MISSING_GROUP",
                         groupName.toString(), contextName, null);
             }
 
             XmlSchemaParticle groupParticle = group.getParticle();
 
             if (!(groupParticle instanceof XmlSchemaSequence)) {
-                throw unsupportedConstruct("GROUP_REF_UNSUPPORTED_TYPE",
+                unsupportedConstruct("GROUP_REF_UNSUPPORTED_TYPE",
                         groupParticle.getClass().getSimpleName(), contextName, groupParticle);
             }
 
@@ -584,7 +583,7 @@ public class JavascriptUtils {
             && !(object instanceof XmlSchemaAny)
             && !(object instanceof XmlSchemaChoice)
             && !(object instanceof XmlSchemaSequence)) {
-            throw unsupportedConstruct("GROUP_CHILD",
+            unsupportedConstruct("GROUP_CHILD",
                     object.getClass().getSimpleName(), contextName,
                                                 object);
         }
@@ -594,6 +593,7 @@ public class JavascriptUtils {
 
     public static XmlSchemaSequence getSequence(XmlSchemaComplexType type) {
         XmlSchemaParticle particle = type.getParticle();
+        XmlSchemaSequence sequence = null;
 
         if (particle == null) {
             // the code that uses this wants to iterate. An empty one is more useful than
@@ -601,17 +601,17 @@ public class JavascriptUtils {
             return EMPTY_SEQUENCE;
         }
 
-        final XmlSchemaSequence sequence;
         try {
             sequence = (XmlSchemaSequence) particle;
         } catch (ClassCastException cce) {
-            throw unsupportedConstruct("NON_SEQUENCE_PARTICLE", type);
+            unsupportedConstruct("NON_SEQUENCE_PARTICLE", type);
         }
 
         return sequence;
     }
     public static XmlSchemaChoice getChoice(XmlSchemaComplexType type) {
         XmlSchemaParticle particle = type.getParticle();
+        XmlSchemaChoice choice = null;
 
         if (particle == null) {
             // the code that uses this wants to iterate. An empty one is more useful than
@@ -619,17 +619,17 @@ public class JavascriptUtils {
             return EMPTY_CHOICE;
         }
 
-        final XmlSchemaChoice choice;
         try {
             choice = (XmlSchemaChoice) particle;
         } catch (ClassCastException cce) {
-            throw unsupportedConstruct("NON_CHOICE_PARTICLE", type);
+            unsupportedConstruct("NON_CHOICE_PARTICLE", type);
         }
 
         return choice;
     }
     public static XmlSchemaAll getAll(XmlSchemaComplexType type) {
         XmlSchemaParticle particle = type.getParticle();
+        XmlSchemaAll all = null;
 
         if (particle == null) {
             // the code that uses this wants to iterate. An empty one is more useful than
@@ -637,11 +637,10 @@ public class JavascriptUtils {
             return EMPTY_ALL;
         }
 
-        final XmlSchemaAll all;
         try {
             all = (XmlSchemaAll) particle;
         } catch (ClassCastException cce) {
-            throw unsupportedConstruct("NON_CHOICE_PARTICLE", type);
+            unsupportedConstruct("NON_CHOICE_PARTICLE", type);
         }
 
         return all;
@@ -694,30 +693,30 @@ public class JavascriptUtils {
         if (particle == null) {
             return null;
         }
-        final XmlSchemaSequence sequence;
+        XmlSchemaSequence sequence = null;
         try {
             sequence = (XmlSchemaSequence) particle;
         } catch (ClassCastException cce) {
-            throw unsupportedConstruct("NON_SEQUENCE_PARTICLE", type);
+            unsupportedConstruct("NON_SEQUENCE_PARTICLE", type);
         }
         return sequence;
     }
 
-    static UnsupportedConstruct unsupportedConstruct(String messageKey,
+    static void unsupportedConstruct(String messageKey,
                                              String what,
                                              QName subjectName,
                                              XmlSchemaObject subject) {
         Message message = new Message(messageKey, LOG, what,
                                       subjectName == null ? "anonymous" : subjectName,
                                       cleanedUpSchemaSource(subject));
-        return new UnsupportedConstruct(message);
+        throw new UnsupportedConstruct(message);
     }
 
 
-    static UnsupportedConstruct unsupportedConstruct(String messageKey, XmlSchemaType subject) {
+    static void unsupportedConstruct(String messageKey, XmlSchemaType subject) {
         Message message = new Message(messageKey, LOG, subject.getQName(),
                                       cleanedUpSchemaSource(subject));
-        return new UnsupportedConstruct(message);
+        throw new UnsupportedConstruct(message);
     }
 
     static String cleanedUpSchemaSource(XmlSchemaObject subject) {

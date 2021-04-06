@@ -21,6 +21,7 @@ package org.apache.cxf.transport.http_undertow;
 
 import java.io.IOException;
 import java.net.URL;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -67,11 +68,6 @@ import io.undertow.util.CopyOnWriteMap;
 public class UndertowHTTPServerEngine implements ServerEngine {
 
     public static final String DO_NOT_CHECK_URL_PROP = "org.apache.cxf.transports.http_undertow.DontCheckUrl";
-    
-    public static final String ENABLE_HTTP2_PROP = "org.apache.cxf.transports.http_undertow.EnableHttp2";
-    
-    public static final String ENABLE_RECORD_REQUEST_START_TIME_PROP = 
-        "org.apache.cxf.transports.http_undertow.EnableRecordRequestStartTime";
 
     private static final Logger LOG = LogUtils.getL7dLogger(UndertowHTTPServerEngine.class);
 
@@ -203,12 +199,6 @@ public class UndertowHTTPServerEngine implements ServerEngine {
     private Undertow createServer(URL url, UndertowHTTPHandler undertowHTTPHandler) throws Exception {
         Undertow.Builder result = Undertow.builder();
         result.setServerOption(UndertowOptions.IDLE_TIMEOUT, getMaxIdleTime());
-        if (this.shouldEnableHttp2(undertowHTTPHandler.getBus())) {
-            result.setServerOption(UndertowOptions.ENABLE_HTTP2, Boolean.TRUE);
-        }
-        if (this.shouldEnableRecordRequestStartTime(undertowHTTPHandler.getBus())) {
-            result.setServerOption(UndertowOptions.RECORD_REQUEST_START_TIME, Boolean.TRUE);
-        }
         if (tlsServerParameters != null) {
             if (this.sslContext == null) {
                 this.sslContext = createSSLContext();
@@ -251,12 +241,7 @@ public class UndertowHTTPServerEngine implements ServerEngine {
                 builder = builder.setWorkerOption(Options.WORKER_TASK_MAX_THREADS,
                               this.threadingParameters.getMaxThreads());
             }
-            if (this.threadingParameters.isWorkerIONameSet()) {
-                builder = builder.setWorkerOption(Options.WORKER_NAME,
-                              this.threadingParameters.getWorkerIOName());
-            }
         }
-        
         return builder;
     }
 
@@ -311,30 +296,6 @@ public class UndertowHTTPServerEngine implements ServerEngine {
             prop = SystemPropertyAction.getPropertyOrNull(DO_NOT_CHECK_URL_PROP);
         }
         return !PropertyUtils.isTrue(prop);
-    }
-    
-    private boolean shouldEnableHttp2(Bus bus) {
-
-        Object prop = null;
-        if (bus != null) {
-            prop = bus.getProperty(ENABLE_HTTP2_PROP);
-        }
-        if (prop == null) {
-            prop = SystemPropertyAction.getPropertyOrNull(ENABLE_HTTP2_PROP);
-        }
-        return PropertyUtils.isTrue(prop);
-    }
-    
-    private boolean shouldEnableRecordRequestStartTime(Bus bus) {
-
-        Object prop = null;
-        if (bus != null) {
-            prop = bus.getProperty(ENABLE_RECORD_REQUEST_START_TIME_PROP);
-        }
-        if (prop == null) {
-            prop = SystemPropertyAction.getPropertyOrNull(ENABLE_RECORD_REQUEST_START_TIME_PROP);
-        }
-        return PropertyUtils.isTrue(prop);
     }
 
     protected void checkRegistedContext(URL url) {
@@ -410,7 +371,8 @@ public class UndertowHTTPServerEngine implements ServerEngine {
         this.host = host;
     }
 
-    public void finalizeConfig() {
+    public void finalizeConfig() throws GeneralSecurityException,
+        IOException {
         retrieveListenerFactory();
         this.configFinalized = true;
     }

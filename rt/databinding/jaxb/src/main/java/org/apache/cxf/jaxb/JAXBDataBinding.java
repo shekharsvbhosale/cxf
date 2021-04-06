@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +64,6 @@ import org.w3c.dom.Node;
 
 import org.xml.sax.InputSource;
 
-import org.apache.cxf.Bus;
 import org.apache.cxf.common.injection.NoJSR250Annotations;
 import org.apache.cxf.common.jaxb.JAXBBeanInfo;
 import org.apache.cxf.common.jaxb.JAXBContextCache;
@@ -149,45 +149,42 @@ public class JAXBDataBinding extends AbstractInterceptorProvidingDataBinding
     }
     private static final Map<String, DOMResult> BUILT_IN_SCHEMAS = new HashMap<>();
     static {
-        try (URIResolver resolver = new URIResolver()) {
-            try {
-                resolver.resolve("", "classpath:/schemas/wsdl/ws-addr-wsdl.xsd", JAXBDataBinding.class);
-                if (resolver.isResolved()) {
-                    resolver.getInputStream().close();
-                    DOMResult dr = new DelayedDOMResult(resolver.getURL(),
-                                                        "classpath:/schemas/wsdl/ws-addr-wsdl.xsd",
-                                                        "http://www.w3.org/2005/02/addressing/wsdl");
-                    BUILT_IN_SCHEMAS.put("http://www.w3.org/2005/02/addressing/wsdl", dr);
-                    resolver.unresolve();
-                }
-            } catch (Exception e) {
-                //IGNORE
+        URIResolver resolver = new URIResolver();
+        try {
+            resolver.resolve("", "classpath:/schemas/wsdl/ws-addr-wsdl.xsd", JAXBDataBinding.class);
+            if (resolver.isResolved()) {
+                resolver.getInputStream().close();
+                DOMResult dr = new DelayedDOMResult(resolver.getURL(),
+                                                    "classpath:/schemas/wsdl/ws-addr-wsdl.xsd",
+                                                    "http://www.w3.org/2005/02/addressing/wsdl");
+                BUILT_IN_SCHEMAS.put("http://www.w3.org/2005/02/addressing/wsdl", dr);
+                resolver.unresolve();
             }
-            try {
-                resolver.resolve("", "classpath:/schemas/wsdl/ws-addr.xsd", JAXBDataBinding.class);
-                if (resolver.isResolved()) {
-                    resolver.getInputStream().close();
-                    DOMResult dr = new DelayedDOMResult(resolver.getURL(),
-                                                        "classpath:/schemas/wsdl/ws-addr.xsd",
-                                                        "http://www.w3.org/2005/08/addressing");
-                    BUILT_IN_SCHEMAS.put("http://www.w3.org/2005/08/addressing", dr);
-                    resolver.unresolve();
-                }
-            } catch (Exception e) {
-                //IGNORE
+        } catch (Exception e) {
+            //IGNORE
+        }
+        try {
+            resolver.resolve("", "classpath:/schemas/wsdl/ws-addr.xsd", JAXBDataBinding.class);
+            if (resolver.isResolved()) {
+                resolver.getInputStream().close();
+                DOMResult dr = new DelayedDOMResult(resolver.getURL(),
+                                                    "classpath:/schemas/wsdl/ws-addr.xsd",
+                                                    "http://www.w3.org/2005/08/addressing");
+                BUILT_IN_SCHEMAS.put("http://www.w3.org/2005/08/addressing", dr);
+                resolver.unresolve();
             }
-            try {
-                resolver.resolve("", "classpath:/schemas/wsdl/wsrm.xsd", JAXBDataBinding.class);
-                if (resolver.isResolved()) {
-                    resolver.getInputStream().close();
-                    DOMResult dr = new DelayedDOMResult(resolver.getURL(),
-                                                        "classpath:/schemas/wsdl/wsrm.xsd",
-                                                        "http://schemas.xmlsoap.org/ws/2005/02/rm");
-                    BUILT_IN_SCHEMAS.put("http://schemas.xmlsoap.org/ws/2005/02/rm", dr);
-                    resolver.unresolve();
-                }
-            } catch (Exception e) {
-                //IGNORE
+        } catch (Exception e) {
+            //IGNORE
+        }
+        try {
+            resolver.resolve("", "classpath:/schemas/wsdl/wsrm.xsd", JAXBDataBinding.class);
+            if (resolver.isResolved()) {
+                resolver.getInputStream().close();
+                DOMResult dr = new DelayedDOMResult(resolver.getURL(),
+                                                    "classpath:/schemas/wsdl/wsrm.xsd",
+                                                    "http://schemas.xmlsoap.org/ws/2005/02/rm");
+                BUILT_IN_SCHEMAS.put("http://schemas.xmlsoap.org/ws/2005/02/rm", dr);
+                resolver.unresolve();
             }
         } catch (Exception e) {
             //IGNORE
@@ -283,19 +280,19 @@ public class JAXBDataBinding extends AbstractInterceptorProvidingDataBinding
         Integer mtomThresholdInt = Integer.valueOf(getMtomThreshold());
         if (c == XMLStreamWriter.class) {
             DataWriterImpl<XMLStreamWriter> r
-                = new DataWriterImpl<>(getBus(), this, true);
+                = new DataWriterImpl<>(this, true);
             r.setMtomThreshold(mtomThresholdInt);
             return (DataWriter<T>)r;
         } else if (c == OutputStream.class) {
-            DataWriterImpl<OutputStream> r = new DataWriterImpl<>(getBus(), this, false);
+            DataWriterImpl<OutputStream> r = new DataWriterImpl<>(this, false);
             r.setMtomThreshold(mtomThresholdInt);
             return (DataWriter<T>)r;
         } else if (c == XMLEventWriter.class) {
-            DataWriterImpl<XMLEventWriter> r = new DataWriterImpl<>(getBus(), this, true);
+            DataWriterImpl<XMLEventWriter> r = new DataWriterImpl<>(this, true);
             r.setMtomThreshold(mtomThresholdInt);
             return (DataWriter<T>)r;
         } else if (c == Node.class) {
-            DataWriterImpl<Node> r = new DataWriterImpl<>(getBus(), this, false);
+            DataWriterImpl<Node> r = new DataWriterImpl<>(this, false);
             r.setMtomThreshold(mtomThresholdInt);
             return (DataWriter<T>)r;
         }
@@ -338,8 +335,8 @@ public class JAXBDataBinding extends AbstractInterceptorProvidingDataBinding
         contextClasses = new LinkedHashSet<>();
 
         for (ServiceInfo serviceInfo : service.getServiceInfos()) {
-            JAXBContextInitializer initializer = new JAXBContextInitializer(getBus(), serviceInfo, contextClasses,
-                    typeRefs, this.getUnmarshallerProperties());
+            JAXBContextInitializer initializer
+                = new JAXBContextInitializer(serviceInfo, contextClasses, typeRefs, this.getUnmarshallerProperties());
             initializer.walk();
             if (serviceInfo.getProperty("extra.class") != null) {
                 Set<Class<?>> exClasses = serviceInfo.getProperty("extra.class", Set.class);
@@ -349,13 +346,14 @@ public class JAXBDataBinding extends AbstractInterceptorProvidingDataBinding
         }
 
         String tns = getNamespaceToUse(service);
-        final CachedContextAndSchemas cachedContextAndSchemas;
+        CachedContextAndSchemas cachedContextAndSchemas = null;
+        JAXBContext ctx = null;
         try {
             cachedContextAndSchemas = createJAXBContextAndSchemas(contextClasses, tns);
         } catch (JAXBException e1) {
             throw new ServiceConstructionException(e1);
         }
-        final JAXBContext ctx = cachedContextAndSchemas.getContext();
+        ctx = cachedContextAndSchemas.getContext();
         if (LOG.isLoggable(Level.FINE)) {
             LOG.log(Level.FINE, "CREATED_JAXB_CONTEXT", new Object[] {ctx, contextClasses});
         }
@@ -398,6 +396,10 @@ public class JAXBDataBinding extends AbstractInterceptorProvidingDataBinding
                 } catch (IOException e) {
                     throw new ServiceConstructionException("SCHEMA_GEN_EXC", LOG, e);
                 }
+            }
+            Set<String> ids = new HashSet<>();
+            for (DOMSource r : schemas) {
+                ids.add(r.getSystemId());
             }
             for (DOMSource r : schemas) {
                 if (bi.contains(r)) {
@@ -448,8 +450,8 @@ public class JAXBDataBinding extends AbstractInterceptorProvidingDataBinding
         if ("true".equals(service.get("org.apache.cxf.databinding.namespace"))) {
             return null;
         }
-        final String tns;
-        if (!service.getServiceInfos().isEmpty()) {
+        String tns = null;
+        if (service.getServiceInfos().size() > 0) {
             tns = service.getServiceInfos().get(0).getInterface().getName().getNamespaceURI();
         } else {
             tns = service.getName().getNamespaceURI();
@@ -698,7 +700,7 @@ public class JAXBDataBinding extends AbstractInterceptorProvidingDataBinding
             Field elField = getElField(partName, valueClass);
             if (getMethod == null
                 && elementType != null
-                && "boolean".equalsIgnoreCase(elementType)
+                && "boolean".equals(elementType.toLowerCase())
                 && (elField == null
                     || (!Collection.class.isAssignableFrom(elField.getType())
                     && !elField.getType().isArray()))) {
@@ -804,7 +806,7 @@ public class JAXBDataBinding extends AbstractInterceptorProvidingDataBinding
 
         }
 
-        return createWrapperHelper(getBus(), wrapperType,
+        return createWrapperHelper(wrapperType,
                                  setMethods.toArray(new Method[0]),
                                  getMethods.toArray(new Method[0]),
                                  jaxbMethods.toArray(new Method[0]),
@@ -835,11 +837,11 @@ public class JAXBDataBinding extends AbstractInterceptorProvidingDataBinding
     }
 
 
-    private static WrapperHelper createWrapperHelper(Bus bus, Class<?> wrapperType, Method[] setMethods,
+    private static WrapperHelper createWrapperHelper(Class<?> wrapperType, Method[] setMethods,
                                                      Method[] getMethods, Method[] jaxbMethods,
                                                      Field[] fields, Object objectFactory) {
 
-        WrapperHelper wh = compileWrapperHelper(bus, wrapperType, setMethods, getMethods, jaxbMethods, fields,
+        WrapperHelper wh = compileWrapperHelper(wrapperType, setMethods, getMethods, jaxbMethods, fields,
                                                 objectFactory);
 
         if (wh == null) {
@@ -849,17 +851,11 @@ public class JAXBDataBinding extends AbstractInterceptorProvidingDataBinding
         return wh;
     }
 
-    private static WrapperHelper compileWrapperHelper(Bus bus, Class<?> wrapperType, Method[] setMethods,
+    private static WrapperHelper compileWrapperHelper(Class<?> wrapperType, Method[] setMethods,
                                                       Method[] getMethods, Method[] jaxbMethods,
                                                       Field[] fields, Object objectFactory) {
-        try {
-            WrapperHelperCreator creator = bus.getExtension(WrapperHelperCreator.class);
-            return creator.compile(wrapperType, setMethods, getMethods,
-                    jaxbMethods, fields, objectFactory);
-        } catch (Throwable t) {
-            // Some error - probably a bad version of ASM or similar
-            return null;
-        }
+        return WrapperHelperCompiler.compileWrapperHelper(wrapperType, setMethods, getMethods,
+                                                          jaxbMethods, fields, objectFactory);
     }
 
 }

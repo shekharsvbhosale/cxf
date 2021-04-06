@@ -141,13 +141,6 @@ public class WebClientTest {
     }
 
     @Test
-    public void testEmptyQueryKey() {
-        WebClient wc = WebClient.create("http://foo");
-        wc.query("");
-        assertEquals("http://foo", wc.getCurrentURI().toString());
-    }
-
-    @Test
     public void testForward() {
         WebClient wc = WebClient.create("http://foo");
         wc.to("http://foo/bar", true);
@@ -336,12 +329,6 @@ public class WebClientTest {
         String auth = "auth";
         WebClient wc = WebClient.create(URI.create("http://foo")).authorization(auth);
         assertEquals(auth, wc.getHeaders().getFirst(HttpHeaders.AUTHORIZATION));
-    }
-
-    @Test
-    public void testLanguageHeader() {
-        WebClient wc = WebClient.create("http://foo").language("en_CA");
-        assertEquals("en_CA", wc.getHeaders().getFirst(HttpHeaders.CONTENT_LANGUAGE));
     }
 
     private static class ParamConverterProviderImpl implements ParamConverterProvider {

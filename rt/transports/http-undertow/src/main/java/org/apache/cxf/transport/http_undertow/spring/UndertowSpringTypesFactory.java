@@ -62,7 +62,6 @@ public final class UndertowSpringTypesFactory {
         ThreadingParameters params = new ThreadingParameters();
         params.setMaxThreads(paramtype.getMaxThreads());
         params.setMinThreads(paramtype.getMinThreads());
-        params.setWorkerIOName(paramtype.getWorkerIOName());
         params.setWorkerIOThreads(paramtype.getWorkerIOThreads());
         return params;
     }
@@ -116,19 +115,27 @@ public final class UndertowSpringTypesFactory {
                                            Class<?> c,
                                            JAXBContext context) throws JAXBException {
         List<V> list = new ArrayList<>();
+        Node data = null;
 
         Unmarshaller u = context.createUnmarshaller();
-        for (Node node = parent.getFirstChild(); node != null; node = node.getNextSibling()) {
+        Node node = parent.getFirstChild();
+        while (node != null) {
             if (node.getNodeType() == Node.ELEMENT_NODE && name.getLocalPart().equals(node.getLocalName())
                 && name.getNamespaceURI().equals(node.getNamespaceURI())) {
-                Object obj = unmarshal(u, node, c);
+                data = node;
+                Object obj = unmarshal(u, data, c);
                 if (obj != null) {
                     list.add((V) obj);
                 }
             }
+            node = node.getNextSibling();
         }
         return list;
     }
+
+
+
+
 
     private static Object unmarshal(Unmarshaller u,
                                      Node data, Class<?> c) {
@@ -136,7 +143,7 @@ public final class UndertowSpringTypesFactory {
             return null;
         }
 
-        Object obj;
+        Object obj = null;
         try {
             if (c != null) {
                 obj = u.unmarshal(data, c);

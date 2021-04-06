@@ -27,8 +27,7 @@ import org.apache.cxf.rt.security.crypto.CryptoUtils;
 
 public class DirectKeyDecryptionAlgorithm implements KeyDecryptionProvider {
     private static final Logger LOG = LogUtils.getL7dLogger(DirectKeyDecryptionAlgorithm.class);
-    private final byte[] contentDecryptionKey;
-
+    private byte[] contentDecryptionKey;
     public DirectKeyDecryptionAlgorithm(Key contentDecryptionKey) {
         this(contentDecryptionKey.getEncoded());
     }

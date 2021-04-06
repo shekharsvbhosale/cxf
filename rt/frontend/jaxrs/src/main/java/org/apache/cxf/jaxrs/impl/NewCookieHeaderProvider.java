@@ -67,14 +67,8 @@ public class NewCookieHeaderProvider implements HeaderDelegate<NewCookie> {
 
             int sepIndex = theToken.indexOf('=');
             String paramName = sepIndex != -1 ? theToken.substring(0, sepIndex) : theToken;
-            String paramValue = null;
-
-            if (sepIndex == theToken.length() - 1) {
-                paramValue = "";
-            } else if (sepIndex != -1) {
-                paramValue = theToken.substring(sepIndex + 1);
-            }
-
+            String paramValue = sepIndex == -1 || sepIndex == theToken.length() - 1
+                ? null : theToken.substring(sepIndex + 1);
             if (paramValue != null) {
                 paramValue = stripQuotes(paramValue);
             }
@@ -160,7 +154,7 @@ public class NewCookieHeaderProvider implements HeaderDelegate<NewCookie> {
             buff.append('"');
             return buff.toString();
         }
-        return value;
+        return value == null ? "" : value;
     }
     static String maybeQuoteAll(String value) {
         return maybeQuote(TSPECIALS_ALL, value);
@@ -170,7 +164,7 @@ public class NewCookieHeaderProvider implements HeaderDelegate<NewCookie> {
     }
 
     /**
-     * Return true if the string contains special characters that need to be
+     * Return true iff the string contains special characters that need to be
      * quoted.
      *
      * @param value

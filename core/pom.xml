@@ -27,7 +27,7 @@
     <parent>
         <groupId>org.apache.cxf</groupId>
         <artifactId>cxf-parent</artifactId>
-        <version>3.5.0-SNAPSHOT</version>
+        <version>3.4.0-SNAPSHOT</version>
         <relativePath>../parent/pom.xml</relativePath>
     </parent>
     <properties>
@@ -39,14 +39,11 @@
             org.apache.cxf.*
         </cxf.osgi.export>
         <cxf.osgi.import>
-            com.sun.xml.messaging.saaj.soap;resolution:=optional,
-            com.sun.xml.internal.messaging.saaj.soap;resolution:=optional,
             com.ctc.wstx*;resolution:=optional,
             org.codehaus.stax2*;resolution:=optional,
-            com.sun.msv*;resolution:=optional,
-            com.sun.tools*;resolution:=optional,
-            com.sun.xml*;resolution:=optional,
+            com.sun*;resolution:=optional,
             org.slf4j*;resolution:=optional;version="${cxf.osgi.slf4j.version}",
+            org.apache.log4j*;resolution:=optional,
             net.sf.cglib*;resolution:=optional;version="${cxf.cglib.osgi.version}",
             org.springframework.osgi.io;resolution:=optional;version="${cxf.osgi.spring.osgi.version}",
             org.springframework.osgi.util;resolution:=optional;version="${cxf.osgi.spring.osgi.version}",
@@ -65,8 +62,7 @@
             org.apache.aries*;version="${cxf.aries.version.range}";resolution:=optional,
             org.apache.karaf.jaas.boot.principal;resolution:=optional,
             org.apache.commons.logging;resolution:=optional,
-            !sun.misc,
-            !com.sun.codemodel.writer
+            !sun.misc
         </cxf.osgi.import>
         <cxf.osgi.dynamic.import>
             org.apache.cxf.bus,org.apache.cxf.*,com.ctc.wstx.*,org.apache.karaf.jaas.boot.principal.*
@@ -92,8 +88,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>jakarta.validation</groupId>
-            <artifactId>jakarta.validation-api</artifactId>
+            <groupId>javax.validation</groupId>
+            <artifactId>validation-api</artifactId>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -109,6 +105,12 @@
         <dependency>
             <groupId>org.glassfish.jaxb</groupId>
             <artifactId>jaxb-runtime</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <optional>true</optional>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -183,13 +185,19 @@
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>osgi.cmpn</artifactId>
+            <artifactId>org.osgi.compendium</artifactId>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>net.java.dev.msv</groupId>
             <artifactId>msv-core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>net.java.dev.msv</groupId>
+                    <artifactId>msv-testharness</artifactId>
+                </exclusion>
+            </exclusions>
             <optional>true</optional>
             <scope>provided</scope>
         </dependency>
@@ -208,11 +216,6 @@
         <dependency>
             <groupId>jakarta.xml.bind</groupId>
             <artifactId>jakarta.xml.bind-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>xerces</groupId>
-            <artifactId>xercesImpl</artifactId>
-            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>
@@ -373,34 +376,4 @@
             </plugins>
         </pluginManagement>
     </build>
-
-    <profiles>
-        <profile>
-            <id>before-jdk14</id>
-            <activation>
-                <jdk>(,14)</jdk>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>build-helper-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <phase>generate-test-sources</phase>
-                                <goals>
-                                    <goal>add-test-source</goal>
-                                </goals>
-                                <configuration>
-                                    <sources>
-                                        <source>${project.basedir}/src/test/java8</source>
-                                    </sources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>

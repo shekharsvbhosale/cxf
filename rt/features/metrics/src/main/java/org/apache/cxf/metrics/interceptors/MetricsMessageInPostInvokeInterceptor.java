@@ -20,7 +20,6 @@ package org.apache.cxf.metrics.interceptors;
 
 import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.message.Message;
-import org.apache.cxf.message.MessageUtils;
 import org.apache.cxf.metrics.MetricsProvider;
 import org.apache.cxf.phase.Phase;
 
@@ -31,7 +30,7 @@ public class MetricsMessageInPostInvokeInterceptor extends AbstractMetricsInterc
     }
 
     public void handleMessage(Message message) throws Fault {
-        if (isRequestor(message) && !MessageUtils.isOutbound(message)) {
+        if (isRequestor(message)) {
             stop(message);
         }
     }

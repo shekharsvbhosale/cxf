@@ -21,18 +21,19 @@ package org.apache.cxf.rs.security.saml.sso.state;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Random;
 
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Ehcache;
+import net.sf.ehcache.Element;
+import net.sf.ehcache.config.CacheConfiguration;
+import net.sf.ehcache.config.Configuration;
+import net.sf.ehcache.config.ConfigurationFactory;
+import net.sf.ehcache.config.DiskStoreConfiguration;
 import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
 import org.apache.cxf.jaxrs.utils.ResourceUtils;
-import org.apache.wss4j.common.util.Loader;
-import org.ehcache.Cache;
-import org.ehcache.CacheManager;
-import org.ehcache.Status;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.xml.XmlConfiguration;
+import org.apache.cxf.rs.security.saml.sso.EHCacheUtil;
 
 /**
  * An in-memory EHCache implementation of the SPStateManager interface.
@@ -40,33 +41,33 @@ import org.ehcache.xml.XmlConfiguration;
  */
 public class EHCacheSPStateManager implements SPStateManager {
 
+    public static final long DEFAULT_TTL = 60L * 5L;
     public static final String REQUEST_CACHE_KEY = "cxf.samlp.request.state.cache";
     public static final String RESPONSE_CACHE_KEY = "cxf.samlp.response.state.cache";
     private static final String DEFAULT_CONFIG_URL = "/cxf-samlp-ehcache.xml";
-    private static final org.slf4j.Logger LOG =
-            org.slf4j.LoggerFactory.getLogger(EHCacheSPStateManager.class);
 
-    private final Cache<String, RequestState> requestCache;
-    private final Cache<String, ResponseState> responseCache;
-    private final CacheManager requestCacheManager;
-    private final CacheManager responseCacheManager;
+    private Ehcache requestCache;
+    private Ehcache responseCache;
+    private CacheManager cacheManager;
+    private long ttl = DEFAULT_TTL;
 
-    public EHCacheSPStateManager() throws IllegalAccessException, InstantiationException, ClassNotFoundException {
+    public EHCacheSPStateManager() {
         this(DEFAULT_CONFIG_URL, null);
     }
 
-    public EHCacheSPStateManager(Bus bus)
-            throws IllegalAccessException, InstantiationException, ClassNotFoundException {
+    public EHCacheSPStateManager(Bus bus) {
         this(DEFAULT_CONFIG_URL, bus);
     }
 
-    public EHCacheSPStateManager(String configFileURL)
-            throws IllegalAccessException, InstantiationException, ClassNotFoundException {
+    public EHCacheSPStateManager(String configFileURL) {
         this(configFileURL, null);
     }
 
-    public EHCacheSPStateManager(String configFile, Bus bus)
-            throws IllegalAccessException, ClassNotFoundException, InstantiationException {
+    public EHCacheSPStateManager(String configFileURL, Bus bus) {
+        createCaches(configFileURL, bus);
+    }
+
+    private void createCaches(String configFile, Bus bus) {
         if (bus == null) {
             bus = BusFactory.getThreadDefaultBus(true);
         }
@@ -78,62 +79,70 @@ public class EHCacheSPStateManager implements SPStateManager {
         } catch (Exception ex) {
             // ignore
         }
+        if (configFileURL == null) {
+            cacheManager = EHCacheUtil.createCacheManager();
+        } else {
+            Configuration conf = ConfigurationFactory.parseConfiguration(configFileURL);
 
-        XmlConfiguration xmlConfig = new XmlConfiguration(getConfigFileURL(configFileURL));
-        CacheConfigurationBuilder<String, RequestState> requestConfigurationBuilder =
-                xmlConfig.newCacheConfigurationBuilderFromTemplate(REQUEST_CACHE_KEY,
-                        String.class, RequestState.class);
+            if (bus != null) {
+                conf.setName(bus.getId());
+                DiskStoreConfiguration dsc = conf.getDiskStoreConfiguration();
+                if (dsc != null && "java.io.tmpdir".equals(dsc.getOriginalPath())) {
+                    String path = conf.getDiskStoreConfiguration().getPath() + File.separator
+                        + bus.getId();
+                    conf.getDiskStoreConfiguration().setPath(path);
+                }
+            }
 
-        // Note, we don't require strong random values here
-        String diskKey = REQUEST_CACHE_KEY + "-" + Math.abs(new Random().nextInt());
-        requestCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-                .withCache(REQUEST_CACHE_KEY, requestConfigurationBuilder)
-                .with(CacheManagerBuilder.persistence(new File(System.getProperty("java.io.tmpdir"), diskKey))).build();
+            cacheManager = EHCacheUtil.createCacheManager(conf);
+        }
 
-        requestCacheManager.init();
-        requestCache = requestCacheManager.getCache(REQUEST_CACHE_KEY, String.class, RequestState.class);
+        CacheConfiguration requestCC = EHCacheUtil.getCacheConfiguration(REQUEST_CACHE_KEY, cacheManager);
 
-        CacheConfigurationBuilder<String, ResponseState> responseConfigurationBuilder =
-                xmlConfig.newCacheConfigurationBuilderFromTemplate(RESPONSE_CACHE_KEY,
-                        String.class, ResponseState.class);
+        Ehcache newCache = new Cache(requestCC);
+        requestCache = cacheManager.addCacheIfAbsent(newCache);
 
-        // Note, we don't require strong random values here
-        diskKey = RESPONSE_CACHE_KEY + "-" + Math.abs(new Random().nextInt());
-        responseCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-                .withCache(RESPONSE_CACHE_KEY, responseConfigurationBuilder)
-                .with(CacheManagerBuilder.persistence(new File(System.getProperty("java.io.tmpdir"), diskKey))).build();
+        CacheConfiguration responseCC = EHCacheUtil.getCacheConfiguration(RESPONSE_CACHE_KEY, cacheManager);
 
-        responseCacheManager.init();
-        responseCache = responseCacheManager.getCache(RESPONSE_CACHE_KEY, String.class, ResponseState.class);
+        newCache = new Cache(responseCC);
+        responseCache = cacheManager.addCacheIfAbsent(newCache);
     }
 
-    private URL getConfigFileURL(URL suppliedConfigFileURL) {
-        if (suppliedConfigFileURL == null) {
-            //using the default
-            try {
-                URL configFileURL = Loader.getResource(DEFAULT_CONFIG_URL);
-                if (configFileURL == null) {
-                    configFileURL = new URL(DEFAULT_CONFIG_URL);
-                }
-                return configFileURL;
-            } catch (IOException e) {
-                // Do nothing
-                LOG.debug(e.getMessage());
-            }
-        }
-        return suppliedConfigFileURL;
+    /**
+     * Set a new (default) TTL value in seconds
+     * @param newTtl a new (default) TTL value in seconds
+     */
+    public void setTTL(long newTtl) {
+        ttl = newTtl;
+    }
+
+    /**
+     * Get the (default) TTL value in seconds
+     * @return the (default) TTL value in seconds
+     */
+    public long getTTL() {
+        return ttl;
     }
 
     public ResponseState getResponseState(String securityContextKey) {
-        return responseCache.get(securityContextKey);
+        Element element = responseCache.get(securityContextKey);
+        if (element != null) {
+            if (responseCache.isExpired(element)) {
+                responseCache.remove(securityContextKey);
+                return null;
+            }
+            return (ResponseState)element.getObjectValue();
+        }
+        return null;
     }
 
     public ResponseState removeResponseState(String securityContextKey) {
-        ResponseState responseState = getResponseState(securityContextKey);
-        if (responseState != null) {
+        Element element = responseCache.get(securityContextKey);
+        if (element != null) {
             responseCache.remove(securityContextKey);
+            return (ResponseState)element.getObjectValue();
         }
-        return responseState;
+        return null;
     }
 
     public void setResponseState(String securityContextKey, ResponseState state) {
@@ -141,7 +150,16 @@ public class EHCacheSPStateManager implements SPStateManager {
             return;
         }
 
-        responseCache.put(securityContextKey, state);
+        int parsedTTL = (int)ttl;
+        if (ttl != parsedTTL) {
+            // Fall back to 5 minutes if the default TTL is set incorrectly
+            parsedTTL = 60 * 5;
+        }
+        Element element = new Element(securityContextKey, state);
+        element.setTimeToLive(parsedTTL);
+        element.setTimeToIdle(parsedTTL);
+
+        responseCache.put(element);
     }
 
     public void setRequestState(String relayState, RequestState state) {
@@ -149,25 +167,33 @@ public class EHCacheSPStateManager implements SPStateManager {
             return;
         }
 
-        requestCache.put(relayState, state);
+        int parsedTTL = (int)ttl;
+        if (ttl != parsedTTL) {
+            // Fall back to 60 minutes if the default TTL is set incorrectly
+            parsedTTL = 3600;
+        }
+
+        Element element = new Element(relayState, state);
+        element.setTimeToLive(parsedTTL);
+        element.setTimeToIdle(parsedTTL);
+        requestCache.put(element);
     }
 
     public RequestState removeRequestState(String relayState) {
-        RequestState state = requestCache.get(relayState);
-        if (state != null) {
+        Element element = requestCache.get(relayState);
+        if (element != null) {
             requestCache.remove(relayState);
+            return (RequestState)element.getObjectValue();
         }
-        return state;
+        return null;
     }
 
-    public synchronized void close() throws IOException {
-        if (requestCacheManager.getStatus() == Status.AVAILABLE) {
-            requestCacheManager.removeCache(REQUEST_CACHE_KEY);
-            requestCacheManager.close();
-        }
-        if (responseCacheManager.getStatus() == Status.AVAILABLE) {
-            responseCacheManager.removeCache(RESPONSE_CACHE_KEY);
-            responseCacheManager.close();
+    public void close() throws IOException {
+        if (cacheManager != null) {
+            cacheManager.shutdown();
+            cacheManager = null;
+            requestCache = null;
+            responseCache = null;
         }
     }
 

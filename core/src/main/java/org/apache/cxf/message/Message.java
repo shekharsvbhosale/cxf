@@ -86,13 +86,6 @@ public interface Message extends StringMap {
      */
     String PROCESS_ONEWAY_RESPONSE = "org.apache.cxf.transport.processOneWayResponse";
 
-    
-    /**
-     * Boolean property specifying if 202 response is partial/oneway response.
-     * Default value is true
-     */
-    String PROCESS_202_RESPONSE_ONEWAY_OR_PARTIAL = "org.apache.cxf.transport.process202Response";
-
     /**
      * Boolean property specifying if the thread which runs a request is
      * different to the thread which created this Message.
@@ -189,12 +182,6 @@ public interface Message extends StringMap {
      */
     String CONNECTION_TIMEOUT = "javax.xml.ws.client.connectionTimeout";
     String RECEIVE_TIMEOUT = "javax.xml.ws.client.receiveTimeout";
-
-    /**
-     * Boolean property to indicate whether application-defined StAX-factories (stored as contextual property in the
-     * message) are thread-safe. If set to {@code true}, CXF doesn't synchronize accesses to the factories.
-     */
-    String THREAD_SAFE_STAX_FACTORIES = Message.class.getName() + ".THREAD_SAFE_STAX_FACTORIES";
 
     String getId();
     void setId(String id);

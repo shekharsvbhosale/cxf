@@ -91,13 +91,6 @@ public class UndertowHTTPServerEngineFactoryHolder {
                     if (threads.getThreadingParameters().getMinThreads() != null) {
                         rThreads.setMinThreads(threads.getThreadingParameters().getMinThreads());
                     }
-                    if (threads.getThreadingParameters().getWorkerIOName() != null) {
-                        rThreads.setWorkerIOName(threads.getThreadingParameters().getWorkerIOName());
-                    }
-                    if (threads.getThreadingParameters().getWorkerIOThreads() != null) {
-                        rThreads.setWorkerIOThreads(threads.getThreadingParameters().getWorkerIOThreads());
-                    }
-                    
                     rThreads.setWorkerIOThreads(threads.getThreadingParameters().getWorkerIOThreads());
                     threadingParametersMap.put(id, rThreads);
                 }
@@ -163,9 +156,6 @@ public class UndertowHTTPServerEngineFactoryHolder {
                     if (threads.getWorkerIOThreads() != null) {
                         rThreads.setWorkerIOThreads(threads.getWorkerIOThreads());
                     }
-                    if (threads.getWorkerIOName() != null) {
-                        rThreads.setWorkerIOName(threads.getWorkerIOName());
-                    }
                     eng.setThreadingParameters(rThreads);
                 }
 
@@ -173,9 +163,9 @@ public class UndertowHTTPServerEngineFactoryHolder {
                 if (engine.getTlsServerParameters() != null
                     && (engine.getTlsServerParameters().getKeyManagers() != null
                     || engine.getTlsServerParameters().getTrustManagers() != null)) {
+                    TLSServerParameters parameter = null;
                     try {
-                        TLSServerParameters parameter =
-                            new TLSServerParametersConfig(engine.getTlsServerParameters());
+                        parameter = new TLSServerParametersConfig(engine.getTlsServerParameters());
                         eng.setTlsServerParameters(parameter);
                     } catch (Exception e) {
                         throw new RuntimeException("Could not configure TLS for engine on  "

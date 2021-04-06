@@ -34,7 +34,6 @@ import javax.xml.stream.XMLStreamReader;
 
 import org.apache.cxf.common.classloader.ClassLoaderUtils;
 import org.apache.cxf.common.logging.LogUtils;
-import org.apache.cxf.common.util.PropertyUtils;
 import org.apache.cxf.common.util.StringUtils;
 import org.apache.cxf.helpers.CastUtils;
 import org.apache.cxf.helpers.HttpHeaderHelper;
@@ -128,19 +127,11 @@ public class StaxInInterceptor extends AbstractPhaseInterceptor<Message> {
                     xreader = StaxUtils.createXMLStreamReader(is, encoding);
                 }
             } else {
-                if (PropertyUtils.isTrue(message.getContextualProperty(Message.THREAD_SAFE_STAX_FACTORIES))) {
+                synchronized (factory) {
                     if (reader != null) {
                         xreader = factory.createXMLStreamReader(reader);
                     } else {
                         xreader = factory.createXMLStreamReader(is, encoding);
-                    }
-                } else {
-                    synchronized (factory) {
-                        if (reader != null) {
-                            xreader = factory.createXMLStreamReader(reader);
-                        } else {
-                            xreader = factory.createXMLStreamReader(is, encoding);
-                        }
                     }
                 }
             }

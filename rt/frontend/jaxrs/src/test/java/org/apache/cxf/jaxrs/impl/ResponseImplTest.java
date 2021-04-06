@@ -20,7 +20,6 @@
 package org.apache.cxf.jaxrs.impl;
 
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
 import java.util.Locale;
@@ -180,62 +179,6 @@ public class ResponseImplTest {
     }
 
     @Test
-    public void testHasEntityWithEmptyStreamThatIsMarkSupported() throws Exception {
-        InputStream entityStream = EasyMock.createStrictMock(InputStream.class);
-        EasyMock.expect(entityStream.markSupported()).andReturn(true);
-        entityStream.mark(1);
-        EasyMock.expect(entityStream.read()).andReturn(-1);
-        entityStream.reset();
-        EasyMock.replay(entityStream);
-        assertFalse(new ResponseImpl(200, entityStream).hasEntity());
-        EasyMock.verify(entityStream);
-    }
-
-    @Test
-    public void testHasEntityWithNonEmptyStreamThatIsMarkSupported() throws Exception {
-        InputStream entityStream = EasyMock.createStrictMock(InputStream.class);
-        EasyMock.expect(entityStream.markSupported()).andReturn(true);
-        entityStream.mark(1);
-        EasyMock.expect(entityStream.read()).andReturn(0);
-        entityStream.reset();
-        EasyMock.replay(entityStream);
-        assertTrue(new ResponseImpl(200, entityStream).hasEntity());
-        EasyMock.verify(entityStream);
-    }
-
-    @Test
-    public void testHasEntityWithEmptyStreamThatIsNotMarkSupported() throws Exception {
-        InputStream entityStream = EasyMock.createStrictMock(InputStream.class);
-        EasyMock.expect(entityStream.markSupported()).andReturn(false);
-        EasyMock.expect(entityStream.available()).andReturn(0);
-        EasyMock.expect(entityStream.read()).andReturn(-1);
-        EasyMock.replay(entityStream);
-        assertFalse(new ResponseImpl(200, entityStream).hasEntity());
-        EasyMock.verify(entityStream);
-    }
-
-    @Test
-    public void testHasEntityWithNonEmptyStreamThatIsNotMarkSupportedButIsAvailableSupported() throws Exception {
-        InputStream entityStream = EasyMock.createStrictMock(InputStream.class);
-        EasyMock.expect(entityStream.markSupported()).andReturn(false);
-        EasyMock.expect(entityStream.available()).andReturn(10);
-        EasyMock.replay(entityStream);
-        assertTrue(new ResponseImpl(200, entityStream).hasEntity());
-        EasyMock.verify(entityStream);
-    }
-
-    @Test
-    public void testHasEntityWithnNonEmptyStreamThatIsNotMarkSupportedNorAvailableSupported() throws Exception {
-        InputStream entityStream = EasyMock.createStrictMock(InputStream.class);
-        EasyMock.expect(entityStream.markSupported()).andReturn(false).once();
-        EasyMock.expect(entityStream.available()).andReturn(0).once();
-        EasyMock.expect(entityStream.read()).andReturn(0).once();
-        EasyMock.replay(entityStream);
-        assertTrue(new ResponseImpl(200, entityStream).hasEntity());
-        EasyMock.verify(entityStream);
-    }
-
-    @Test
     public void testGetEntityUnwrapped() {
         final Book book = new Book();
         Response r = Response.ok().entity(
@@ -335,21 +278,6 @@ public class ResponseImplTest {
         assertEquals("a=b;Version=1", headers.getFirst("Set-Cookie"));
     }
 
-    @Test
-    public void testGetCookiesWithEmptyValues() {
-        ResponseImpl ri = new ResponseImpl(200);
-        MetadataMap<String, Object> meta = new MetadataMap<>();
-        meta.add("Set-Cookie", NewCookie.valueOf("a="));
-        meta.add("Set-Cookie", NewCookie.valueOf("c=\"\""));
-        ri.addMetadata(meta);
-        Map<String, NewCookie> cookies = ri.getCookies();
-        assertEquals(2, cookies.size());
-        assertEquals("a=\"\";Version=1", cookies.get("a").toString());
-        assertEquals("c=\"\";Version=1", cookies.get("c").toString());
-        assertEquals("", cookies.get("a").getValue());
-        assertEquals("", cookies.get("c").getValue());
-    }
-    
     @Test
     public void testGetCookies() {
         ResponseImpl ri = new ResponseImpl(200);
@@ -498,103 +426,6 @@ public class ResponseImplTest {
             links = ri.getLinks();
             assertTrue(links.contains(Link.fromUri("http://next").build()));
             assertTrue(links.contains(Link.fromUri("http://prev").build()));
-        }
-    }
-
-    @Test
-    public void testGetLinksMultiple() {
-        try (ResponseImpl ri = new ResponseImpl(200)) {
-            MetadataMap<String, Object> meta = new MetadataMap<>();
-            ri.addMetadata(meta);
-
-            Set<Link> links = ri.getLinks();
-            assertTrue(links.isEmpty());
-
-            meta.add(HttpHeaders.LINK, "<http://next>;rel=\"next\",<http://prev>;rel=\"prev\"");
-
-            assertTrue(ri.hasLink("next"));
-            Link next = ri.getLink("next");
-            assertNotNull(next);
-            assertTrue(ri.hasLink("prev"));
-            Link prev = ri.getLink("prev");
-            assertNotNull(prev);
-
-            links = ri.getLinks();
-            assertTrue(links.contains(Link.fromUri("http://next").rel("next").build()));
-            assertTrue(links.contains(Link.fromUri("http://prev").rel("prev").build()));
-        }
-    }
-    
-
-    @Test
-    public void testGetMultipleWithSingleLink() {
-        try (ResponseImpl ri = new ResponseImpl(200)) {
-            MetadataMap<String, Object> meta = new MetadataMap<>();
-            ri.addMetadata(meta);
-
-            Set<Link> links = ri.getLinks();
-            assertTrue(links.isEmpty());
-
-            meta.add(HttpHeaders.LINK, "<http://next>;rel=\"next\",");
-
-            assertTrue(ri.hasLink("next"));
-            Link next = ri.getLink("next");
-            assertNotNull(next);
-
-            links = ri.getLinks();
-            assertTrue(links.contains(Link.fromUri("http://next").rel("next").build()));
-        }
-    }
-
-    @Test
-    public void testGetLink() {
-        try (ResponseImpl ri = new ResponseImpl(200)) {
-            MetadataMap<String, Object> meta = new MetadataMap<>();
-            ri.addMetadata(meta);
-
-            Set<Link> links = ri.getLinks();
-            assertTrue(links.isEmpty());
-
-            meta.add(HttpHeaders.LINK, "<http://next>;rel=\"next\"");
-
-            assertTrue(ri.hasLink("next"));
-            Link next = ri.getLink("next");
-            assertNotNull(next);
-
-            links = ri.getLinks();
-            assertTrue(links.contains(Link.fromUri("http://next").rel("next").build()));
-        }
-    }
-
-    @Test
-    public void testGetLinksMultipleMultiline() {
-        try (ResponseImpl ri = new ResponseImpl(200)) {
-            MetadataMap<String, Object> meta = new MetadataMap<>();
-            ri.addMetadata(meta);
-            
-            final Message outMessage = createMessage();
-            outMessage.put(Message.REQUEST_URI, "http://localhost");
-            ri.setOutMessage(outMessage);
-
-            Set<Link> links = ri.getLinks();
-            assertTrue(links.isEmpty());
-
-            meta.add(HttpHeaders.LINK, 
-                "</TheBook/chapter2>;\n"
-                + "         rel=\"prev\", \n"
-                + "         </TheBook/chapter4>;\n"
-                + "         rel=\"next\";");
-
-            assertTrue(ri.hasLink("next"));
-            Link next = ri.getLink("next");
-            assertNotNull(next);
-            assertTrue(ri.hasLink("prev"));
-            Link prev = ri.getLink("prev");
-            assertNotNull(prev);
-
-            links = ri.getLinks();
-            assertTrue(links.contains(Link.fromUri("http://localhost/TheBook/chapter4").rel("next").build()));
-            assertTrue(links.contains(Link.fromUri("http://localhost/TheBook/chapter2").rel("prev").build()));
         }
     }
 

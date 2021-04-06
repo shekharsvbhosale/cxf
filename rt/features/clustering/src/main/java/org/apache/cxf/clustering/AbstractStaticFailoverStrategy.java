@@ -21,7 +21,6 @@ package org.apache.cxf.clustering;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -72,7 +71,7 @@ public abstract class AbstractStaticFailoverStrategy implements FailoverStrategy
     /**
      * Select one of the alternate addresses for a retried invocation.
      *
-     * @param alternates a List of alternate addresses if available
+     * @param a List of alternate addresses if available
      * @return the selected address
      */
     public String selectAlternateAddress(List<String> alternates) {
@@ -104,7 +103,7 @@ public abstract class AbstractStaticFailoverStrategy implements FailoverStrategy
     /**
      * Select one of the alternate endpoints for a retried invocation.
      *
-     * @param alternates a List of alternate endpoints if available
+     * @param a List of alternate endpoints if available
      * @return the selected endpoint
      */
     public Endpoint selectAlternateEndpoint(List<Endpoint> alternates) {
@@ -134,13 +133,6 @@ public abstract class AbstractStaticFailoverStrategy implements FailoverStrategy
     protected List<Endpoint> getEndpoints(Exchange exchange, boolean acceptCandidatesWithSameAddress) {
         Endpoint endpoint = exchange.getEndpoint();
         Collection<ServiceInfo> services = endpoint.getService().getServiceInfos();
-        
-        // If there are no services associated with this endpoint (often in case of JAX-RS), 
-        // returning the endpoint itself if allowed.
-        if (services.isEmpty() && acceptCandidatesWithSameAddress) {
-            return Collections.singletonList(endpoint);
-        }
-        
         QName currentBinding = endpoint.getBinding().getBindingInfo().getName();
         List<Endpoint> alternates = new ArrayList<>();
         for (ServiceInfo service : services) {

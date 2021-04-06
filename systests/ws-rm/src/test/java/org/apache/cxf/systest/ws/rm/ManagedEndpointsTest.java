@@ -22,7 +22,6 @@ package org.apache.cxf.systest.ws.rm;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
 import javax.management.InstanceNotFoundException;
@@ -44,7 +43,6 @@ import org.apache.cxf.greeter_control.Greeter;
 import org.apache.cxf.greeter_control.GreeterService;
 import org.apache.cxf.management.InstrumentationManager;
 import org.apache.cxf.management.ManagementConstants;
-import org.apache.cxf.testutil.common.AbstractBusTestServerBase;
 import org.apache.cxf.testutil.common.AbstractClientServerTestBase;
 import org.apache.cxf.ws.rm.AcknowledgementNotification;
 import org.apache.cxf.ws.rm.RM11Constants;
@@ -52,7 +50,7 @@ import org.apache.cxf.ws.rm.RMManager;
 import org.apache.cxf.ws.rm.RMUtils;
 
 import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -76,18 +74,19 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
     private static final String CLIENT_CFG = "/org/apache/cxf/systest/ws/rm/managed-client.xml";
 
     private static final Logger LOG = LogUtils.getLogger(ManagedEndpointsTest.class);
+    private static Bus clientBus;
+    private static InProcessServer server;
     private static Bus serverBus;
-    private Bus clientBus;
 
-    public static class InProcessServer extends AbstractBusTestServerBase {
+    static class InProcessServer {
+        private boolean ready;
         private Endpoint ep;
 
-        @Override
+
         public void run() {
             SpringBusFactory bf = new SpringBusFactory();
             serverBus = bf.createBus(SERVER_CFG);
             BusFactory.setDefaultBus(serverBus);
-            setBus(serverBus);
 
             GreeterImpl implementor = new GreeterImpl();
             String address = "http://localhost:" + PORT + "/SoapContext/GreeterPort";
@@ -96,27 +95,26 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
             ep.publish(address);
 
             LOG.info("Published greeter endpoint.");
+            ready = true;
         }
-        @Override
-        public void tearDown() throws Exception {
+        public void stop() {
             ep.stop();
+            serverBus.shutdown(true);
+        }
+        public boolean isReady() {
+            return ready;
         }
     }
 
     @BeforeClass
-    public static void startServers() throws Exception {
-        assertTrue("server did not launch correctly",
-                   launchServer(InProcessServer.class));
+    public static void startServer() throws Exception {
+        server = new InProcessServer();
+        server.run();
     }
 
-    @Before
-    public void prepareClient() {
-        SpringBusFactory bf = new SpringBusFactory();
-        clientBus = bf.createBus(CLIENT_CFG);
-        MessageLossSimulator mls = new MessageLossSimulator();
-        clientBus.getOutInterceptors().add(mls);
-
-        BusFactory.setDefaultBus(clientBus);
+    @AfterClass
+    public static void stopServer() throws Exception {
+        server.stop();
     }
 
     @After
@@ -126,6 +124,8 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
 
     @Test
     public void testManagedEndpointsOneway() throws Exception {
+        prepareClient();
+
         RMManager clientManager = clientBus.getExtension(RMManager.class);
         RMManager serverManager = serverBus.getExtension(RMManager.class);
 
@@ -182,6 +182,8 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
 
     @Test
     public void testManagedEndpointsOneway12() throws Exception {
+        prepareClient();
+
         RMManager clientManager = clientBus.getExtension(RMManager.class);
         RMManager serverManager = serverBus.getExtension(RMManager.class);
 
@@ -288,7 +290,7 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
         o = mbs.invoke(clientEndpointName, "getSourceSequenceAcknowledgedRange",
                        new Object[]{sseqId}, ONESTRING_SIGNATURE);
         verifyArray("Expected range", o, new Long[]{1L, 1L, 3L, 3L}, true);
-        assertEquals(3L, listener.getLastAcknowledgement());
+        assertEquals(3L, listener.lastAcknowledgement);
 
         o = mbs.invoke(clientEndpointName, "getUnAcknowledgedMessageIdentifiers",
                        new Object[]{sseqId}, ONESTRING_SIGNATURE);
@@ -304,14 +306,14 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
 
         // 3 sec retry interval
         LOG.info("waiting for 3 secs for the retry to complete ...");
-        Thread.sleep(3000L);
+        Thread.sleep(3000);
 
         o = mbs.invoke(clientEndpointName, "getQueuedMessageTotalCount",
                        new Object[]{true}, ONEBOOLEAN_SIGNATURE);
         assertTrue(o instanceof Integer);
         int count = 0;
         while (((Integer)o).intValue() > 0) {
-            Thread.sleep(200L);
+            Thread.sleep(200);
             count++;
             if (count > 20) {
                 fail("Failed to empty the resend queue");
@@ -321,6 +323,7 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
             assertTrue(o instanceof Integer);
         }
         assertTrue("No queued message " + o, o instanceof Integer && 0 == ((Integer)o).intValue());
+        assertEquals(2L, listener.lastAcknowledgement);
 
         o = mbs.invoke(clientEndpointName, "getSourceSequenceAcknowledgedRange",
                        new Object[]{sseqId}, ONESTRING_SIGNATURE);
@@ -333,8 +336,6 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
         o = mbs.invoke(clientEndpointName, "getUnAcknowledgedMessageIdentifiers",
                        new Object[]{sseqId}, ONESTRING_SIGNATURE);
         assertTrue("No unacknowledged message", o instanceof Long[] && 0 == ((Long[])o).length);
-        
-        assertEquals(2L, listener.getLastAcknowledgement());
     }
 
     private String getSingleDestinationSequenceId(MBeanServer mbs, ObjectName clientEndpointName)
@@ -356,6 +357,8 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
 
     @Test
     public void testSuspendAndResumeSourceSequence() throws Exception {
+        prepareClient();
+
         RMManager clientManager = clientBus.getExtension(RMManager.class);
 
         InstrumentationManager serverIM = serverBus.getExtension(InstrumentationManager.class);
@@ -396,7 +399,7 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
 
         // 3 sec retry interval + 1 sec
         LOG.info("waiting for 4 secs for the retry (suspended)...");
-        Thread.sleep(4000L);
+        Thread.sleep(4000);
 
         o = mbs.invoke(clientEndpointName, "getQueuedMessageTotalCount",
                        new Object[]{true}, ONEBOOLEAN_SIGNATURE);
@@ -411,7 +414,7 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
         int count = 0;
         assertTrue(o instanceof Integer);
         while (((Integer)o).intValue() > 0) {
-            Thread.sleep(200L);
+            Thread.sleep(200);
             count++;
             if (count > 100) {
                 //up to 20 seconds to do the resend, should be within 3 or 4
@@ -425,7 +428,34 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
         assertTrue("No queued messages", o instanceof Integer && 0 == ((Integer)o).intValue());
     }
 
-    private static <T> void verifyArray(String desc, Object value, T[] target, boolean exact) {
+    private void prepareClient() {
+        checkServerReady(30000);
+
+        SpringBusFactory bf = new SpringBusFactory();
+        clientBus = bf.createBus(CLIENT_CFG);
+        MessageLossSimulator mls = new MessageLossSimulator();
+        clientBus.getOutInterceptors().add(mls);
+
+        BusFactory.setDefaultBus(clientBus);
+    }
+
+    private void checkServerReady(long max) {
+        long waited = 0;
+        while (waited < max) {
+            if (server.isReady()) {
+                return;
+            }
+            try {
+                Thread.sleep(1000);
+                waited += 1000;
+            } catch (InterruptedException e) {
+                // ignore
+            }
+        }
+        fail("server not ready");
+    }
+
+    private <T> void verifyArray(String desc, Object value, T[] target, boolean exact) {
         assertTrue(desc, target.getClass().isInstance(value));
         @SuppressWarnings("unchecked")
         T[] values = (T[])value;
@@ -448,7 +478,7 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
         }
     }
 
-    private static void verifySourceSequence(Object value, String sid, long num, int qsize) {
+    private void verifySourceSequence(Object value, String sid, long num, int qsize) {
         assertTrue(value instanceof CompositeData);
         CompositeData cd = (CompositeData)value;
         verifyValue(cd, "sequenceId", sid);
@@ -456,7 +486,7 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
         verifyValue(cd, "queuedMessageCount", qsize);
     }
 
-    private static void verifyRetransmissionStatus(Object value, long num, int count) {
+    private void verifyRetransmissionStatus(Object value, long num, int count) {
         assertTrue(value instanceof CompositeData);
         CompositeData cd = (CompositeData)value;
         verifyValue(cd, "messageNumber", num);
@@ -468,12 +498,12 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
         assertTrue(now.before((Date)getValue(cd, "next")));
     }
 
-    private static void verifyValue(CompositeData cd, String key, Object value) {
+    private void verifyValue(CompositeData cd, String key, Object value) {
         Object o = getValue(cd, key);
         assertEquals("Expected value", value, o);
     }
 
-    private static Object getValue(CompositeData cd, String key) {
+    private Object getValue(CompositeData cd, String key) {
         Object o = null;
         try {
             o = cd.get(key);
@@ -483,7 +513,7 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
         return o;
     }
 
-    private static ObjectName getEndpointName(MBeanServer mbs, RMManager manager) throws Exception {
+    private ObjectName getEndpointName(MBeanServer mbs, RMManager manager) throws Exception {
         ObjectName serviceEndpointQueryName = new ObjectName(
             ManagementConstants.DEFAULT_DOMAIN_NAME + ":" + ManagementConstants.BUS_ID_PROP
             + "=" + manager.getBus().getId() + "," + ManagementConstants.TYPE_PROP + "=WSRM.Endpoint,*");
@@ -492,19 +522,16 @@ public class ManagedEndpointsTest extends AbstractClientServerTestBase {
         return (ObjectName)it.next();
     }
 
-    private static class AcknowledgementListener implements NotificationListener {
-        private AtomicLong lastAcknowledgement = new AtomicLong();
+    private class AcknowledgementListener implements NotificationListener {
+        private volatile long lastAcknowledgement;
 
         @Override
         public void handleNotification(Notification notification, Object handback) {
             if (notification instanceof AcknowledgementNotification) {
                 AcknowledgementNotification ack = (AcknowledgementNotification)notification;
-                lastAcknowledgement.set(ack.getMessageNumber());
+                lastAcknowledgement = ack.getMessageNumber();
             }
         }
 
-        public long getLastAcknowledgement() {
-            return lastAcknowledgement.get();
-        }
     }
 }

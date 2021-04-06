@@ -264,7 +264,7 @@ public class XSLTJaxbProvider<T> extends JAXBElementProvider<T> {
                 t.newTransformer().transform(reader, dom);
                 return unmarshaller.unmarshal(dom.getNode());
             }
-            XMLFilter filter;
+            XMLFilter filter = null;
             try {
                 filter = factory.newXMLFilter(t);
             } catch (TransformerConfigurationException ex) {
@@ -340,7 +340,7 @@ public class XSLTJaxbProvider<T> extends JAXBElementProvider<T> {
     protected Result getStreamResult(OutputStream os, Annotation[] anns, MediaType mt) throws Exception {
         return new StreamResult(os);
     }
-
+    
     @Override
     protected void marshalToOutputStream(Marshaller ms, Object obj, OutputStream os,
                                          Annotation[] anns, MediaType mt)
@@ -352,7 +352,7 @@ public class XSLTJaxbProvider<T> extends JAXBElementProvider<T> {
             return;
         }
         org.apache.cxf.common.jaxb.JAXBUtils.setMinimumEscapeHandler(ms);
-        TransformerHandler th;
+        TransformerHandler th = null;
         try {
             th = factory.newTransformerHandler(t);
         } catch (TransformerConfigurationException ex) {
@@ -513,12 +513,13 @@ public class XSLTJaxbProvider<T> extends JAXBElementProvider<T> {
     }
 
     protected Templates createTemplates(URL urlStream) {
-        if (urlStream == null) {
-            return null;
-        }
+        try {
+            if (urlStream == null) {
+                return null;
+            }
 
-        try (Reader r = new BufferedReader(
-                           new InputStreamReader(urlStream.openStream(), StandardCharsets.UTF_8))) {
+            Reader r = new BufferedReader(
+                           new InputStreamReader(urlStream.openStream(), StandardCharsets.UTF_8));
             Source source = new StreamSource(r);
             source.setSystemId(urlStream.toExternalForm());
             if (factory == null) {

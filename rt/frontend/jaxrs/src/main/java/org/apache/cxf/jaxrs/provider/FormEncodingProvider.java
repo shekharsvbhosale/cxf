@@ -154,6 +154,9 @@ public class FormEncodingProvider<T> extends AbstractConfigurableProvider
 
     /**
      * Retrieve map of parameters from the passed in message
+     *
+     * @param message
+     * @return a Map of parameters.
      */
     protected void populateMap(MultivaluedMap<String, String> params,
                                Annotation[] anns,
@@ -205,7 +208,7 @@ public class FormEncodingProvider<T> extends AbstractConfigurableProvider
 
     private static boolean isSupported(Class<?> type, MediaType mt) {
         return (MultivaluedMap.class.isAssignableFrom(type) || Form.class.isAssignableFrom(type))
-            || ("multipart".equalsIgnoreCase(mt.getType())
+            || (mt.getType().equalsIgnoreCase("multipart")
             && mt.isCompatible(MediaType.MULTIPART_FORM_DATA_TYPE)
             && (MultivaluedMap.class.isAssignableFrom(type) || Form.class.isAssignableFrom(type)));
     }

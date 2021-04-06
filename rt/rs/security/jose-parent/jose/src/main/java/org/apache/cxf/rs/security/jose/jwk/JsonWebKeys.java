@@ -18,7 +18,6 @@
  */
 package org.apache.cxf.rs.security.jose.jwk;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -36,13 +35,11 @@ public class JsonWebKeys extends JsonMapObject {
 
     }
     public JsonWebKeys(JsonWebKey key) {
+        setInitKey(key);
+    }
+    private void setInitKey(JsonWebKey key) {
         setKey(key);
     }
-
-    public JsonWebKeys(List<JsonWebKey> keys) {
-        setKeys(keys);
-    }
-
     public List<JsonWebKey> getKeys() {
         List<?> list = (List<?>)super.getProperty(KEYS_PROPERTY);
         if (list != null && !list.isEmpty()) {
@@ -50,8 +47,9 @@ public class JsonWebKeys extends JsonMapObject {
             if (first instanceof JsonWebKey) {
                 return CastUtils.cast(list);
             }
-            List<Map<String, Object>> listOfMaps = super.getListMapProperty(KEYS_PROPERTY);
-            List<JsonWebKey> keys = new ArrayList<>(listOfMaps.size());
+            List<JsonWebKey> keys = new LinkedList<>();
+            List<Map<String, Object>> listOfMaps =
+                CastUtils.cast((List<?>)super.getProperty(KEYS_PROPERTY));
             for (Map<String, Object> map : listOfMaps) {
                 keys.add(new JsonWebKey(map));
             }

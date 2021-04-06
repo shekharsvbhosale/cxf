@@ -78,7 +78,6 @@ import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.cxf.ws.security.policy.PolicyUtils;
 import org.apache.cxf.ws.security.tokenstore.SecurityToken;
 import org.apache.cxf.ws.security.tokenstore.TokenStore;
-import org.apache.cxf.ws.security.tokenstore.TokenStoreException;
 import org.apache.cxf.ws.security.tokenstore.TokenStoreUtils;
 import org.apache.cxf.ws.security.wss4j.AttachmentCallbackHandler;
 import org.apache.cxf.ws.security.wss4j.CXFCallbackLookup;
@@ -341,7 +340,7 @@ public abstract class AbstractBindingBuilder extends AbstractCommonBindingHandle
         }
     }
 
-    protected final TokenStore getTokenStore() throws TokenStoreException {
+    protected final TokenStore getTokenStore() {
         return TokenStoreUtils.getTokenStore(message);
     }
 
@@ -446,7 +445,7 @@ public abstract class AbstractBindingBuilder extends AbstractCommonBindingHandle
                     assertionInfo.setAsserted(true);
                     try {
                         handleSupportingTokens((SupportingTokens)assertionInfo.getAssertion(), endorse, ret);
-                    } catch (SOAPException | TokenStoreException ex) {
+                    } catch (SOAPException ex) {
                         throw new WSSecurityException(WSSecurityException.ErrorCode.FAILURE, ex);
                     }
                 }
@@ -459,7 +458,7 @@ public abstract class AbstractBindingBuilder extends AbstractCommonBindingHandle
         SupportingTokens suppTokens,
         boolean endorse,
         List<SupportingToken> ret
-    ) throws WSSecurityException, SOAPException, TokenStoreException {
+    ) throws WSSecurityException, SOAPException {
         if (suppTokens == null) {
             return ret;
         }
@@ -586,7 +585,7 @@ public abstract class AbstractBindingBuilder extends AbstractCommonBindingHandle
         sig.setSigCanonicalization(binding.getAlgorithmSuite().getC14n().getValue());
 
         Crypto crypto = secToken.getCrypto();
-        final String uname;
+        String uname = null;
         try {
             uname = crypto.getX509Identifier(secToken.getX509Certificate());
         } catch (WSSecurityException e1) {
@@ -798,7 +797,7 @@ public abstract class AbstractBindingBuilder extends AbstractCommonBindingHandle
             secRefSaml.setReference(ref);
         } else {
             Element keyId = doc.createElementNS(WSS4JConstants.WSSE_NS, "wsse:KeyIdentifier");
-            final String valueType;
+            String valueType = null;
             if (saml1) {
                 valueType = WSS4JConstants.WSS_SAML_KI_VALUE_TYPE;
                 secRefSaml.addTokenType(WSS4JConstants.WSS_SAML_TOKEN_TYPE);
@@ -900,7 +899,7 @@ public abstract class AbstractBindingBuilder extends AbstractCommonBindingHandle
         return null;
     }
 
-    protected SamlAssertionWrapper addSamlToken(SamlToken token) throws WSSecurityException, TokenStoreException {
+    protected SamlAssertionWrapper addSamlToken(SamlToken token) throws WSSecurityException {
         assertToken(token);
         if (!isTokenRequired(token.getIncludeTokenType())) {
             return null;
@@ -983,7 +982,7 @@ public abstract class AbstractBindingBuilder extends AbstractCommonBindingHandle
     /**
      * Store a SAML Assertion as a SecurityToken
      */
-    protected void storeAssertionAsSecurityToken(SamlAssertionWrapper assertion) throws TokenStoreException {
+    protected void storeAssertionAsSecurityToken(SamlAssertionWrapper assertion) {
         String id = findIDFromSamlToken(assertion.getElement());
         if (id == null) {
             return;
@@ -1020,7 +1019,7 @@ public abstract class AbstractBindingBuilder extends AbstractCommonBindingHandle
     protected String getPassword(String userName, Assertion info, int usage) {
         //Then try to get the password from the given callback handler
         Object o = SecurityUtils.getSecurityPropertyValue(SecurityConstants.CALLBACK_HANDLER, message);
-        final CallbackHandler handler;
+        CallbackHandler handler = null;
         try {
             handler = SecurityUtils.getCallbackHandler(o);
             if (handler == null) {
@@ -1063,26 +1062,26 @@ public abstract class AbstractBindingBuilder extends AbstractCommonBindingHandle
      *
      * @return the generated or discovered wsu:Id attribute value
      */
-    public String addWsuIdToElement(Element element) {
+    public String addWsuIdToElement(Element elem) {
         String id;
 
         //first try to get the Id attr
-        Attr idAttr = element.getAttributeNodeNS(null, "Id");
+        Attr idAttr = elem.getAttributeNodeNS(null, "Id");
         if (idAttr == null) {
             //then try the wsu:Id value
-            idAttr = element.getAttributeNodeNS(PolicyConstants.WSU_NAMESPACE_URI, "Id");
+            idAttr = elem.getAttributeNodeNS(PolicyConstants.WSU_NAMESPACE_URI, "Id");
         }
 
         if (idAttr != null) {
             id = idAttr.getValue();
         } else {
             //Add an id
-            id = wssConfig.getIdAllocator().createId("_", element);
-            String pfx;
+            id = wssConfig.getIdAllocator().createId("_", elem);
+            String pfx = null;
             try {
-                pfx = element.lookupPrefix(PolicyConstants.WSU_NAMESPACE_URI);
+                pfx = elem.lookupPrefix(PolicyConstants.WSU_NAMESPACE_URI);
             } catch (Throwable t) {
-                pfx = DOMUtils.getPrefixRecursive(element, PolicyConstants.WSU_NAMESPACE_URI);
+                pfx = DOMUtils.getPrefixRecursive(elem, PolicyConstants.WSU_NAMESPACE_URI);
             }
             boolean found = !StringUtils.isEmpty(pfx);
             int cnt = 0;
@@ -1091,9 +1090,9 @@ public abstract class AbstractBindingBuilder extends AbstractCommonBindingHandle
 
                 String ns;
                 try {
-                    ns = element.lookupNamespaceURI(pfx);
+                    ns = elem.lookupNamespaceURI(pfx);
                 } catch (Throwable t) {
-                    ns = DOMUtils.getNamespace(element, pfx);
+                    ns = DOMUtils.getNamespace(elem, pfx);
                 }
 
                 if (!StringUtils.isEmpty(ns)) {
@@ -1102,14 +1101,14 @@ public abstract class AbstractBindingBuilder extends AbstractCommonBindingHandle
                 }
             }
             if (!found) {
-                idAttr = element.getOwnerDocument().createAttributeNS(WSDLConstants.NS_XMLNS, "xmlns:" + pfx);
+                idAttr = elem.getOwnerDocument().createAttributeNS(WSDLConstants.NS_XMLNS, "xmlns:" + pfx);
                 idAttr.setValue(PolicyConstants.WSU_NAMESPACE_URI);
-                element.setAttributeNodeNS(idAttr);
+                elem.setAttributeNodeNS(idAttr);
             }
-            idAttr = element.getOwnerDocument().createAttributeNS(PolicyConstants.WSU_NAMESPACE_URI,
+            idAttr = elem.getOwnerDocument().createAttributeNS(PolicyConstants.WSU_NAMESPACE_URI,
                                                                pfx + ":Id");
             idAttr.setValue(id);
-            element.setAttributeNodeNS(idAttr);
+            elem.setAttributeNodeNS(idAttr);
         }
 
         return id;
@@ -1454,7 +1453,7 @@ public abstract class AbstractBindingBuilder extends AbstractCommonBindingHandle
 
                         if (!found.contains(el)) {
                             found.add(el);
-                            final WSEncryptionPart part;
+                            WSEncryptionPart part = null;
                             boolean saml1 = WSS4JConstants.SAML_NS.equals(el.getNamespaceURI())
                                 && "Assertion".equals(el.getLocalName());
                             boolean saml2 = WSS4JConstants.SAML2_NS.equals(el.getNamespaceURI())
@@ -1786,7 +1785,7 @@ public abstract class AbstractBindingBuilder extends AbstractCommonBindingHandle
 
     protected WSSecSignature getSignatureBuilder(
         AbstractToken token, boolean attached, boolean endorse
-    ) throws WSSecurityException, TokenStoreException {
+    ) throws WSSecurityException {
         WSSecSignature sig = new WSSecSignature(secHeader);
         sig.setIdAllocator(wssConfig.getIdAllocator());
         sig.setCallbackLookup(callbackLookup);

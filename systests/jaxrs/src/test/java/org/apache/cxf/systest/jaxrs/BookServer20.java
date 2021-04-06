@@ -65,20 +65,24 @@ import javax.ws.rs.ext.WriterInterceptorContext;
 import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 
 import org.apache.cxf.Bus;
+import org.apache.cxf.BusFactory;
 import org.apache.cxf.common.util.StringUtils;
-import org.apache.cxf.endpoint.Server;
 import org.apache.cxf.helpers.IOUtils;
 import org.apache.cxf.jaxrs.JAXRSServerFactoryBean;
 import org.apache.cxf.jaxrs.lifecycle.SingletonResourceProvider;
 import org.apache.cxf.jaxrs.utils.InjectionUtils;
-import org.apache.cxf.testutil.common.AbstractServerTestServerBase;
+import org.apache.cxf.testutil.common.AbstractBusTestServerBase;
 
-public class BookServer20 extends AbstractServerTestServerBase {
+public class BookServer20 extends AbstractBusTestServerBase {
     public static final String PORT = allocatePort(BookServer20.class);
 
-    @Override
-    protected Server createServer(Bus bus) throws Exception {
+    org.apache.cxf.endpoint.Server server;
+
+    protected void run() {
+        Bus bus = BusFactory.getDefaultBus();
+        setBus(bus);
         JAXRSServerFactoryBean sf = new JAXRSServerFactoryBean();
+        sf.setBus(bus);
         sf.setResourceClasses(BookStore.class);
 
         List<Object> providers = new ArrayList<>();
@@ -107,11 +111,27 @@ public class BookServer20 extends AbstractServerTestServerBase {
         sf.setResourceProvider(BookStore.class,
                                new SingletonResourceProvider(new BookStore(), true));
         sf.setAddress("http://localhost:" + PORT + "/");
-        return sf.create();
+        server = sf.create();
+        BusFactory.setDefaultBus(null);
+        BusFactory.setThreadDefaultBus(null);
     }
 
-    public static void main(String[] args) throws Exception {
-        new BookServer20().start();
+    public void tearDown() throws Exception {
+        server.stop();
+        server.destroy();
+        server = null;
+    }
+
+    public static void main(String[] args) {
+        try {
+            BookServer20 s = new BookServer20();
+            s.start();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.exit(-1);
+        } finally {
+            System.out.println("done!");
+        }
     }
 
     @PreMatching
@@ -273,34 +293,31 @@ public class BookServer20 extends AbstractServerTestServerBase {
         @Override
         public void filter(ContainerRequestContext requestContext,
                            ContainerResponseContext responseContext) throws IOException {
-            if (responseContext.getMediaType() != null) {
-                String ct = responseContext.getMediaType().toString();
-                if (requestContext.getProperty("filterexception") != null) {
-                    if (!"text/plain".equals(ct)) {
-                        throw new RuntimeException();
-                    }
-                    responseContext.getHeaders().putSingle("FilterException",
-                                                           requestContext.getProperty("filterexception"));
+            String ct = responseContext.getMediaType().toString();
+            if (requestContext.getProperty("filterexception") != null) {
+                if (!"text/plain".equals(ct)) {
+                    throw new RuntimeException();
                 }
-            
-                Object entity = responseContext.getEntity();
-                Type entityType = responseContext.getEntityType();
-                if (entity instanceof GenericHandler && InjectionUtils.getActualType(entityType) == Book.class) {
-                    ct += ";charset=ISO-8859-1";
-                    if ("getGenericBook2".equals(rInfo.getResourceMethod().getName())) {
-                        Annotation[] anns = responseContext.getEntityAnnotations();
-                        if (anns.length == 4 && anns[3].annotationType() == Context.class) {
-                            responseContext.getHeaders().addFirst("Annotations", "OK");
-                        }
-                    } else {
-                        responseContext.setEntity(new Book("book", 124L));
+                responseContext.getHeaders().putSingle("FilterException",
+                                                       requestContext.getProperty("filterexception"));
+            }
+            Object entity = responseContext.getEntity();
+            Type entityType = responseContext.getEntityType();
+            if (entity instanceof GenericHandler && InjectionUtils.getActualType(entityType) == Book.class) {
+                ct += ";charset=ISO-8859-1";
+                if ("getGenericBook2".equals(rInfo.getResourceMethod().getName())) {
+                    Annotation[] anns = responseContext.getEntityAnnotations();
+                    if (anns.length == 4 && anns[3].annotationType() == Context.class) {
+                        responseContext.getHeaders().addFirst("Annotations", "OK");
                     }
                 } else {
-                    ct += ";charset=";
+                    responseContext.setEntity(new Book("book", 124L));
                 }
-                responseContext.getHeaders().putSingle("Content-Type", ct);
-                responseContext.getHeaders().add("Response", "OK");
+            } else {
+                ct += ";charset=";
             }
+            responseContext.getHeaders().putSingle("Content-Type", ct);
+            responseContext.getHeaders().add("Response", "OK");
         }
 
     }
@@ -316,14 +333,8 @@ public class BookServer20 extends AbstractServerTestServerBase {
                 && "addBook2".equals(ri.getResourceMethod().getName())) {
                 return;
             }
-            
-            if (ri.getResourceMethod() != null
-                && "addBook2".equals(ri.getResourceMethod().getName())) {
-                return;
-            }
-            
-            if (requestContext.getUriInfo().getPath().contains("/notFound")) {
-                return;
+            if (!responseContext.getHeaders().containsKey("Response")) {
+                throw new RuntimeException();
             }
 
             if ((!responseContext.getHeaders().containsKey("DynamicResponse")

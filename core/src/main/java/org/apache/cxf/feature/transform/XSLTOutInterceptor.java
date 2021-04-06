@@ -160,7 +160,7 @@ public class XSLTOutInterceptor extends AbstractXSLTInterceptor {
         @Override
         public void onClose(CachedOutputStream wrapper) {
             InputStream transformedStream;
-            Exception exceptionOnClose = null;
+            IOException exceptionOnClose = null;
             try {
                 transformedStream = XSLTUtils.transform(xsltTemplate, wrapper.getInputStream());
                 IOUtils.copyAndCloseInput(transformedStream, origStream);
@@ -169,7 +169,7 @@ public class XSLTOutInterceptor extends AbstractXSLTInterceptor {
             } finally {
                 try {
                     origStream.close();
-                } catch (Exception e) {
+                } catch (IOException e) {
                     exceptionOnClose = e;
                 }
             }
@@ -192,8 +192,9 @@ public class XSLTOutInterceptor extends AbstractXSLTInterceptor {
 
         @Override
         protected void doClose() {
+            Reader transformedReader = null;
             try {
-                final Reader transformedReader = XSLTUtils.transform(xsltTemplate, getReader());
+                transformedReader = XSLTUtils.transform(xsltTemplate, getReader());
                 IOUtils.copyAndCloseInput(transformedReader, origWriter, IOUtils.DEFAULT_BUFFER_SIZE);
             } catch (IOException e) {
                 throw new Fault("READER_COPY", LOG, e, e.getMessage());

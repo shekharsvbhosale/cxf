@@ -19,9 +19,9 @@
 
 package org.apache.cxf.systest.https.ciphersuites;
 
-import java.io.InputStream;
 import java.net.URL;
-import java.security.KeyStore;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,23 +29,19 @@ import java.util.Collections;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import javax.xml.ws.BindingProvider;
 
 import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
 import org.apache.cxf.bus.spring.SpringBusFactory;
-import org.apache.cxf.common.classloader.ClassLoaderUtils;
 import org.apache.cxf.configuration.jsse.TLSClientParameters;
 import org.apache.cxf.endpoint.Client;
 import org.apache.cxf.frontend.ClientProxy;
 import org.apache.cxf.helpers.JavaUtils;
-import org.apache.cxf.systest.https.clientauth.ClientAuthTest;
 import org.apache.cxf.testutil.common.AbstractBusClientServerTestBase;
 import org.apache.cxf.transport.http.HTTPConduit;
-import org.apache.cxf.transport.https.InsecureTrustManager;
 import org.apache.hello_world.Greeter;
 import org.apache.hello_world.services.SOAPService;
 
@@ -350,7 +346,9 @@ public class CipherSuitesTest extends AbstractBusClientServerTestBase {
         HTTPConduit conduit = (HTTPConduit) client.getConduit();
 
         TLSClientParameters tlsParams = new TLSClientParameters();
-        TrustManager[] trustManagers = InsecureTrustManager.getNoOpX509TrustManagers();
+        X509TrustManager trustManager = new NoOpX509TrustManager();
+        TrustManager[] trustManagers = new TrustManager[1];
+        trustManagers[0] = trustManager;
         tlsParams.setTrustManagers(trustManagers);
         tlsParams.setDisableCNCheck(true);
 
@@ -433,7 +431,9 @@ public class CipherSuitesTest extends AbstractBusClientServerTestBase {
         HTTPConduit conduit = (HTTPConduit) client.getConduit();
 
         TLSClientParameters tlsParams = new TLSClientParameters();
-        TrustManager[] trustManagers = InsecureTrustManager.getNoOpX509TrustManagers();
+        X509TrustManager trustManager = new NoOpX509TrustManager();
+        TrustManager[] trustManagers = new TrustManager[1];
+        trustManagers[0] = trustManager;
         tlsParams.setTrustManagers(trustManagers);
         tlsParams.setDisableCNCheck(true);
 
@@ -480,7 +480,9 @@ public class CipherSuitesTest extends AbstractBusClientServerTestBase {
         HTTPConduit conduit = (HTTPConduit) client.getConduit();
 
         TLSClientParameters tlsParams = new TLSClientParameters();
-        TrustManager[] trustManagers = InsecureTrustManager.getNoOpX509TrustManagers();
+        X509TrustManager trustManager = new NoOpX509TrustManager();
+        TrustManager[] trustManagers = new TrustManager[1];
+        trustManagers[0] = trustManager;
         tlsParams.setTrustManagers(trustManagers);
         tlsParams.setDisableCNCheck(true);
 
@@ -493,63 +495,6 @@ public class CipherSuitesTest extends AbstractBusClientServerTestBase {
         ((java.io.Closeable)port).close();
         bus.shutdown(true);
     }
-
-    // Both client + server include AES, client is TLSv1.1
-    @org.junit.Test
-    public void testAESIncludedTLSv11UsingSSLContext() throws Exception {
-        // Doesn't work with IBM JDK
-        if ("IBM Corporation".equals(System.getProperty("java.vendor"))) {
-            return;
-        }
-
-        SpringBusFactory bf = new SpringBusFactory();
-        URL busFile = CipherSuitesTest.class.getResource("ciphersuites-client-noconfig.xml");
-
-        Bus bus = bf.createBus(busFile.toString());
-        BusFactory.setDefaultBus(bus);
-        BusFactory.setThreadDefaultBus(bus);
-
-        URL url = SOAPService.WSDL_LOCATION;
-        SOAPService service = new SOAPService(url, SOAPService.SERVICE);
-        assertNotNull("Service is null", service);
-        final Greeter port = service.getHttpsPort();
-        assertNotNull("Port is null", port);
-
-        updateAddressPort(port, PORT);
-
-        // Enable Async
-        if (async) {
-            ((BindingProvider)port).getRequestContext().put("use.async.http.conduit", true);
-        }
-
-        Client client = ClientProxy.getClient(port);
-        HTTPConduit conduit = (HTTPConduit) client.getConduit();
-
-        // Set up KeyManagers/TrustManagers
-        KeyStore ts = KeyStore.getInstance("JKS");
-        try (InputStream trustStore =
-                     ClassLoaderUtils.getResourceAsStream("keys/Truststore.jks", ClientAuthTest.class)) {
-            ts.load(trustStore, "password".toCharArray());
-        }
-
-        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        tmf.init(ts);
-
-        SSLContext sslContext = SSLContext.getInstance("TLSv1.1");
-        sslContext.init(null, tmf.getTrustManagers(), new java.security.SecureRandom());
-
-        TLSClientParameters tlsParams = new TLSClientParameters();
-        tlsParams.setDisableCNCheck(true);
-        tlsParams.setSSLSocketFactory(sslContext.getSocketFactory());
-
-        conduit.setTlsClientParameters(tlsParams);
-
-        assertEquals(port.greetMe("Kitty"), "Hello Kitty");
-
-        ((java.io.Closeable)port).close();
-        bus.shutdown(true);
-    }
-
 
     // Both client + server include AES, client is TLSv1.0
     @org.junit.Test
@@ -578,7 +523,9 @@ public class CipherSuitesTest extends AbstractBusClientServerTestBase {
         HTTPConduit conduit = (HTTPConduit) client.getConduit();
 
         TLSClientParameters tlsParams = new TLSClientParameters();
-        TrustManager[] trustManagers = InsecureTrustManager.getNoOpX509TrustManagers();
+        X509TrustManager trustManager = new NoOpX509TrustManager();
+        TrustManager[] trustManagers = new TrustManager[1];
+        trustManagers[0] = trustManager;
         tlsParams.setTrustManagers(trustManagers);
         tlsParams.setDisableCNCheck(true);
 
@@ -627,4 +574,23 @@ public class CipherSuitesTest extends AbstractBusClientServerTestBase {
         bus.shutdown(true);
     }
 
+    private static class NoOpX509TrustManager implements X509TrustManager {
+
+        NoOpX509TrustManager() {
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return null;
+        }
+
+    }
 }

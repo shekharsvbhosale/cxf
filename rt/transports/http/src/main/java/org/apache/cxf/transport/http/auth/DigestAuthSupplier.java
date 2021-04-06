@@ -19,25 +19,37 @@
 
 package org.apache.cxf.transport.http.auth;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.cxf.common.util.StringUtils;
 import org.apache.cxf.configuration.security.AuthorizationPolicy;
 import org.apache.cxf.message.Message;
-
-import static java.nio.charset.StandardCharsets.US_ASCII;
 
 /**
  *
  */
 public class DigestAuthSupplier implements HttpAuthSupplier {
+    private static final char[] HEXADECIMAL = {
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+    };
 
+    final MessageDigest md5Helper;
     Map<URI, DigestInfo> authInfo = new ConcurrentHashMap<>();
+
+    public DigestAuthSupplier() {
+        MessageDigest md = null;
+        try {
+            md = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            //ignore - set to null
+        }
+        md5Helper = md;
+    }
 
     /**
      * {@inheritDoc}
@@ -107,8 +119,13 @@ public class DigestAuthSupplier implements HttpAuthSupplier {
         return authURI;
     }
 
-    public String createCnonce() {
-        return Long.toString(System.currentTimeMillis());
+    public String createCnonce() throws UnsupportedEncodingException {
+        String cnonce = Long.toString(System.currentTimeMillis());
+        byte[] bytes = cnonce.getBytes("US-ASCII");
+        synchronized (md5Helper) {
+            bytes = md5Helper.digest(bytes);
+        }
+        return encode(bytes);
     }
 
     class DigestInfo {
@@ -123,31 +140,31 @@ public class DigestAuthSupplier implements HttpAuthSupplier {
 
         synchronized String generateAuth(String uri, String username, String password) {
             try {
+                nc++;
+                String ncstring = String.format("%08d", nc);
+                String cnonce = createCnonce();
+
                 String digAlg = algorithm;
                 if ("MD5-sess".equalsIgnoreCase(digAlg)) {
                     digAlg = "MD5";
                 }
-                final MessageDigest digester = MessageDigest.getInstance(digAlg);
-                String cnonce = createCnonce();
-                String a1 = username + ':' + realm + ':' + password;
+                MessageDigest digester = MessageDigest.getInstance(digAlg);
+                String a1 = username + ":" + realm + ":" + password;
                 if ("MD5-sess".equalsIgnoreCase(algorithm)) {
-                    String tmp2 = StringUtils.toHexString(digester.digest(a1.getBytes(charset)));
+                    String tmp2 = encode(digester.digest(a1.getBytes(charset)));
                     a1 = tmp2 + ':' + nonce + ':' + cnonce;
                 }
-                String hasha1 = StringUtils.toHexString(digester.digest(a1.getBytes(charset)));
-                String a2 = method + ':' + uri;
-                String hasha2 = StringUtils.toHexString(digester.digest(a2.getBytes(US_ASCII)));
-                final String serverDigestValue;
-                final String ncstring;
+                String hasha1 = encode(digester.digest(a1.getBytes(charset)));
+                String a2 = method + ":" + uri;
+                String hasha2 = encode(digester.digest(a2.getBytes("US-ASCII")));
+                String serverDigestValue = null;
                 if (qop == null) {
-                    ncstring = null;
-                    serverDigestValue = hasha1 + ':' + nonce + ':' + hasha2;
+                    serverDigestValue = hasha1 + ":" + nonce + ":" + hasha2;
                 } else {
-                    ncstring = StringUtils.toHexString(ByteBuffer.allocate(4).putInt(++nc).array());
-                    serverDigestValue = hasha1 + ':' + nonce + ':' + ncstring + ':' + cnonce + ':'
-                        + qop + ':' + hasha2;
+                    serverDigestValue = hasha1 + ":" + nonce + ":" + ncstring + ":" + cnonce + ":"
+                        + qop + ":" + hasha2;
                 }
-                String response = StringUtils.toHexString(digester.digest(serverDigestValue.getBytes(US_ASCII)));
+                String response = encode(digester.digest(serverDigestValue.getBytes("US-ASCII")));
                 Map<String, String> outParams = new HashMap<>();
                 if (qop != null) {
                     outParams.put("qop", "auth");
@@ -157,9 +174,7 @@ public class DigestAuthSupplier implements HttpAuthSupplier {
                 outParams.put("nonce", nonce);
                 outParams.put("uri", uri);
                 outParams.put("username", username);
-                if (ncstring != null) {
-                    outParams.put("nc", ncstring);
-                }
+                outParams.put("nc", ncstring);
                 outParams.put("cnonce", cnonce);
                 outParams.put("response", response);
                 outParams.put("algorithm", algorithm);
@@ -170,6 +185,26 @@ public class DigestAuthSupplier implements HttpAuthSupplier {
         }
 
 
+    }
+
+    /**
+     * Encodes the 128 bit (16 bytes) MD5 digest into a 32 characters long
+     * <CODE>String</CODE> according to RFC 2617.
+     *
+     * @param binaryData array containing the digest
+     * @return encoded MD5, or <CODE>null</CODE> if encoding failed
+     */
+    private static String encode(byte[] binaryData) {
+        int n = binaryData.length;
+        char[] buffer = new char[n * 2];
+        for (int i = 0; i < n; i++) {
+            int low = binaryData[i] & 0x0f;
+            int high = (binaryData[i] & 0xf0) >> 4;
+            buffer[i * 2] = HEXADECIMAL[high];
+            buffer[(i * 2) + 1] = HEXADECIMAL[low];
+        }
+
+        return new String(buffer);
     }
 
 }

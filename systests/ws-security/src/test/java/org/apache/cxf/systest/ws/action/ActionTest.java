@@ -42,8 +42,9 @@ import org.apache.cxf.frontend.ClientProxy;
 import org.apache.cxf.jaxws.DispatchImpl;
 import org.apache.cxf.jaxws.JaxWsServerFactoryBean;
 import org.apache.cxf.staxutils.StaxUtils;
-import org.apache.cxf.systest.ws.common.DoubleItPortTypeImpl;
+import org.apache.cxf.systest.ws.common.DoubleItImpl;
 import org.apache.cxf.systest.ws.common.KeystorePasswordCallback;
+import org.apache.cxf.systest.ws.common.SecurityTestUtil;
 import org.apache.cxf.systest.ws.ut.SecurityHeaderCacheInterceptor;
 import org.apache.cxf.test.TestUtilities;
 import org.apache.cxf.testutil.common.AbstractBusClientServerTestBase;
@@ -100,6 +101,7 @@ public class ActionTest extends AbstractBusClientServerTestBase {
 
     @org.junit.AfterClass
     public static void cleanup() throws Exception {
+        SecurityTestUtil.cleanup();
         stopAllServers();
     }
 
@@ -205,30 +207,6 @@ public class ActionTest extends AbstractBusClientServerTestBase {
     }
 
     @org.junit.Test
-    public void testUsernameTokenNoValidation() throws Exception {
-
-        SpringBusFactory bf = new SpringBusFactory();
-        URL busFile = ActionTest.class.getResource("client.xml");
-
-        Bus bus = bf.createBus(busFile.toString());
-        BusFactory.setDefaultBus(bus);
-        BusFactory.setThreadDefaultBus(bus);
-
-        URL wsdl = ActionTest.class.getResource("DoubleItAction.wsdl");
-        Service service = Service.create(wsdl, SERVICE_QNAME);
-        QName portQName = new QName(NAMESPACE, "DoubleItUsernameTokenNoValPort");
-        DoubleItPortType port =
-                service.getPort(portQName, DoubleItPortType.class);
-        updateAddressPort(port, PORT);
-
-        // Successful call
-        assertEquals(50, port.doubleIt(25));
-
-        ((java.io.Closeable)port).close();
-        bus.shutdown(true);
-    }
-
-    @org.junit.Test
     public void testEncryptedPassword() throws Exception {
 
         if (!unrestrictedPoliciesInstalled) {
@@ -324,9 +302,7 @@ public class ActionTest extends AbstractBusClientServerTestBase {
         svrFactory.setWsdlLocation(serviceWSDL.toString());
         String address = "http://localhost:" + PORT2 + "/DoubleItAsymmetric";
         svrFactory.setAddress(address);
-        DoubleItPortTypeImpl serviceBean = new DoubleItPortTypeImpl();
-        serviceBean.setEnforcePrincipal(false);
-        svrFactory.setServiceBean(serviceBean);
+        svrFactory.setServiceBean(new DoubleItImpl());
         QName portQName = new QName(NAMESPACE, "DoubleItAsymmetricPort");
         svrFactory.setEndpointName(portQName);
 

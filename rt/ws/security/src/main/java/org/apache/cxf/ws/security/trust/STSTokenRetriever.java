@@ -32,7 +32,6 @@ import org.apache.cxf.rt.security.utils.SecurityUtils;
 import org.apache.cxf.ws.addressing.AddressingProperties;
 import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.cxf.ws.security.tokenstore.SecurityToken;
-import org.apache.cxf.ws.security.tokenstore.TokenStoreException;
 import org.apache.wss4j.policy.model.Trust10;
 import org.apache.wss4j.policy.model.Trust13;
 
@@ -159,11 +158,7 @@ public final class STSTokenRetriever {
         }
 
         // Remove token from cache
-        try {
-            tokenCacher.removeToken(message, tok);
-        } catch (TokenStoreException ex) {
-            throw new Fault(ex);
-        }
+        tokenCacher.removeToken(message, tok);
 
         // If the user has explicitly disabled Renewing then we can't renew a token,
         // so just get a new one

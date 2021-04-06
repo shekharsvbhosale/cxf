@@ -125,14 +125,12 @@ public final class SchemaUtil {
                             }
                         }
                         String systemId = def.getDocumentBaseURI() + "#types" + schemaCount;
-                        String suffix = ".xsd";
-                        String baseURI = def.getDocumentBaseURI();
-                        if (baseURI != null && baseURI.regionMatches(
-                            true, baseURI.length() - suffix.length(), suffix, 0, suffix.length())
+                        if (def.getDocumentBaseURI() != null
+                            && def.getDocumentBaseURI().toUpperCase().endsWith(".XSD")
                             && def.getTargetNamespace() == null
                             && obj instanceof Schema
-                            && baseURI.equals(((Schema)obj).getDocumentBaseURI())) {
-                            systemId = baseURI;
+                            && ((Schema)obj).getDocumentBaseURI().equals(def.getDocumentBaseURI())) {
+                            systemId = def.getDocumentBaseURI();
                         }
 
                         schemaCol.setBaseUri(def.getDocumentBaseURI());

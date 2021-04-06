@@ -43,7 +43,6 @@ import org.apache.cxf.phase.PhaseInterceptor;
 import org.apache.cxf.ws.policy.AssertionInfoMap;
 import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.cxf.ws.security.policy.PolicyUtils;
-import org.apache.cxf.ws.security.tokenstore.TokenStoreException;
 import org.apache.cxf.ws.security.wss4j.policyhandlers.AsymmetricBindingHandler;
 import org.apache.cxf.ws.security.wss4j.policyhandlers.SymmetricBindingHandler;
 import org.apache.cxf.ws.security.wss4j.policyhandlers.TransportBindingHandler;
@@ -140,7 +139,7 @@ public class PolicyBasedWSS4JOutInterceptor extends AbstractPhaseInterceptor<Soa
 
             if (binding != null) {
                 WSSecHeader secHeader = new WSSecHeader(actor, mustUnderstand, saaj.getSOAPPart());
-                final Element el;
+                Element el = null;
                 try {
                     el = secHeader.insertSecurityHeader();
                 } catch (WSSecurityException e) {
@@ -185,7 +184,7 @@ public class PolicyBasedWSS4JOutInterceptor extends AbstractPhaseInterceptor<Soa
                         new AsymmetricBindingHandler(config, (AsymmetricBinding)binding, saaj,
                                                      secHeader, aim, message).handleBinding();
                     }
-                } catch (SOAPException | TokenStoreException e) {
+                } catch (SOAPException e) {
                     throw new SoapFault(
                         new Message("SECURITY_FAILED", LOG), e, message.getVersion().getSender()
                     );

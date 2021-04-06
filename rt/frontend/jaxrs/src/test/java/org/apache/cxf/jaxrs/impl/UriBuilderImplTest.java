@@ -37,17 +37,12 @@ import org.apache.cxf.jaxrs.resources.BookStore;
 import org.apache.cxf.jaxrs.resources.UriBuilderWrongAnnotations;
 import org.apache.cxf.jaxrs.utils.JAXRSUtils;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class UriBuilderImplTest {
-
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
 
     @Test
     public void testFromUriRelativePath() throws Exception {
@@ -859,12 +854,8 @@ public class UriBuilderImplTest {
         new UriBuilderImpl().path((Method)null).build();
     }
 
-    @Test
+    @Test(expected = IllegalArgumentException.class)
     public void testAddPathMethodNoAnnotation() throws Exception {
-        thrown.expect(IllegalArgumentException.class);
-        thrown.expectMessage(
-                String.format("Method '%s.getBook' is not annotated with Path",
-                BookStore.class.getCanonicalName()));
         Method noAnnot = BookStore.class.getMethod("getBook", String.class);
         new UriBuilderImpl().path(noAnnot).build();
     }
@@ -1642,83 +1633,11 @@ public class UriBuilderImplTest {
     }
 
     @Test
-    public void testURIWithExtraPathMatchesOriginalURIPlusPath() {
-        assertEquals("mailto:bob@apache.org",
-                UriBuilder.fromUri("mailto:bob@apache.org").path("extra").build().toString());
-
-        assertEquals("news:comp.lang.java",
-                UriBuilder.fromUri("news:comp.lang.java").path("extra").build().toString());
-
-        assertEquals("urn:isbn:096139210x",
-                UriBuilder.fromUri("urn:isbn:096139210x").path("extra").build().toString());
-
-        assertEquals("docs/guide/collections/designfaq.html/extra#28",
-                UriBuilder.fromUri("docs/guide/collections/designfaq.html#28").path("extra").build().toString());
-
-        assertEquals("../../../demo/jfc/SwingSet2/src/SwingSet2.java/extra",
-                UriBuilder.fromUri("../../../demo/jfc/SwingSet2/src/SwingSet2.java").path("extra").build().toString());
-
-        assertEquals("file:///~/calendar/extra",
-                UriBuilder.fromUri("file:///~/calendar").path("extra").build().toString());
-
-        assertEquals("bob@somehost.com/extra",
-                UriBuilder.fromUri("bob@somehost.com").path("extra").build().toString());
-
-        assertEquals("http://localhost/somePath/extra",
-                UriBuilder.fromUri("http://localhost/somePath").path("extra").build().toString());
-
-        assertEquals("http://localhost:1234/someOtherPath/extra",
-                UriBuilder.fromUri("http://localhost:1234/someOtherPath").path("extra").build().toString());
-
-        assertEquals("http://127.0.0.1/extra",
-                UriBuilder.fromUri("http://127.0.0.1").path("extra").build().toString());
-
-        assertEquals("http://127.0.0.1/extra",
-                UriBuilder.fromUri("http://127.0.0.1/").path("extra").build().toString());
-
-        assertEquals("http://127.0.0.1/index.html/extra",
-                UriBuilder.fromUri("http://127.0.0.1/index.html").path("extra").build().toString());
-
-        assertEquals("myscheme://a.host:7575/extra",
-                UriBuilder.fromUri("myscheme://a.host:7575/").path("extra").build().toString());
-
-        // note that this will use the scheme specific part of the URI, as opposed to host, port and path,
-        // and therefore the extra path will not be appended. URI uses an int for the port, and therefore
-        // will not parse the "fakePort" part of this URI as a port.
-        assertEquals("myscheme://not.really.a.host:fakePort/",
-                UriBuilder.fromUri("myscheme://not.really.a.host:fakePort/").path("extra").build().toString());
-    }
-
-    @Test
     public void testURIWithNonIntegerPort() {
         String url = "myscheme://not.really.a.host:port/";
         UriBuilder builder = UriBuilder.fromUri(url);
         URI uri = builder.build();
         assertEquals(url, uri.toString());
-    }
-
-    @Test
-    public void testExpandQueryValueAsCollection() {
-        Map<String, Object> props = Collections.singletonMap("expand.query.value.as.collection", true);
-        URI uri = new UriBuilderImpl(props).queryParam("foo", "v1", "v2", "v3").build();
-        assertEquals("foo=v1,v2,v3", uri.getQuery());
-    }
-
-    @Test
-    public void testUseArraySyntaxForQueryParams() {
-        Map<String, Object> props = Collections.singletonMap("use.array.syntax.for.query.values", true);
-        URI uri = new UriBuilderImpl(props).queryParam("foo", "v1", "v2", "v3").build();
-        assertEquals("foo[]=v1&foo[]=v2&foo[]=v3", uri.getQuery());
-    }
-
-    @Test
-    public void testUseArraySyntaxForQueryParamsBuildFromEncodedNormalize() {
-        Map<String, Object> props = Collections.singletonMap("use.array.syntax.for.query.values", true);
-        URI uri = new UriBuilderImpl(props).queryParam("foo", "v1")
-                                           .queryParam("foo", "v2")
-                                           .queryParam("foo", "v3")
-                                           .buildFromEncoded().normalize();
-        assertEquals("foo[]=v1&foo[]=v2&foo[]=v3", uri.getQuery());
     }
 
     @Path(value = "/TestPath")

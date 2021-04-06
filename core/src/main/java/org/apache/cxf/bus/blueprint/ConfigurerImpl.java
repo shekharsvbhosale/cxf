@@ -57,10 +57,10 @@ public class ConfigurerImpl implements Configurer {
         }
         @Override
         public int compareTo(MatcherHolder mh) {
-            int literalCharsLen1 = this.wildCardId.replace("*", "").length();
-            int literalCharsLen2 = mh.wildCardId.replace("*", "").length();
+            Integer literalCharsLen1 = this.wildCardId.replace("*", "").length();
+            Integer literalCharsLen2 = mh.wildCardId.replace("*", "").length();
             // The expression with more literal characters should end up on the top of the list
-            return Integer.compare(literalCharsLen1, literalCharsLen2) * -1;
+            return literalCharsLen1.compareTo(literalCharsLen2) * -1;
         }
     }
 
@@ -114,12 +114,14 @@ public class ConfigurerImpl implements Configurer {
         }
 
         if (container instanceof ExtendedBlueprintContainer) {
+            ComponentMetadata cm = null;
             try {
-                final ComponentMetadata cm = container.getComponentMetadata(bn);
-                if (cm instanceof BeanMetadata) {
-                    ((ExtendedBlueprintContainer)container).injectBeanInstance((BeanMetadata)cm, beanInstance);
-                }
+                cm = container.getComponentMetadata(bn);
             } catch (NoSuchComponentException nsce) {
+                cm = null;
+            }
+            if (cm instanceof BeanMetadata) {
+                ((ExtendedBlueprintContainer)container).injectBeanInstance((BeanMetadata)cm, beanInstance);
             }
         }
     }

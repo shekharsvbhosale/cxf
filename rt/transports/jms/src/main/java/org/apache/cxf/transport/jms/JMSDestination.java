@@ -113,7 +113,12 @@ public class JMSDestination extends AbstractMultiplexDestination implements Mess
             }
             if (!jmsConfig.isOneSessionPerConnection()) {
                 // If first connect fails we will try to establish the connection in the background
-                new Thread(() -> restartConnection()).start();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        restartConnection();
+                    }
+                }).start();
             }
         }
     }
@@ -121,19 +126,16 @@ public class JMSDestination extends AbstractMultiplexDestination implements Mess
 
     private JMSListenerContainer createTargetDestinationListener() {
         Session session = null;
-        try { // NOPMD - UseTryWithResources
+        try {
             ExceptionListener exListener = new ExceptionListener() {
-                private boolean restartTriggered;
-
-                public synchronized void onException(JMSException exception) {
-                    if (!shutdown && !restartTriggered) {
+                public void onException(JMSException exception) {
+                    if (!shutdown) {
                         LOG.log(Level.WARNING, "Exception on JMS connection. Trying to reconnect", exception);
-                        new Thread(() -> restartConnection()).start();
-                        restartTriggered = true;
+                        restartConnection();
                     }
                 }
             };
-
+            
             PollingMessageListenerContainer container;
             if (!jmsConfig.isOneSessionPerConnection()) {
                 connection = JMSFactory.createConnection(jmsConfig);
@@ -141,7 +143,7 @@ public class JMSDestination extends AbstractMultiplexDestination implements Mess
                 Destination destination = jmsConfig.getTargetDestination(session);
                 container = new PollingMessageListenerContainer(connection, destination, this, exListener);
             } else {
-                container = new PollingMessageListenerContainer(jmsConfig, false, this, exListener);
+                container = new PollingMessageListenerContainer(jmsConfig, false, this);
             }
 
             container.setConcurrentConsumers(jmsConfig.getConcurrentConsumers());
@@ -213,11 +215,14 @@ public class JMSDestination extends AbstractMultiplexDestination implements Mess
     }
 
 
+
     /**
      * Convert JMS message received by ListenerThread to CXF message and inform incomingObserver that a
      * message was received. The observer will call the service and then send the response CXF message by
      * using the BackChannelConduit
      *
+     * @param message
+     * @throws IOException
      */
     public void onMessage(javax.jms.Message message) {
         ClassLoaderHolder origLoader = null;

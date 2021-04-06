@@ -86,18 +86,13 @@ public class JwsUtilsTest {
         assertNotNull(jws);
     }
     @Test
-    public void testLoadSignatureVerifierFromProperties() throws Exception {
-        JwsSignatureVerifier jws = JwsUtils.loadSignatureVerifier("classpath:/jws/signature.properties", null);
-        assertEquals(SignatureAlgorithm.NONE, jws.getAlgorithm());
-    }
-    @Test
     public void testLoadVerificationKey() throws Exception {
         Properties p = new Properties();
         p.put(JoseConstants.RSSEC_KEY_STORE_FILE,
             "org/apache/cxf/rs/security/jose/jws/alice.jks");
         p.put(JoseConstants.RSSEC_KEY_STORE_PSWD, "password");
         p.put(JoseConstants.RSSEC_KEY_STORE_ALIAS, "alice");
-        JsonWebKeys keySet = JwsUtils.loadPublicVerificationKeys(createMessage(), p, true);
+        JsonWebKeys keySet = JwsUtils.loadPublicVerificationKeys(createMessage(), p);
         assertEquals(1, keySet.asMap().size());
         List<JsonWebKey> keys = keySet.getRsaKeys();
         assertEquals(1, keys.size());
@@ -117,7 +112,7 @@ public class JwsUtilsTest {
         p.put(JoseConstants.RSSEC_KEY_STORE_PSWD, "password");
         p.put(JoseConstants.RSSEC_KEY_STORE_ALIAS, "alice");
         p.put(JoseConstants.RSSEC_SIGNATURE_INCLUDE_CERT, true);
-        JsonWebKeys keySet = JwsUtils.loadPublicVerificationKeys(createMessage(), p, true);
+        JsonWebKeys keySet = JwsUtils.loadPublicVerificationKeys(createMessage(), p);
         assertEquals(1, keySet.asMap().size());
         List<JsonWebKey> keys = keySet.getRsaKeys();
         assertEquals(1, keys.size());
@@ -132,7 +127,7 @@ public class JwsUtilsTest {
         assertEquals(2, chain.size());
     }
 
-    private static Message createMessage() {
+    private Message createMessage() {
         Message m = new MessageImpl();
         Exchange e = new ExchangeImpl();
         e.put(Bus.class, BusFactory.getThreadDefaultBus());

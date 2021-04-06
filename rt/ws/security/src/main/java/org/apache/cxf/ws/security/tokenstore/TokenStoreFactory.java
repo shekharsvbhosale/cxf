@@ -31,7 +31,7 @@ public abstract class TokenStoreFactory {
 
     static {
         try {
-            Class<?> cacheManagerClass = Class.forName("org.ehcache.CacheManager");
+            Class<?> cacheManagerClass = Class.forName("net.sf.ehcache.CacheManager");
             if (cacheManagerClass != null) {
                 ehCacheInstalled = true;
             }
@@ -52,6 +52,6 @@ public abstract class TokenStoreFactory {
         return new MemoryTokenStoreFactory();
     }
 
-    public abstract TokenStore newTokenStore(String key, Message message) throws TokenStoreException;
+    public abstract TokenStore newTokenStore(String key, Message message);
 
 }

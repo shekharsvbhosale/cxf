@@ -43,6 +43,9 @@ public class DispatchMDBInvoker extends MDBInvoker {
 
     private String targetJndiName;
 
+    /**
+     * @param messageEndpoint
+     */
     public DispatchMDBInvoker(MessageEndpointFactory factory, String targetJndiName) {
         super(factory);
         this.targetJndiName = targetJndiName;
@@ -50,7 +53,7 @@ public class DispatchMDBInvoker extends MDBInvoker {
 
     @Override
     public Object getServiceObject(Exchange context) {
-        final MessageEndpoint ep;
+        MessageEndpoint ep = null;
         MessageEndpoint epFromMessage = null;
 
         if (context != null) {

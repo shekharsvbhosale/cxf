@@ -46,7 +46,6 @@ import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.cxf.ws.security.policy.PolicyUtils;
 import org.apache.cxf.ws.security.tokenstore.SecurityToken;
 import org.apache.cxf.ws.security.tokenstore.TokenStore;
-import org.apache.cxf.ws.security.tokenstore.TokenStoreException;
 import org.apache.cxf.ws.security.tokenstore.TokenStoreUtils;
 import org.apache.cxf.ws.security.trust.STSUtils;
 import org.apache.neethi.Assertion;
@@ -202,7 +201,7 @@ final class NegotiationUtils {
     /**
      * Return true on successfully parsing a SecurityContextToken result
      */
-    static boolean parseSCTResult(SoapMessage message) throws TokenStoreException {
+    static boolean parseSCTResult(SoapMessage message) {
         List<WSHandlerResult> results =
             CastUtils.cast((List<?>)message.get(WSHandlerConstants.RECV_RESULTS));
         if (results == null) {

@@ -35,7 +35,6 @@ import org.apache.cxf.ws.policy.PolicyException;
 import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.cxf.ws.security.policy.PolicyUtils;
 import org.apache.cxf.ws.security.tokenstore.SecurityToken;
-import org.apache.cxf.ws.security.tokenstore.TokenStoreException;
 import org.apache.cxf.ws.security.tokenstore.TokenStoreUtils;
 import org.apache.neethi.Assertion;
 import org.apache.wss4j.policy.SP13Constants;
@@ -449,7 +448,7 @@ public abstract class AbstractCommonBindingHandler {
         return null;
     }
 
-    protected SecurityToken getSecurityToken() throws TokenStoreException {
+    protected SecurityToken getSecurityToken() {
         SecurityToken st = (SecurityToken)message.getContextualProperty(SecurityConstants.TOKEN);
         if (st == null) {
             String id = (String)message.getContextualProperty(SecurityConstants.TOKEN_ID);

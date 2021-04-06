@@ -131,11 +131,10 @@ public final class ParticleInfo implements ItemInfo {
     /**
      * Fill in an ElementInfo for an element or xs:any from a sequence.
      *
-     * @param sequenceObject
+     * @param sequenceElement
      * @param currentSchema
      * @param schemaCollection
      * @param prefixAccumulator
-     * @param contextName
      * @return
      */
     public static ParticleInfo forLocalItem(XmlSchemaObject sequenceObject, XmlSchema currentSchema,
@@ -329,7 +328,7 @@ public final class ParticleInfo implements ItemInfo {
                 if (elementInfo.type == null
                     && !element.getSchemaTypeName()
                             .getNamespaceURI().equals(Constants.URI_2001_SCHEMA_XSD)) {
-                    throw JavascriptUtils.unsupportedConstruct("MISSING_TYPE", element.getSchemaTypeName()
+                    JavascriptUtils.unsupportedConstruct("MISSING_TYPE", element.getSchemaTypeName()
                             .toString(), element.getQName(), element);
                 }
             }

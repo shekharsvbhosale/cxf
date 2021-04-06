@@ -32,8 +32,7 @@ import org.apache.cxf.rs.security.jose.common.JoseUtils;
 
 public class JweCompactConsumer {
     protected static final Logger LOG = LogUtils.getL7dLogger(JweCompactConsumer.class);
-    private final JweDecryptionInput jweDecryptionInput;
-
+    private JweDecryptionInput jweDecryptionInput;
     public JweCompactConsumer(String jweContent) {
         String[] parts = JoseUtils.getCompactParts(jweContent);
         if (parts.length != 5) {

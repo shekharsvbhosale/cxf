@@ -150,7 +150,7 @@ public final class OAuthClientUtils {
     /**
      * Creates OAuth Authorization header
      * @param consumer Consumer bean containing the consumer key and secret
-     * @param accessToken Access token representation
+     * @param token Access token representation
      * @param method HTTP method
      * @param requestURI request URI
      * @return the header value

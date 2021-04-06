@@ -28,6 +28,8 @@ import javax.ws.rs.core.UriBuilder;
 
 import org.apache.cxf.rs.security.oauth2.common.Client;
 import org.apache.cxf.rs.security.oauth2.common.FormAuthorizationResponse;
+import org.apache.cxf.rs.security.oauth2.common.OAuthAuthorizationData;
+import org.apache.cxf.rs.security.oauth2.common.OAuthPermission;
 import org.apache.cxf.rs.security.oauth2.common.OAuthRedirectionState;
 import org.apache.cxf.rs.security.oauth2.common.OOBAuthorizationResponse;
 import org.apache.cxf.rs.security.oauth2.common.ServerAccessToken;
@@ -59,14 +61,29 @@ public class AuthorizationCodeGrantService extends RedirectionBasedGrantService 
     public AuthorizationCodeGrantService() {
         super(OAuthConstants.CODE_RESPONSE_TYPE, OAuthConstants.AUTHORIZATION_CODE_GRANT);
     }
-
-    protected OAuthRedirectionState recreateRedirectionStateFromParams(MultivaluedMap<String, String> params) {
+    @Override
+    protected OAuthAuthorizationData createAuthorizationData(Client client,
+                                                             MultivaluedMap<String, String> params,
+                                                             String redirectUri,
+                                                             UserSubject subject,
+                                                             List<OAuthPermission> requestedPerms,
+                                                             List<OAuthPermission> alreadyAuthorizedPerms,
+                                                             boolean authorizationCanBeSkipped) {
+        OAuthAuthorizationData data =
+            super.createAuthorizationData(client, params, redirectUri, subject,
+                                          requestedPerms, alreadyAuthorizedPerms, authorizationCanBeSkipped);
+        setCodeChallenge(data, params);
+        return data;
+    }
+    protected OAuthRedirectionState recreateRedirectionStateFromParams(
+        MultivaluedMap<String, String> params) {
         OAuthRedirectionState state = super.recreateRedirectionStateFromParams(params);
-        state.setClientCodeChallenge(params.getFirst(OAuthConstants.AUTHORIZATION_CODE_CHALLENGE));
-        state.setClientCodeChallengeMethod(params.getFirst(OAuthConstants.AUTHORIZATION_CODE_CHALLENGE_METHOD));
+        setCodeChallenge(state, params);
         return state;
     }
-
+    private static void setCodeChallenge(OAuthRedirectionState data, MultivaluedMap<String, String> params) {
+        data.setClientCodeChallenge(params.getFirst(OAuthConstants.AUTHORIZATION_CODE_CHALLENGE));
+    }
     protected Response createGrant(OAuthRedirectionState state,
                                    Client client,
                                    List<String> requestedScope,
@@ -75,7 +92,7 @@ public class AuthorizationCodeGrantService extends RedirectionBasedGrantService 
                                    ServerAccessToken preauthorizedToken) {
         // in this flow the code is still created, the preauthorized token
         // will be retrieved by the authorization code grant handler
-        final ServerAuthorizationCodeGrant grant;
+        ServerAuthorizationCodeGrant grant = null;
         try {
             grant = getGrantRepresentation(state,
                                            client,
@@ -148,7 +165,6 @@ public class AuthorizationCodeGrantService extends RedirectionBasedGrantService 
         codeReg.setAudience(state.getAudience());
         codeReg.setNonce(state.getNonce());
         codeReg.setClientCodeChallenge(state.getClientCodeChallenge());
-        codeReg.setClientCodeChallengeMethod(state.getClientCodeChallengeMethod());
         codeReg.getExtraProperties().putAll(state.getExtraProperties());
         return codeReg;
     }
@@ -193,7 +209,8 @@ public class AuthorizationCodeGrantService extends RedirectionBasedGrantService 
     protected boolean canRedirectUriBeEmpty(Client c) {
         // If a redirect URI is empty then the code will be returned out of band,
         // typically will be returned directly to a human user
-        return c.isConfidential() && canSupportEmptyRedirectForPrivateClients;
+        return (c.isConfidential() && canSupportEmptyRedirectForPrivateClients || canSupportPublicClient(c))
+                && c.getRedirectUris().isEmpty();
     }
 
     public void setCanSupportPublicClients(boolean support) {

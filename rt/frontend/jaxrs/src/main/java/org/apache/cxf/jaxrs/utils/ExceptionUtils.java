@@ -21,7 +21,6 @@ package org.apache.cxf.jaxrs.utils;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.lang.reflect.Constructor;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
@@ -168,17 +167,6 @@ public final class ExceptionUtils {
             return SpecExceptions.toHttpException(cause, response);
         } catch (NoClassDefFoundError ex) {
             return toWebApplicationException(ex, response);
-        }
-    }
-    
-    public static WebApplicationException toWebApplicationException(Response response) {
-        try {
-            final Class<?> exceptionClass = ExceptionUtils.getWebApplicationExceptionClass(response, 
-                WebApplicationException.class);
-            final Constructor<?> ctr = exceptionClass.getConstructor(Response.class);
-            return (WebApplicationException)ctr.newInstance(response);
-        } catch (Throwable ex) {
-            return new WebApplicationException(response);
         }
     }
 }

@@ -27,8 +27,7 @@ import org.apache.cxf.rs.security.jose.jwa.AlgorithmUtils;
 import org.apache.cxf.rs.security.jose.jwa.ContentAlgorithm;
 
 public class AesCbcHmacJweDecryption extends JweDecryption {
-    private final String supportedAlgo;
-
+    private String supportedAlgo;
     public AesCbcHmacJweDecryption(KeyDecryptionProvider keyDecryptionAlgo) {
         this(keyDecryptionAlgo, null);
     }

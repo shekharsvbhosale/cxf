@@ -155,11 +155,13 @@ public class MemoryOAuthDataProvider implements OAuthDataProvider {
     }
 
     protected String generateToken() throws OAuthServiceException {
+        String token;
         try {
-            return tokenGenerator.generate(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+            token = tokenGenerator.generate(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             throw new OAuthServiceException("Unable to create token ", e.getCause());
         }
+        return token;
     }
 
     public void setClientAuthInfo(Map<String, Client> clientAuthInfo) {

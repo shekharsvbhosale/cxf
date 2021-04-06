@@ -20,11 +20,9 @@ package org.apache.cxf.jca.core.resourceadapter;
 
 
 import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.resource.ResourceException;
 import javax.resource.spi.ConnectionManager;
@@ -34,14 +32,14 @@ import javax.resource.spi.ResourceAdapterInternalException;
 import javax.security.auth.Subject;
 
 
+import org.easymock.EasyMock;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class ManagedConnectionFactoryImplTest {
     DummyManagedConnectionFactoryImpl mcf = new DummyManagedConnectionFactoryImpl();
@@ -129,24 +127,28 @@ public class ManagedConnectionFactoryImplTest {
 
     @Test
     public void testGetSetLogWriter() throws Exception {
-        final AtomicBoolean closed = new AtomicBoolean();
-        PrintWriter writer = new PrintWriter(new StringWriter()) {
-            @Override
-            public void close() {
-                super.close();
-                closed.set(true);
-            }
-        };
+        PrintWriter writer = EasyMock.createMock(PrintWriter.class);
+        writer.write(EasyMock.isA(String.class));
+        EasyMock.expectLastCall().anyTimes();
+        writer.flush();
+        EasyMock.expectLastCall().anyTimes();
+        writer.close();
+        EasyMock.expectLastCall().anyTimes();
+        // the write could be call lots of time
+        EasyMock.replay(writer);
         mcf.setLogWriter(writer);
-        assertSame(writer, mcf.getLogWriter());
-
-        mcf.close();
-        assertFalse(closed.get());
+        assertTrue(mcf.getLogWriter() == writer);
+        EasyMock.verify(writer);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testSetNullLogWriter() throws Exception {
-        mcf.setLogWriter(null);
+        try {
+            mcf.setLogWriter(null);
+            fail("expect ex on null log writer arg");
+        } catch (IllegalArgumentException expected) {
+            //do nothing here
+        }
     }
 }
 
@@ -178,7 +180,6 @@ class DummyManagedConnectionFactoryImpl extends AbstractManagedConnectionFactory
     }
 
     public void close() throws ResourceAdapterInternalException {
-        // do nothing here
     }
 
     protected void validateReference(AbstractManagedConnectionImpl conn, Subject subject)

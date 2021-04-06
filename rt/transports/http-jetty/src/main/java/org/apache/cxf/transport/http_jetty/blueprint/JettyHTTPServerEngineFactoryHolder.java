@@ -146,9 +146,7 @@ public class JettyHTTPServerEngineFactoryHolder {
                 if (engine.isContinuationsEnabled() != null) {
                     eng.setContinuationsEnabled(engine.isContinuationsEnabled());
                 }
-                if (engine.isSendServerVersion() != null) {
-                    eng.setSendServerVersion(engine.isSendServerVersion());
-                }
+
                 if (engine.getHost() != null && !StringUtils.isEmpty(engine.getHost())) {
                     eng.setHost(engine.getHost());
                 }
@@ -184,9 +182,9 @@ public class JettyHTTPServerEngineFactoryHolder {
                 if (engine.getTlsServerParameters() != null
                     && (engine.getTlsServerParameters().getKeyManagers() != null
                     || engine.getTlsServerParameters().getTrustManagers() != null)) {
+                    TLSServerParameters parameter = null;
                     try {
-                        TLSServerParameters parameter =
-                            new TLSServerParametersConfig(engine.getTlsServerParameters());
+                        parameter = new TLSServerParametersConfig(engine.getTlsServerParameters());
                         eng.setTlsServerParameters(parameter);
                     } catch (Exception e) {
                         throw new RuntimeException("Could not configure TLS for engine on  "

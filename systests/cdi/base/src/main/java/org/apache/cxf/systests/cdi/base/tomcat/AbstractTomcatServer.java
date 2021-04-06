@@ -19,22 +19,21 @@
 
 package org.apache.cxf.systests.cdi.base.tomcat;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 
 import org.apache.catalina.startup.Tomcat;
-import org.apache.cxf.helpers.FileUtils;
 import org.apache.cxf.testutil.common.AbstractBusTestServerBase;
 
 import static org.junit.Assert.fail;
 
 public abstract class AbstractTomcatServer extends AbstractBusTestServerBase {
 
+    private Tomcat server;
     private final String resourcePath;
     private final String contextPath;
     private final int port;
-    private Tomcat server;
-    private Path base;
 
     protected AbstractTomcatServer(final String resourcePath, final String contextPath, int portNumber) {
         this.resourcePath = resourcePath;
@@ -48,13 +47,12 @@ public abstract class AbstractTomcatServer extends AbstractBusTestServerBase {
 
         server = new Tomcat();
         server.setPort(port);
-        server.getConnector();
 
         try {
-            base = Files.createTempDirectory("tmp-");
-            server.setBaseDir(base.toString());
+            final File base = createTemporaryDirectory();
+            server.setBaseDir(base.getAbsolutePath());
 
-            server.getHost().setAppBase(base.toString());
+            server.getHost().setAppBase(base.getAbsolutePath());
             server.getHost().setAutoDeploy(true);
             server.getHost().setDeployOnStartup(true);
 
@@ -66,6 +64,21 @@ public abstract class AbstractTomcatServer extends AbstractBusTestServerBase {
         }
     }
 
+    private static File createTemporaryDirectory() throws IOException {
+        final File base = Files.createTempFile("tmp-", "").toFile();
+
+        if (!base.delete()) {
+            throw new IOException("Cannot (re)create base folder: " + base.getAbsolutePath());
+        }
+
+        if (!base.mkdir()) {
+            throw new IOException("Cannot create base folder: " + base.getAbsolutePath());
+        }
+
+        base.deleteOnExit();
+        return base;
+    }
+
     public void tearDown() throws Exception {
         super.tearDown();
 
@@ -73,7 +86,6 @@ public abstract class AbstractTomcatServer extends AbstractBusTestServerBase {
             server.stop();
             server.destroy();
             server = null;
-            FileUtils.removeDir(base.toFile());
         }
     }
 }

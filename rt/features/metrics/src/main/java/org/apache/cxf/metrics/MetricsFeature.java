@@ -58,6 +58,7 @@ public class MetricsFeature extends DelegatingFeature<MetricsFeature.Portable> {
         super(new Portable(providers));
     }
 
+    @Provider(Type.Feature)
     public static class Portable implements AbstractPortableFeature {
         MetricsProvider[] providers;
 

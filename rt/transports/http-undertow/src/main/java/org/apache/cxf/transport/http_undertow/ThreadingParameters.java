@@ -19,8 +19,6 @@
 
 package org.apache.cxf.transport.http_undertow;
 
-import org.apache.cxf.common.util.StringUtils;
-
 public class ThreadingParameters {
     /**
      * Specify the number of I/O threads to create for the worker.  If not specified, a default will be chosen.
@@ -41,7 +39,6 @@ public class ThreadingParameters {
     private boolean workerIOThreadsSet;
     private boolean minThreadsSet;
     private boolean maxThreadsSet;
-    private String workerIOName;
 
     public void setWorkerIOThreads(int number) {
         workerIOThreadsSet = true;
@@ -57,10 +54,6 @@ public class ThreadingParameters {
         maxThreadsSet = true;
         maxThreads = number;
     }
-    
-    public void setWorkerIOName(String workerIOName) {
-        this.workerIOName = workerIOName;
-    }
 
     public int getWorkerIOThreads() {
         return workerIOThreads;
@@ -72,10 +65,6 @@ public class ThreadingParameters {
 
     public int getMaxThreads() {
         return maxThreads;
-    }
-    
-    public String getWorkerIOName() {
-        return workerIOName;
     }
 
     public boolean isWorkerIOThreadsSet() {
@@ -90,10 +79,6 @@ public class ThreadingParameters {
 
     public boolean isMaxThreadsSet() {
         return maxThreadsSet;
-    }
-    
-    public boolean isWorkerIONameSet() {
-        return !StringUtils.isEmpty(this.workerIOName);
     }
 
 }

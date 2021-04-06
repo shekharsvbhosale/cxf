@@ -32,12 +32,12 @@ import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
@@ -98,7 +98,7 @@ public abstract class AbstractJAXBProvider<T> extends AbstractConfigurableProvid
         new HashSet<Class<?>>(Arrays.asList(InputStream.class,
                                             OutputStream.class,
                                             StreamingOutput.class));
-    protected Set<Class<?>> collectionContextClasses = ConcurrentHashMap.newKeySet();
+    protected Set<Class<?>> collectionContextClasses = new HashSet<>();
 
     protected Map<String, String> jaxbElementClassMap = Collections.emptyMap();
     protected boolean unmarshalAsJaxbElement;
@@ -111,8 +111,8 @@ public abstract class AbstractJAXBProvider<T> extends AbstractConfigurableProvid
     protected List<String> inDropElements;
     protected Map<String, String> inElementsMap;
     protected Map<String, String> inAppendMap;
-    protected Map<String, JAXBContext> packageContexts = new ConcurrentHashMap<>();
-    protected Map<Class<?>, JAXBContext> classContexts = new ConcurrentHashMap<>();
+    protected Map<String, JAXBContext> packageContexts = new HashMap<>();
+    protected Map<Class<?>, JAXBContext> classContexts = new HashMap<>();
     private boolean attributesToElements;
 
     private MessageContext mc;
@@ -166,7 +166,7 @@ public abstract class AbstractJAXBProvider<T> extends AbstractConfigurableProvid
 
     protected void setNamespaceMapper(Marshaller ms,
                                       Map<String, String> map) throws Exception {
-        Object nsMapper = JAXBUtils.setNamespaceMapper(getBus(), map, ms);
+        Object nsMapper = JAXBUtils.setNamespaceMapper(map, ms);
         if (nsMapper != null && namespaceMapperPropertyName != null) {
             setMarshallerProp(ms, nsMapper, namespaceMapperPropertyName, null);
         }
@@ -366,11 +366,14 @@ public abstract class AbstractJAXBProvider<T> extends AbstractConfigurableProvid
     }
 
     protected JAXBContext getCollectionContext(Class<?> type) throws JAXBException {
-        if (collectionContextClasses.add(type)) {
-            collectionContextClasses.add(CollectionWrapper.class);
+        synchronized (collectionContextClasses) {
+            if (!collectionContextClasses.contains(type)) {
+                collectionContextClasses.add(CollectionWrapper.class);
+                collectionContextClasses.add(type);
+            }
+            return newJAXBContextInstance(
+                collectionContextClasses.toArray(new Class[0]), cProperties);
         }
-        return newJAXBContextInstance(
-            collectionContextClasses.toArray(new Class[0]), cProperties);
     }
 
     protected QName getCollectionWrapperQName(Class<?> cls, Type type, Object object, boolean pluralName)
@@ -503,12 +506,14 @@ public abstract class AbstractJAXBProvider<T> extends AbstractConfigurableProvid
             }
         }
 
-        JAXBContext context = classContexts.get(type);
-        if (context != null) {
-            return context;
+        synchronized (classContexts) {
+            JAXBContext context = classContexts.get(type);
+            if (context != null) {
+                return context;
+            }
         }
 
-        context = getPackageContext(type, genericType);
+        JAXBContext context = getPackageContext(type, genericType);
 
         return context != null ? context : getClassContext(type, genericType);
     }
@@ -516,28 +521,23 @@ public abstract class AbstractJAXBProvider<T> extends AbstractConfigurableProvid
         return getClassContext(type, type);
     }
     protected JAXBContext getClassContext(Class<?> type, Type genericType) throws JAXBException {
-        final JAXBException[] jaxbException = new JAXBException[] {null};
-        final JAXBContext context = classContexts.computeIfAbsent(type, t -> {
-            final Class<?>[] classes;
-            if (extraClass != null) {
-                classes = new Class[extraClass.length + 1];
-                classes[0] = type;
-                System.arraycopy(extraClass, 0, classes, 1, extraClass.length);
-            } else {
-                classes = new Class[] {type};
-            }
+        synchronized (classContexts) {
+            JAXBContext context = classContexts.get(type);
+            if (context == null) {
+                Class<?>[] classes;
+                if (extraClass != null) {
+                    classes = new Class[extraClass.length + 1];
+                    classes[0] = type;
+                    System.arraycopy(extraClass, 0, classes, 1, extraClass.length);
+                } else {
+                    classes = new Class[] {type};
+                }
 
-            try {
-                return newJAXBContextInstance(classes, cProperties);
-            } catch (JAXBException e) {
-                jaxbException[0] = e;
-                return null;
+                context = newJAXBContextInstance(classes, cProperties);
+                classContexts.put(type, context);
             }
-        });
-        if (null != jaxbException[0]) {
-            throw jaxbException[0];
+            return context;
         }
-        return context;
     }
     public JAXBContext getPackageContext(Class<?> type) {
         return getPackageContext(type, type);
@@ -546,35 +546,40 @@ public abstract class AbstractJAXBProvider<T> extends AbstractConfigurableProvid
         if (type == null || type == JAXBElement.class) {
             return null;
         }
-        final String packageName = PackageUtils.getPackageName(type);
-        return packageContexts.computeIfAbsent(packageName, p -> {
-            try {
-                final ClassLoader loader = AccessController.doPrivileged((PrivilegedAction<ClassLoader>) 
-                    () -> {
-                        return type.getClassLoader();
-                    });
-                if (loader != null && objectFactoryOrIndexAvailable(type)) {
+        synchronized (packageContexts) {
+            String packageName = PackageUtils.getPackageName(type);
+            JAXBContext context = packageContexts.get(packageName);
+            if (context == null) {
+                try {
+                    final ClassLoader loader = AccessController.doPrivileged((PrivilegedAction<ClassLoader>) 
+                        () -> {
+                            return type.getClassLoader();
+                        });
+                    if (loader != null && objectFactoryOrIndexAvailable(type)) {
 
-                    String contextName = packageName;
-                    if (extraClass != null) {
-                        StringBuilder sb = new StringBuilder(contextName);
-                        for (Class<?> extra : extraClass) {
-                            String extraPackage = PackageUtils.getPackageName(extra);
-                            if (!extraPackage.equals(packageName)) {
-                                sb.append(':').append(extraPackage);
+                        String contextName = packageName;
+                        if (extraClass != null) {
+                            StringBuilder sb = new StringBuilder(contextName);
+                            for (Class<?> extra : extraClass) {
+                                String extraPackage = PackageUtils.getPackageName(extra);
+                                if (!extraPackage.equals(packageName)) {
+                                    sb.append(':').append(extraPackage);
+                                }
                             }
+                            contextName = sb.toString();
                         }
-                        contextName = sb.toString();
-                    }
 
-                    return JAXBContext.newInstance(contextName, loader, cProperties);
+                        context = JAXBContext.newInstance(contextName, loader, cProperties);
+                        packageContexts.put(packageName, context);
+                    }
+                } catch (JAXBException ex) {
+                    LOG.fine("Error creating a JAXBContext using ObjectFactory : "
+                                + ex.getMessage());
+                    return null;
                 }
-            } catch (JAXBException ex) {
-                LOG.fine("Error creating a JAXBContext using ObjectFactory : "
-                            + ex.getMessage());
             }
-            return null;
-        });
+            return context;
+        }
     }
 
     protected boolean isSupported(Class<?> type, Type genericType, Annotation[] anns) {
@@ -666,7 +671,7 @@ public abstract class AbstractJAXBProvider<T> extends AbstractConfigurableProvid
     }
 
     protected Class<?> getActualType(Class<?> type, Type genericType, Annotation[] anns) {
-        Class<?> theType;
+        Class<?> theType = null;
         if (JAXBElement.class.isAssignableFrom(type)) {
             theType = InjectionUtils.getActualType(genericType);
         } else {

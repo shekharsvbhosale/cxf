@@ -166,7 +166,7 @@ public final class JoseUtils {
         if (loc == null) {
             return null;
         }
-        URL url;
+        URL url = null;
         if (loc.startsWith(CLASSPATH_PREFIX)) {
             String path = loc.substring(CLASSPATH_PREFIX.length());
             url = JoseUtils.getClasspathResourceURL(path, JoseUtils.class, bus);
@@ -205,15 +205,15 @@ public final class JoseUtils {
         return null;
     }
 
-    public static Properties loadProperties(String propertiesLocation, Bus bus) throws IOException {
+    public static Properties loadProperties(String propertiesLocation, Bus bus) throws Exception {
+        Properties props = new Properties();
         try (InputStream is = getResourceStream(propertiesLocation, bus)) {
             if (is == null) {
                 throw new JoseException("The properties file " + propertiesLocation + " could not be read");
             }
-            Properties props = new Properties();
             props.load(is);
-            return props;
         }
+        return props;
     }
 
     //
