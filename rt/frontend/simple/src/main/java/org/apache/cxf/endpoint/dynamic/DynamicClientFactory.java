@@ -45,8 +45,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
@@ -392,7 +392,7 @@ public class DynamicClientFactory {
             LOG.log(Level.SEVERE, new Message("COULD_NOT_COMPILE_SRC", LOG, wsdlUrl).toString());
         }
         FileUtils.removeDir(src);
-        final URL[] urls;
+        URL[] urls = null;
         try {
             urls = new URL[] {classes.toURI().toURL()};
         } catch (MalformedURLException mue) {
@@ -728,15 +728,16 @@ public class DynamicClientFactory {
     }
 
     private URL composeUrl(String s) {
-        try (URIResolver resolver = new URIResolver(null, s, getClass())) {
+        try {
+            URIResolver resolver = new URIResolver(null, s, getClass());
+
             if (resolver.isResolved()) {
                 return resolver.getURI().toURL();
             }
+            throw new ServiceConstructionException(new Message("COULD_NOT_RESOLVE_URL", LOG, s));
         } catch (IOException e) {
             throw new ServiceConstructionException(new Message("COULD_NOT_RESOLVE_URL", LOG, s), e);
         }
-        
-        throw new ServiceConstructionException(new Message("COULD_NOT_RESOLVE_URL", LOG, s));
     }
 
     static class InnerErrorListener {
@@ -764,11 +765,11 @@ public class DynamicClientFactory {
                 errors.append('\n');
             }
             if (arg0.getLineNumber() > 0) {
-                errors.append(arg0.getLocalizedMessage()).append('\n')
-                    .append(" at line ").append(arg0.getLineNumber())
-                    .append(" column ").append(arg0.getColumnNumber())
-                    .append(" of schema ").append(arg0.getSystemId())
-                    .append('\n');
+                errors.append(arg0.getLocalizedMessage() + "\n"
+                    + " at line " + arg0.getLineNumber()
+                    + " column " + arg0.getColumnNumber()
+                    + " of schema " + arg0.getSystemId()
+                    + "\n");
             } else {
                 errors.append(arg0.getMessage());
                 errors.append('\n');
@@ -922,7 +923,8 @@ public class DynamicClientFactory {
         }
 
 
-        try (URIResolver resolver = new URIResolver(base, target)) {
+        try {
+            URIResolver resolver = new URIResolver(base, target);
             if (resolver.isResolved()) {
                 target = resolver.getURI().toString();
             }

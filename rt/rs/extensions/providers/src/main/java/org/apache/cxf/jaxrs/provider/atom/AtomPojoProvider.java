@@ -35,18 +35,18 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.MessageBodyReader;
-import javax.ws.rs.ext.MessageBodyWriter;
-import javax.ws.rs.ext.Provider;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.Unmarshaller;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.MessageBodyReader;
+import jakarta.ws.rs.ext.MessageBodyWriter;
+import jakarta.ws.rs.ext.Provider;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.Unmarshaller;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
@@ -128,7 +128,7 @@ public class AtomPojoProvider extends AbstractConfigurableProvider
     }
 
     protected void tryInjectMessageContext(Object handler) {
-        final Method m;
+        Method m = null;
         try {
             m = handler.getClass().getMethod("setMessageContext", new Class[]{MessageContext.class});
         } catch (Throwable t) {
@@ -450,7 +450,7 @@ public class AtomPojoProvider extends AbstractConfigurableProvider
 
     protected void createEntryContent(Factory factory, Entry e, Object o, Class<?> cls) throws Exception {
 
-        final String content;
+        String content = null;
 
         if (useJaxbForContent) {
             JAXBContext jc = jaxbProvider.getJAXBContext(cls, cls);

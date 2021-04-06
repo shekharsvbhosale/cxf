@@ -27,7 +27,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.xml.ws.Service;
+import jakarta.xml.ws.Service;
 
 import org.apache.cxf.common.logging.LogUtils;
 import org.mozilla.javascript.Context;
@@ -75,8 +75,12 @@ public class ProviderFactory {
         boolean isE4X = f.getName().endsWith(".jsx");
         StringBuilder sb = new StringBuilder();
         try (BufferedReader bufrd = new BufferedReader(new FileReader(f))) {
-            String line;
-            while (null != (line = bufrd.readLine())) {
+            String line = null;
+            for (;;) {
+                line = bufrd.readLine();
+                if (line == null) {
+                    break;
+                }
                 sb.append(line).append('\n');
             }
         }

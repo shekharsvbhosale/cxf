@@ -25,7 +25,7 @@ import java.util.logging.Logger;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
-import javax.security.auth.DestroyFailedException;
+import jakarta.security.auth.DestroyFailedException;
 
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.jaxrs.json.basic.JsonMapObjectReaderWriter;
@@ -173,7 +173,7 @@ public abstract class AbstractJweEncryption implements JweEncryptionProvider {
         }
         theHeaders.setContentEncryptionAlgorithm(getContentEncryptionAlgorithm().getAlgorithm());
 
-        final JweHeaders protectedHeaders;
+        JweHeaders protectedHeaders = null;
         if (jweInHeaders != null) {
             if (jweInHeaders.getKeyEncryptionAlgorithm() != null
                 && (getKeyAlgorithm() == null

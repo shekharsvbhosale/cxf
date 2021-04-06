@@ -34,8 +34,8 @@ import org.apache.cxf.aegis.type.basic.ObjectType;
 import org.apache.cxf.aegis.type.collection.CollectionType;
 import org.apache.cxf.aegis.type.collection.MapType;
 import org.apache.cxf.aegis.util.NamespaceHelper;
+import org.apache.cxf.aegis.util.ServiceUtils;
 import org.apache.cxf.common.util.StringUtils;
-import org.apache.cxf.helpers.ServiceUtils;
 import org.apache.cxf.wsdl.WSDLConstants;
 import org.apache.ws.commons.schema.constants.Constants;
 
@@ -107,7 +107,7 @@ public abstract class AbstractTypeCreator implements TypeCreator {
     public AegisType createTypeForClass(TypeClassInfo info) {
 
         Class<?> javaClass = TypeUtil.getTypeRelatedClass(info.getType());
-        final AegisType result;
+        AegisType result = null;
         boolean newType = true;
         if (info.getType() instanceof TypeVariable) {
             //it's the generic type
@@ -158,7 +158,7 @@ public abstract class AbstractTypeCreator implements TypeCreator {
 
 
     protected boolean isHolder(Class<?> javaType) {
-        return "javax.xml.ws.Holder".equals(javaType.getName());
+        return "jakarta.xml.ws.Holder".equals(javaType.getName());
     }
 
     protected AegisType createHolderType(TypeClassInfo info) {

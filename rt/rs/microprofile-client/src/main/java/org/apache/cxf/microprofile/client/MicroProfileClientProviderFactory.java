@@ -26,7 +26,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import javax.ws.rs.core.Configuration;
+import jakarta.ws.rs.core.Configuration;
 
 import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
@@ -88,7 +88,7 @@ public final class MicroProfileClientProviderFactory extends ProviderFactory {
     }
 
     static Comparator<ProviderInfo<?>> createComparator(MicroProfileClientFactoryBean bean) {
-        Comparator<ProviderInfo<?>> parent = (o1, o2) -> compareCustomStatus(o1, o2);
+        Comparator<ProviderInfo<?>> parent = ProviderFactory::compareCustomStatus;
         return new ContractComparator(bean, parent);
     }
 

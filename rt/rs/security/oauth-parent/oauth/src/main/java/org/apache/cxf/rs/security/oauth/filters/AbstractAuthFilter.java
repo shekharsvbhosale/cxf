@@ -29,8 +29,8 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 
 import net.oauth.OAuth;
 import net.oauth.OAuthMessage;
@@ -114,7 +114,7 @@ public class AbstractAuthFilter {
             LOG.log(Level.FINE, "OAuth security filter for url: {0}", req.getRequestURL());
         }
 
-        final AccessToken accessToken;
+        AccessToken accessToken = null;
         Client client = null;
 
         OAuthMessage oAuthMessage = OAuthServlet.getMessage(new CustomHttpServletWrapper(req),
@@ -247,7 +247,7 @@ public class AbstractAuthFilter {
             }
 
             public boolean isUserInRole(String role) {
-                final List<String> roles;
+                List<String> roles = null;
                 if (AbstractAuthFilter.this.useUserSubject && theSubject != null) {
                     roles = theSubject.getRoles();
                 } else {

@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import javax.activation.DataSource;
+import jakarta.activation.DataSource;
 
 import org.apache.cxf.helpers.IOUtils;
 import org.apache.cxf.io.CacheSizeExceededException;
@@ -38,7 +38,7 @@ public class AttachmentDataSource implements DataSource {
     private DelegatingInputStream delegate;
     private String name;
 
-    public AttachmentDataSource(String ctParam, InputStream inParam) {
+    public AttachmentDataSource(String ctParam, InputStream inParam) throws IOException {
         this.ct = ctParam;
         ins = inParam;
     }

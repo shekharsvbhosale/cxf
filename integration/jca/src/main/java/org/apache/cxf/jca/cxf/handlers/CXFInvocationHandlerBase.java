@@ -22,7 +22,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.logging.Logger;
 
-import javax.security.auth.Subject;
+import jakarta.security.auth.Subject;
 
 import org.apache.cxf.Bus;
 import org.apache.cxf.common.logging.LogUtils;
@@ -67,7 +67,7 @@ abstract class CXFInvocationHandlerBase implements CXFInvocationHandler {
     protected Throwable getExceptionToThrow(InvocationTargetException ex, Method targetMethod)
         throws Throwable {
         Throwable targetException = ex.getTargetException();
-        Throwable ret;
+        Throwable ret = null;
 
         if (isOkToThrow(targetMethod, targetException)) {
             ret = targetException;

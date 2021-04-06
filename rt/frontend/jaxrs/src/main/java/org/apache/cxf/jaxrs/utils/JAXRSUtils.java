@@ -47,39 +47,39 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import javax.ws.rs.ClientErrorException;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.container.ContainerRequestFilter;
-import javax.ws.rs.container.ContainerResponseContext;
-import javax.ws.rs.container.ContainerResponseFilter;
-import javax.ws.rs.container.ResourceContext;
-import javax.ws.rs.container.ResourceInfo;
-import javax.ws.rs.core.Application;
-import javax.ws.rs.core.Configuration;
-import javax.ws.rs.core.Cookie;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.PathSegment;
-import javax.ws.rs.core.Request;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
-import javax.ws.rs.core.SecurityContext;
-import javax.ws.rs.core.StreamingOutput;
-import javax.ws.rs.core.UriInfo;
-import javax.ws.rs.ext.ContextResolver;
-import javax.ws.rs.ext.MessageBodyReader;
-import javax.ws.rs.ext.MessageBodyWriter;
-import javax.ws.rs.ext.Providers;
-import javax.ws.rs.ext.ReaderInterceptor;
-import javax.ws.rs.ext.ReaderInterceptorContext;
-import javax.ws.rs.ext.WriterInterceptor;
-import javax.ws.rs.ext.WriterInterceptorContext;
+import jakarta.ws.rs.ClientErrorException;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.HttpMethod;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.container.AsyncResponse;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.container.ContainerRequestFilter;
+import jakarta.ws.rs.container.ContainerResponseContext;
+import jakarta.ws.rs.container.ContainerResponseFilter;
+import jakarta.ws.rs.container.ResourceContext;
+import jakarta.ws.rs.container.ResourceInfo;
+import jakarta.ws.rs.core.Application;
+import jakarta.ws.rs.core.Configuration;
+import jakarta.ws.rs.core.Cookie;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.PathSegment;
+import jakarta.ws.rs.core.Request;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.ResponseBuilder;
+import jakarta.ws.rs.core.SecurityContext;
+import jakarta.ws.rs.core.StreamingOutput;
+import jakarta.ws.rs.core.UriInfo;
+import jakarta.ws.rs.ext.ContextResolver;
+import jakarta.ws.rs.ext.MessageBodyReader;
+import jakarta.ws.rs.ext.MessageBodyWriter;
+import jakarta.ws.rs.ext.Providers;
+import jakarta.ws.rs.ext.ReaderInterceptor;
+import jakarta.ws.rs.ext.ReaderInterceptorContext;
+import jakarta.ws.rs.ext.WriterInterceptor;
+import jakarta.ws.rs.ext.WriterInterceptorContext;
 import javax.xml.namespace.QName;
 
 import org.apache.cxf.common.i18n.BundleUtils;
@@ -164,7 +164,7 @@ public final class JAXRSUtils {
     private static final ResourceBundle BUNDLE = BundleUtils.getBundle(JAXRSUtils.class);
     private static final String PATH_SEGMENT_SEP = "/";
     private static final String REPORT_FAULT_MESSAGE_PROPERTY = "org.apache.cxf.jaxrs.report-fault-message";
-    private static final String NO_CONTENT_EXCEPTION = "javax.ws.rs.core.NoContentException";
+    private static final String NO_CONTENT_EXCEPTION = "jakarta.ws.rs.core.NoContentException";
     private static final String HTTP_CHARSET_PARAM = "charset";
     private static final Annotation[] EMPTY_ANNOTATIONS = new Annotation[0];
     private static final Set<Class<?>> STREAMING_OUT_TYPES = new HashSet<>(
@@ -200,7 +200,7 @@ public final class JAXRSUtils {
     private static String[] getUserMediaTypes(Object provider, boolean consumes) {
         String[] values = null;
         if (AbstractConfigurableProvider.class.isAssignableFrom(provider.getClass())) {
-            final List<String> types;
+            List<String> types = null;
             if (consumes) {
                 types = ((AbstractConfigurableProvider)provider).getConsumeMediaTypes();
             } else {
@@ -280,7 +280,7 @@ public final class JAXRSUtils {
         for (Field f : bri.getParameterFields()) {
             Parameter p = ResourceUtils.getParameter(0, f.getAnnotations(),
                                                      f.getType());
-            final Object o;
+            Object o = null;
 
             if (p.getType() == ParameterType.BEAN) {
                 o = createBeanParamValue(message, f.getType(), ori);
@@ -1449,8 +1449,8 @@ public final class JAXRSUtils {
         throws WebApplicationException, IOException {
 
         OutputStream entityStream = message.getContent(OutputStream.class);
-        if ("org.apache.cxf.jaxrs.reactivestreams.server.StreamingAsyncSubscriber$StreamingResponseImpl".equals(
-            entity.getClass().getName())) {
+        if (entity.getClass().getName().equals(
+            "org.apache.cxf.jaxrs.reactivestreams.server.StreamingAsyncSubscriber$StreamingResponseImpl")) {
             //cache the OutputStream when it's reactive response
             entityStream = new CacheAndWriteOutputStream(entityStream);
         }
@@ -1863,7 +1863,7 @@ public final class JAXRSUtils {
         }
 
 
-        final List<String> values;
+        List<String> values = null;
         if (params.size() <= 1) {
             values = Collections.emptyList();
         } else {
@@ -1894,104 +1894,6 @@ public final class JAXRSUtils {
         String errorMessage = errorMsg.toString();
         LOG.severe(errorMessage);
         return errorMessage;
-    }
-    
-    /**
-     * Get path URI template, combining base path, class & method & subresource templates 
-     * @param message message instance
-     * @param cri class resource info
-     * @param ori operation resource info
-     * @param subOri operation subresource info
-     * @return the URI template for the method in question
-     */
-    public static String getUriTemplate(Message message, ClassResourceInfo cri, OperationResourceInfo ori, 
-            OperationResourceInfo subOri) {
-        final String template = getUriTemplate(message, cri, ori);
-        final String methodPathTemplate = getUriTemplate(subOri);
-        return combineUriTemplates(template, methodPathTemplate);
-    }
-
-    /**
-     * Get path URI template, combining base path, class & method templates 
-     * @param message message instance
-     * @param cri class resource info
-     * @param ori operation resource info
-     * @return the URI template for the method in question
-     */
-    public static String getUriTemplate(Message message, ClassResourceInfo cri, OperationResourceInfo ori) {
-        final String basePath = (String)message.get(Message.BASE_PATH);
-        final String classPathTemplate = getUriTemplate(cri);
-        final String methodPathTemplate = getUriTemplate(ori);
-
-        // The application path (@ApplicationPath) is incorporated into Message.BASE_PATH,
-        // since it is part of the address.
-        String template = basePath;
-        if (StringUtils.isEmpty(template)) {
-            template = "/";
-        } else if (!template.startsWith("/")) {
-            template = "/" + template;
-        }
-        
-        template = combineUriTemplates(template, classPathTemplate);
-        return combineUriTemplates(template, methodPathTemplate);
-    }
-    
-    /**
-     * Gets the URI template of the operation from its resource info
-     * to assemble final URI template 
-     * @param ori operation resource info
-     * @return URI template
-     */
-    private static String getUriTemplate(OperationResourceInfo ori) {
-        final URITemplate template = ori.getURITemplate();
-        if (template != null) {
-            return template.getValue();
-        } else {
-            return null;
-        }
-    }
-    
-    /**
-     * Goes over sub-resource class resource templates (through parent chain) if necessary
-     * to assemble final URI template 
-     * @param cri root or subresource class resource info
-     * @return URI template chain
-     */
-    private static String getUriTemplate(ClassResourceInfo cri) {
-        final URITemplate template = cri.getURITemplate();
-        if (template != null) {
-            return template.getValue();
-        } else if (cri.getParent() != null) { /* probably subresource */
-            return getUriTemplate(cri.getParent());
-        } else {
-            return null; /* should not happen */
-        }
-    }
-    
-    /**
-     * Combines two URI templates together
-     * @param parent parent URI template
-     * @param child child URI template
-     * @return the URI template combined from the parent and child
-     */
-    private static String combineUriTemplates(final String parent, final String child) {
-        if (StringUtils.isEmpty(child)) {
-            return parent;
-        }
-
-        // The way URI templates are normalized in org.apache.cxf.jaxrs.model.URITemplate:
-        //  - empty or null become "/"
-        //  - "/" is added at the start if not present 
-        if ("/".equals(parent)) {
-            return child;
-        } else if ("/".equals(child)) {
-            return parent;
-        } else if (parent.endsWith("/")) {
-            // Remove only last slash
-            return parent.replaceAll("/$", "") + child;
-        } else {
-            return parent + child;
-        }
     }
 
     // copy the input stream so that it is not inadvertently closed

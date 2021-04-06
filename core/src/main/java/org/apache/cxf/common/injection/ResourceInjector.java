@@ -31,10 +31,10 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.annotation.Resource;
-import javax.annotation.Resources;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Resource;
+import jakarta.annotation.Resources;
 
 
 import org.apache.cxf.common.annotation.AbstractAnnotationVisitor;
@@ -148,7 +148,6 @@ public class ResourceInjector extends AbstractAnnotationVisitor {
 
     // Implementation of org.apache.cxf.common.annotation.AnnotationVisitor
 
-    @Override
     public final void visitClass(final Class<?> clz, final Annotation annotation) { //NOPMD
 
         assert annotation instanceof Resource || annotation instanceof Resources : annotation;
@@ -295,7 +294,9 @@ public class ResourceInjector extends AbstractAnnotationVisitor {
             }
         } catch (IllegalAccessException e) {
             LOG.log(Level.SEVERE, "INJECTION_SETTER_NOT_VISIBLE", method);
-        } catch (InvocationTargetException | SecurityException e) {
+        } catch (InvocationTargetException e) {
+            LogUtils.log(LOG, Level.SEVERE, "INJECTION_SETTER_RAISED_EXCEPTION", e, method);
+        } catch (SecurityException e) {
             LogUtils.log(LOG, Level.SEVERE, "INJECTION_SETTER_RAISED_EXCEPTION", e, method);
         } catch (NoSuchMethodException e) {
             LOG.log(Level.SEVERE, "INJECTION_SETTER_METHOD_NOT_FOUND", new Object[] {method.getName()});

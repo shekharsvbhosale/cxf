@@ -18,7 +18,7 @@
  */
 package org.apache.cxf.jaxrs.impl;
 
-import javax.ws.rs.container.ResourceContext;
+import jakarta.ws.rs.container.ResourceContext;
 
 import org.apache.cxf.jaxrs.ext.ResourceContextProvider;
 import org.apache.cxf.jaxrs.lifecycle.PerRequestResourceProvider;
@@ -41,7 +41,7 @@ public class ResourceContextImpl implements ResourceContext {
 
     @Override
     public <T> T getResource(Class<T> cls) {
-        final ResourceProvider rp;
+        ResourceProvider rp = null;
 
         Object propValue = m.getContextualProperty(CONTEXT_PROVIDER_PROP);
         if (propValue instanceof ResourceContextProvider) {

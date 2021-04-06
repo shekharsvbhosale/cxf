@@ -25,8 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.Marshaller;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.Marshaller;
 
 import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
@@ -79,6 +79,9 @@ public class WrapperNamespaceClassGeneratorTest {
         List<String> elTypeNames = Arrays.asList(new String[] {"list"});
         List<Class<?>> partClasses = Arrays.asList(new Class<?>[] {List.class});
 
+        String className = requestClass.getName();
+        className = className.substring(0, className.lastIndexOf('.') + 1);
+
         WrapperHelper wh = new JAXBDataBinding().createWrapperHelper(requestClass, null,
                                                              partNames, elTypeNames, partClasses);
 
@@ -94,6 +97,9 @@ public class WrapperNamespaceClassGeneratorTest {
         partNames = Arrays.asList(new String[] {"return"});
         elTypeNames = Arrays.asList(new String[] {"list"});
         partClasses = Arrays.asList(new Class<?>[] {List.class});
+
+        className = responseClass.getName();
+        className = className.substring(0, className.lastIndexOf('.') + 1);
 
         wh = new JAXBDataBinding().createWrapperHelper(responseClass, null,
                                                              partNames, elTypeNames, partClasses);
@@ -163,7 +169,7 @@ public class WrapperNamespaceClassGeneratorTest {
         List<Class<?>> partClasses = Arrays.asList(new Class<?>[] {List.class});
 
         // generate class and store it to class loader
-        new JAXBDataBinding().createWrapperHelper(requestClass, null,
+        WrapperHelper wh = new JAXBDataBinding().createWrapperHelper(requestClass, null,
                 partNames, elTypeNames, partClasses);
 
         // now no more generation is allowed
@@ -174,7 +180,7 @@ public class WrapperNamespaceClassGeneratorTest {
 
         bus.setExtension(wrapperHelperClassLoader, WrapperHelperCreator.class);
 
-        WrapperHelper wh = new JAXBDataBinding().createWrapperHelper(requestClass, null,
+        wh = new JAXBDataBinding().createWrapperHelper(requestClass, null,
                 partNames, elTypeNames, partClasses);
 
         assertFalse("Precompiled class not loaded", wh instanceof JAXBWrapperHelper);

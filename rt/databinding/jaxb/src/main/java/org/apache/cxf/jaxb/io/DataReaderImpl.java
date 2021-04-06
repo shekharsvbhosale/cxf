@@ -24,13 +24,13 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.PropertyException;
-import javax.xml.bind.UnmarshalException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.bind.ValidationEvent;
-import javax.xml.bind.ValidationEventHandler;
-import javax.xml.bind.annotation.adapters.XmlAdapter;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.PropertyException;
+import jakarta.xml.bind.UnmarshalException;
+import jakarta.xml.bind.Unmarshaller;
+import jakarta.xml.bind.ValidationEvent;
+import jakarta.xml.bind.ValidationEventHandler;
+import jakarta.xml.bind.annotation.adapters.XmlAdapter;
 import javax.xml.namespace.QName;
 
 import org.apache.cxf.common.i18n.Message;
@@ -48,7 +48,7 @@ import org.apache.cxf.service.model.MessagePartInfo;
 public class DataReaderImpl<T> extends JAXBDataBase implements DataReader<T> {
     private static final Logger LOG = LogUtils.getLogger(JAXBDataBinding.class);
     JAXBDataBinding databinding;
-    boolean unwrapJAXBElement;
+    boolean unwrapJAXBElement = true;
     ValidationEventHandler veventHandler;
     boolean setEventHandler = true;
 
@@ -109,7 +109,8 @@ public class DataReaderImpl<T> extends JAXBDataBase implements DataReader<T> {
 
     private Unmarshaller createUnmarshaller() {
         try {
-            Unmarshaller um = context.createUnmarshaller();
+            Unmarshaller um = null;
+            um = context.createUnmarshaller();
             if (databinding.getUnmarshallerListener() != null) {
                 um.setListener(databinding.getUnmarshallerListener());
             }
@@ -132,7 +133,7 @@ public class DataReaderImpl<T> extends JAXBDataBase implements DataReader<T> {
                 um.setAdapter(adapter);
             }
             return um;
-        } catch (javax.xml.bind.UnmarshalException ex) {
+        } catch (jakarta.xml.bind.UnmarshalException ex) {
             throw new Fault(new Message("UNMARSHAL_ERROR", LOG, ex.getLinkedException()
                 .getMessage()), ex);
         } catch (JAXBException ex) {
@@ -142,8 +143,9 @@ public class DataReaderImpl<T> extends JAXBDataBase implements DataReader<T> {
 
     public Object read(MessagePartInfo part, T reader) {
         boolean honorJaxbAnnotation = honorJAXBAnnotations(part);
+        Annotation[] anns = null;
         if (honorJaxbAnnotation) {
-            Annotation[] anns = getJAXBAnnotation(part);
+            anns = getJAXBAnnotation(part);
             if (anns.length > 0) {
                 // RpcLit will use the JAXB Bridge to unmarshall part message when it is
                 // annotated with @XmlList,@XmlAttachmentRef,@XmlJavaTypeAdapter

@@ -38,17 +38,17 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Logger;
 
-import javax.activation.DataHandler;
-import javax.activation.DataSource;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.ext.MessageBodyReader;
-import javax.ws.rs.ext.MessageBodyWriter;
-import javax.ws.rs.ext.Provider;
+import jakarta.activation.DataHandler;
+import jakarta.activation.DataSource;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.ext.MessageBodyReader;
+import jakarta.ws.rs.ext.MessageBodyWriter;
+import jakarta.ws.rs.ext.Provider;
 
 import org.apache.cxf.attachment.AttachmentUtil;
 import org.apache.cxf.attachment.ByteDataSource;
@@ -333,7 +333,7 @@ public class MultipartProvider extends AbstractConfigurableProvider
                                          String mimeType,
                                          String mainMediaType,
                                          int id) throws IOException {
-        final DataHandler dh;
+        DataHandler dh = null;
         if (InputStream.class.isAssignableFrom(obj.getClass())) {
             dh = createInputStreamDH((InputStream)obj, mimeType);
         } else if (DataHandler.class.isAssignableFrom(obj.getClass())) {
@@ -383,7 +383,7 @@ public class MultipartProvider extends AbstractConfigurableProvider
         MediaType mt = JAXRSUtils.toMediaType(mimeType);
         mc.put(ProviderFactory.ACTIVE_JAXRS_PROVIDER_KEY, this);
 
-        final MessageBodyWriter<T> r;
+        MessageBodyWriter<T> r = null;
         try {
             r = mc.getProviders().getMessageBodyWriter(cls, genericType, anns, mt);
         } finally {

@@ -346,7 +346,7 @@ public class FailoverTargetSelector extends AbstractConduitSelector {
      * @return alternative addresses
      */
     protected List<String> updateContextAlternatives(Exchange exchange, InvocationContext invocation) {
-        final List<String> alternateAddresses;
+        List<String> alternateAddresses = null;
         if (!invocation.hasAlternates()) {
             // no previous failover attempt on this invocation
             //
@@ -379,7 +379,7 @@ public class FailoverTargetSelector extends AbstractConduitSelector {
             CastUtils.cast((Map<?, ?>)context.get(Client.REQUEST_CONTEXT));
         if (requestContext != null) {
             requestContext.put(Message.ENDPOINT_ADDRESS, address);
-            requestContext.put("javax.xml.ws.service.endpoint.address", address);
+            requestContext.put("jakarta.xml.ws.service.endpoint.address", address);
         }
     }
 

@@ -29,9 +29,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import javax.activation.DataHandler;
-import javax.xml.ws.BindingProvider;
-import javax.xml.ws.handler.MessageContext;
+import jakarta.activation.DataHandler;
+import jakarta.xml.ws.BindingProvider;
+import jakarta.xml.ws.handler.MessageContext;
 
 import org.apache.cxf.attachment.AttachmentUtil;
 import org.apache.cxf.binding.soap.SoapBindingConstants;
@@ -250,7 +250,7 @@ public class WrappedMessageContext implements MessageContext {
                     //may have to create the out message and add the headers
                     Message tmp = createResponseMessage();
                     if (tmp != null) {
-                        mp = (Map<?, ?>)tmp.get(Message.PROTOCOL_HEADERS);
+                        ret = tmp.get(Message.PROTOCOL_HEADERS);
                     }
                 }
                 ret = mp;
@@ -335,7 +335,7 @@ public class WrappedMessageContext implements MessageContext {
         if (isResponse()) {
             return getWrappedMessage();
         }
-        Message m;
+        Message m = null;
         if (isRequestor()) {
             m = exchange.getInFaultMessage();
             if (m == null) {

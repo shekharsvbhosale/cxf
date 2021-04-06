@@ -29,8 +29,8 @@ import java.util.Arrays;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
-import javax.security.auth.DestroyFailedException;
-import javax.security.auth.callback.CallbackHandler;
+import jakarta.security.auth.DestroyFailedException;
+import jakarta.security.auth.callback.CallbackHandler;
 import javax.xml.stream.XMLStreamReader;
 
 import org.w3c.dom.Document;
@@ -101,8 +101,8 @@ public abstract class AbstractXmlEncInHandler extends AbstractXmlSecInHandler {
     // Subclasses can overwrite it and return the bytes, assuming they know the actual key
     protected byte[] getSymmetricKeyBytes(Message message, Element encDataElement) {
 
-        final String cryptoKey;
-        final String propKey;
+        String cryptoKey = null;
+        String propKey = null;
         if (RSSecurityUtils.isSignedAndEncryptedTwoWay(message)) {
             cryptoKey = SecurityConstants.SIGNATURE_CRYPTO;
             propKey = SecurityConstants.SIGNATURE_PROPERTIES;

@@ -25,8 +25,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.Path;
-import javax.ws.rs.ext.Provider;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.ext.Provider;
 import javax.xml.namespace.QName;
 
 import org.w3c.dom.Element;
@@ -135,7 +135,7 @@ public class JAXRSClientFactoryBeanDefinitionParser extends AbstractFactoryBeanD
                     }
                     AutowireCapableBeanFactory beanFactory = ctx.getAutowireCapableBeanFactory();
                     for (final Class< ? > providerClass: classes.get(Provider.class)) {
-                        Object bean;
+                        Object bean = null;
                         try {
                             bean = beanFactory.createBean(providerClass,
                                                    AutowireCapableBeanFactory.AUTOWIRE_BY_TYPE, true);
@@ -173,7 +173,7 @@ public class JAXRSClientFactoryBeanDefinitionParser extends AbstractFactoryBeanD
         List<Object> providers = new LinkedList<>();
         AutowireCapableBeanFactory beanFactory = context.getAutowireCapableBeanFactory();
         for (final Class< ? > providerClass: providerClasses) {
-            Object bean;
+            Object bean = null;
             try {
                 bean = beanFactory.createBean(providerClass,
                                        AutowireCapableBeanFactory.AUTOWIRE_BY_TYPE, true);

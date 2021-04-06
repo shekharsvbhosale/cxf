@@ -29,7 +29,7 @@ import java.util.logging.Logger;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
-import javax.security.auth.callback.CallbackHandler;
+import jakarta.security.auth.callback.CallbackHandler;
 
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
@@ -343,7 +343,7 @@ public class SAMLProtocolResponseValidator {
             throw new WSSecurityException(WSSecurityException.ErrorCode.FAILURE, "invalidSAMLsecurity");
         }
 
-        final BasicCredential credential;
+        BasicCredential credential = null;
         if (samlKeyInfo.getCerts() != null) {
             credential = new BasicX509Credential(samlKeyInfo.getCerts()[0]);
         } else if (samlKeyInfo.getPublicKey() != null) {
@@ -469,7 +469,7 @@ public class SAMLProtocolResponseValidator {
             throw new WSSecurityException(WSSecurityException.ErrorCode.FAILURE, "invalidSAMLsecurity");
         }
 
-        final PrivateKey key;
+        PrivateKey key = null;
         try {
             key = sigCrypto.getPrivateKey(cert, callbackHandler);
         } catch (Exception ex) {
@@ -478,7 +478,7 @@ public class SAMLProtocolResponseValidator {
         }
         Cipher cipher =
                 EncryptionUtils.initCipherWithKey(keyEncAlgo, digestAlgo, Cipher.DECRYPT_MODE, key);
-        final byte[] decryptedBytes;
+        byte[] decryptedBytes = null;
         try {
             byte[] encryptedBytes = Base64Utility.decode(cipherValue.getTextContent().trim());
             decryptedBytes = cipher.doFinal(encryptedBytes);
@@ -492,7 +492,7 @@ public class SAMLProtocolResponseValidator {
 
         String symKeyAlgo = getEncodingMethodAlgorithm(encryptedDataDOM);
 
-        final byte[] decryptedPayload;
+        byte[] decryptedPayload = null;
         try {
             decryptedPayload = decryptPayload(encryptedDataDOM, decryptedBytes, symKeyAlgo);
         } catch (Exception ex) {
@@ -503,8 +503,9 @@ public class SAMLProtocolResponseValidator {
         // Clean the symmetric key from memory now that we're done with it
         Arrays.fill(decryptedBytes, (byte) 0);
 
+        Document payloadDoc = null;
         try {
-            Document payloadDoc = StaxUtils.read(new InputStreamReader(new ByteArrayInputStream(decryptedPayload),
+            payloadDoc = StaxUtils.read(new InputStreamReader(new ByteArrayInputStream(decryptedPayload),
                                                StandardCharsets.UTF_8));
             return payloadDoc.getDocumentElement();
         } catch (Exception ex) {

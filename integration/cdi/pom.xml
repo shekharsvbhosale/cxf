@@ -34,9 +34,9 @@
     <properties>
         <cxf.module.name>org.apache.cxf.cdi</cxf.module.name>
         <cxf.osgi.import>
-            javax.servlet*;version="${cxf.osgi.javax.servlet.version}",
+            jakarta.servlet*;version="${cxf.osgi.jakarta.servlet.version}",
             javax.enterprise*;version="${cxf.cda.api.osgi.range}",
-            javax.ws.rs*;version="[1.0,3)",
+            jakarta.ws.rs*;version="[1.0,3)",
             org.apache.cxf.interceptor;resolution:=optional,
             *          
         </cxf.osgi.import>
@@ -49,12 +49,12 @@
         <dependency>
             <groupId>jakarta.enterprise</groupId>
             <artifactId>jakarta.enterprise.cdi-api</artifactId>
-        </dependency>
+        </dependency>                
         <dependency>
             <groupId>jakarta.inject</groupId>
             <artifactId>jakarta.inject-api</artifactId>
-            <version>${cxf.jakarta.injectapi.version}</version>
-        </dependency> 
+            <version>1.0.1</version>
+        </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>

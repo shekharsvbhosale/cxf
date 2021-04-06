@@ -32,7 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.activation.DataHandler;
+import jakarta.activation.DataHandler;
 
 import org.apache.cxf.common.util.Base64Utility;
 import org.apache.cxf.helpers.IOUtils;
@@ -46,7 +46,7 @@ public class AttachmentSerializer {
     // http://tools.ietf.org/html/rfc2387
     private static final String DEFAULT_MULTIPART_TYPE = "multipart/related";
 
-    private String contentTransferEncoding = AttachmentUtil.BINARY;
+    private String contentTransferEncoding = "binary";
 
     private Message message;
     private String bodyBoundary;
@@ -258,7 +258,7 @@ public class AttachmentSerializer {
                 writer.write("\r\n--");
                 writer.write(bodyBoundary);
 
-                final Map<String, List<String>> headers;
+                Map<String, List<String>> headers = null;
                 Iterator<String> it = a.getHeaderNames();
                 if (it.hasNext()) {
                     headers = new LinkedHashMap<>();

@@ -25,13 +25,14 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.logging.Logger;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBElement;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Unmarshaller;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
+import javax.xml.stream.XMLStreamWriter;
 
 import org.w3c.dom.Attr;
 import org.w3c.dom.Element;
@@ -336,10 +337,13 @@ public abstract class AbstractBeanDefinitionParser
                                             String propertyName,
                                             Class<?> c) {
         try {
+            XMLStreamWriter xmlWriter = null;
             Unmarshaller u = null;
             try {
-                final StringWriter writer = new StringWriter();
-                StaxUtils.writeTo(data, writer);
+                StringWriter writer = new StringWriter();
+                xmlWriter = StaxUtils.createXMLStreamWriter(writer);
+                StaxUtils.copy(data, xmlWriter);
+                xmlWriter.flush();
 
                 BeanDefinitionBuilder jaxbbean
                     = BeanDefinitionBuilder.rootBeanDefinition(JAXBBeanFactory.class);
@@ -365,6 +369,7 @@ public abstract class AbstractBeanDefinitionParser
                     bean.addPropertyValue(propertyName, obj);
                 }
             } finally {
+                StaxUtils.close(xmlWriter);
                 JAXBUtils.closeUnmarshaller(u);
             }
         } catch (JAXBException e) {
@@ -398,11 +403,15 @@ public abstract class AbstractBeanDefinitionParser
                                                       Class<?> jaxbClass,
                                                       String method,
                                                       Object ... args) {
-        final StringWriter writer = new StringWriter();
+        StringWriter writer = new StringWriter();
+        XMLStreamWriter xmlWriter = StaxUtils.createXMLStreamWriter(writer);
         try {
-            StaxUtils.writeTo(data, writer);
+            StaxUtils.copy(data, xmlWriter);
+            xmlWriter.flush();
         } catch (XMLStreamException e) {
             throw new RuntimeException(e);
+        } finally {
+            StaxUtils.close(xmlWriter);
         }
 
         BeanDefinitionBuilder jaxbbean
