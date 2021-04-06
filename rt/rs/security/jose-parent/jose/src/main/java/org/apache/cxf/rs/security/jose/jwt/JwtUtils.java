@@ -113,26 +113,30 @@ public final class JwtUtils {
     }
 
     public static void validateJwtAudienceRestriction(JwtClaims claims, Message message) {
-        // If the expected audience is configured, a matching "aud" must be present
-        String expectedAudience = (String)message.getContextualProperty(JwtConstants.EXPECTED_CLAIM_AUDIENCE);
-        if (expectedAudience != null) {
-            if (claims.getAudiences().contains(expectedAudience)) {
-                return;
-            }
-            throw new JwtException("Invalid audience restriction");
-        }
-
-        // Otherwise if we have no aud claims then the token is valid
         if (claims.getAudiences().isEmpty()) {
             return;
         }
 
-        // Otherwise one of the aud claims must match the request URL
-        expectedAudience = (String)message.getContextualProperty(Message.REQUEST_URL);
-        if (expectedAudience != null && claims.getAudiences().contains(expectedAudience)) {
-            return;
+        String expectedAudience = (String)message.getContextualProperty(JwtConstants.EXPECTED_CLAIM_AUDIENCE);
+        if (expectedAudience == null) {
+            expectedAudience = (String)message.getContextualProperty(Message.REQUEST_URL);
         }
 
+        if (expectedAudience != null) {
+            //Verify if aud claim is explicit match
+            if (claims.getAudiences().contains(expectedAudience)) {
+                return;
+            }
+
+            // Verify if aud claim is wildcard match using regex i.e. http://server.net/cxf/app/*
+            for (String aud: claims.getAudiences()) {
+                if (expectedAudience.matches(aud.replaceAll("\\*", ".*").replaceAll("/", "\\/"))) {
+                    return;
+                }
+            }
+        }
+        
+        
         throw new JwtException("Invalid audience restriction");
     }
 
