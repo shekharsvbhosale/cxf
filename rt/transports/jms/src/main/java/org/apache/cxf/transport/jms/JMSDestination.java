@@ -122,26 +122,26 @@ public class JMSDestination extends AbstractMultiplexDestination implements Mess
     private JMSListenerContainer createTargetDestinationListener() {
         Session session = null;
         try { // NOPMD - UseTryWithResources
-            ExceptionListener exListener = new ExceptionListener() {
-                private boolean restartTriggered;
-
-                public synchronized void onException(JMSException exception) {
-                    if (!shutdown && !restartTriggered) {
-                        LOG.log(Level.WARNING, "Exception on JMS connection. Trying to reconnect", exception);
-                        new Thread(() -> restartConnection()).start();
-                        restartTriggered = true;
-                    }
-                }
-            };
-
-            PollingMessageListenerContainer container;
+            final PollingMessageListenerContainer container;
             if (!jmsConfig.isOneSessionPerConnection()) {
+                ExceptionListener exListener = new ExceptionListener() {
+                    private boolean restartTriggered;
+
+                    public synchronized void onException(JMSException exception) {
+                        if (!shutdown && !restartTriggered) {
+                            LOG.log(Level.WARNING, "Exception on JMS connection. Trying to reconnect", exception);
+                            new Thread(() -> restartConnection()).start();
+                            restartTriggered = true;
+                        }
+                    }
+                };
+
                 connection = JMSFactory.createConnection(jmsConfig);
                 session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
                 Destination destination = jmsConfig.getTargetDestination(session);
                 container = new PollingMessageListenerContainer(connection, destination, this, exListener);
             } else {
-                container = new PollingMessageListenerContainer(jmsConfig, false, this, exListener);
+                container = new PollingMessageListenerContainer(jmsConfig, false, this);
             }
 
             container.setConcurrentConsumers(jmsConfig.getConcurrentConsumers());
