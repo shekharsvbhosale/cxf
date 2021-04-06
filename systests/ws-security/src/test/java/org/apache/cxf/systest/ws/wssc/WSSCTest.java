@@ -36,6 +36,7 @@ import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.phase.AbstractPhaseInterceptor;
 import org.apache.cxf.phase.Phase;
+import org.apache.cxf.systest.ws.common.SecurityTestUtil;
 import org.apache.cxf.testutil.common.AbstractBusClientServerTestBase;
 import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.cxf.ws.security.trust.STSClient;
@@ -88,9 +89,7 @@ public class WSSCTest extends AbstractBusClientServerTestBase {
             clearAction = a;
         }
         public String toString() {
-            return prefix + ":" 
-                + port + ((port == STAX_PORT || port == STAX_PORT2) ? "(stax)" : "") 
-                + ":" + (streaming ? "streaming" : "dom")
+            return prefix + ":" + port + ":" + (streaming ? "streaming" : "dom")
                 + (clearAction ? "/no SOAPAction" : "");
         }
     }
@@ -238,6 +237,7 @@ public class WSSCTest extends AbstractBusClientServerTestBase {
 
     @org.junit.AfterClass
     public static void cleanup() throws Exception {
+        SecurityTestUtil.cleanup();
         bus.shutdown(true);
         stopAllServers();
     }

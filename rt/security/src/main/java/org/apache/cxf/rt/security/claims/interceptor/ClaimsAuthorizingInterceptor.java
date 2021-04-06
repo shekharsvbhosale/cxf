@@ -34,7 +34,6 @@ import org.apache.cxf.common.util.ClassHelper;
 import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.interceptor.security.AccessDeniedException;
 import org.apache.cxf.message.Message;
-import org.apache.cxf.message.MessageUtils;
 import org.apache.cxf.phase.AbstractPhaseInterceptor;
 import org.apache.cxf.phase.Phase;
 import org.apache.cxf.rt.security.claims.ClaimBean;
@@ -44,6 +43,8 @@ import org.apache.cxf.security.SecurityContext;
 import org.apache.cxf.security.claims.authorization.Claim;
 import org.apache.cxf.security.claims.authorization.ClaimMode;
 import org.apache.cxf.security.claims.authorization.Claims;
+import org.apache.cxf.service.invoker.MethodDispatcher;
+import org.apache.cxf.service.model.BindingOperationInfo;
 
 
 public class ClaimsAuthorizingInterceptor extends AbstractPhaseInterceptor<Message> {
@@ -67,8 +68,7 @@ public class ClaimsAuthorizingInterceptor extends AbstractPhaseInterceptor<Messa
             throw new AccessDeniedException("Security Context is unavailable or unrecognized");
         }
 
-        Method method = MessageUtils.getTargetMethod(message).orElseThrow(() ->
-            new AccessDeniedException("Method is not available : Unauthorized"));
+        Method method = getTargetMethod(message);
 
         if (authorize((ClaimsSecurityContext)sc, method)) {
             return;
@@ -79,6 +79,20 @@ public class ClaimsAuthorizingInterceptor extends AbstractPhaseInterceptor<Messa
 
     public void setClaims(Map<String, List<ClaimBean>> claimsMap) {
         claims.putAll(claimsMap);
+    }
+
+    protected Method getTargetMethod(Message m) {
+        BindingOperationInfo bop = m.getExchange().getBindingOperationInfo();
+        if (bop != null) {
+            MethodDispatcher md = (MethodDispatcher)
+                m.getExchange().getService().get(MethodDispatcher.class.getName());
+            return md.getMethod(bop);
+        }
+        Method method = (Method)m.get("org.apache.cxf.resource.method");
+        if (method != null) {
+            return method;
+        }
+        throw new AccessDeniedException("Method is not available : Unauthorized");
     }
 
     protected boolean authorize(ClaimsSecurityContext sc, Method method) {

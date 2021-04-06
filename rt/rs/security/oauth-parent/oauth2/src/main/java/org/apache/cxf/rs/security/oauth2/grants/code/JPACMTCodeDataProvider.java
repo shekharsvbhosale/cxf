@@ -132,15 +132,19 @@ public class JPACMTCodeDataProvider extends JPACodeDataProvider {
 
     protected void lockRefreshTokenForUpdate(final RefreshToken refreshToken) {
         try {
-            execute(em -> {
-                final Map<String, Object> options;
-                if (pessimisticLockTimeout > 0) {
-                    options = Collections.singletonMap("javax.persistence.lock.timeout", pessimisticLockTimeout);
-                } else {
-                    options = Collections.emptyMap();
+            execute(new EntityManagerOperation<Void>() {
+
+                @Override
+                public Void execute(EntityManager em) {
+                    Map<String, Object> options = null;
+                    if (pessimisticLockTimeout > 0) {
+                        options = Collections.singletonMap("javax.persistence.lock.timeout", pessimisticLockTimeout);
+                    } else {
+                        options = Collections.emptyMap();
+                    }
+                    em.refresh(refreshToken, LockModeType.PESSIMISTIC_WRITE, options);
+                    return null;
                 }
-                em.refresh(refreshToken, LockModeType.PESSIMISTIC_WRITE, options);
-                return null;
             });
         } catch (IllegalArgumentException e) {
             // entity is not managed yet. ignore

@@ -155,7 +155,6 @@ public class WadlOption extends Option {
         addList(list, "-sp", true, getSchemaPackagenames());
         addIfTrue(list, isImpl(), "-impl");
         addIfTrue(list, isInterface(), "-interface");
-        addIfNotNull(list, getRx(), "-rx");
         addList(list, "", false, getExtraargs());
         list.add(wadlURI.toString());
         return list;

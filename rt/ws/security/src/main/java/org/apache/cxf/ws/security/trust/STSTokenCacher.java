@@ -23,7 +23,6 @@ import org.w3c.dom.Element;
 
 import org.apache.cxf.message.Message;
 import org.apache.cxf.ws.security.tokenstore.SecurityToken;
-import org.apache.cxf.ws.security.tokenstore.TokenStoreException;
 
 /**
  * This interface allows you to plug in some custom logic when storing/retrieving STS tokens in/from the cache
@@ -34,31 +33,29 @@ public interface STSTokenCacher {
      * Retrieve a cached STS token. The retrieveTokenFromEndpoint boolean lets us known whether we want to retrieve the
      * token from the endpoint or not.
      */
-    SecurityToken retrieveToken(Message message, boolean retrieveTokenFromEndpoint) throws TokenStoreException;
+    SecurityToken retrieveToken(Message message, boolean retrieveTokenFromEndpoint);
 
     /**
      * Retrieve a cached STS token for a given delegation token Element
      */
-    SecurityToken retrieveToken(Message message, Element delegationToken, String cacheKey) throws TokenStoreException;
+    SecurityToken retrieveToken(Message message, Element delegationToken, String cacheKey);
 
     /**
      * Store a token in the cache. The storeTokenInEndpoint boolean lets us know whether we want to store the token
      * in the endpoint or not.
      */
-    void storeToken(Message message, SecurityToken securityToken, boolean storeTokenInEndpoint)
-            throws TokenStoreException;
+    void storeToken(Message message, SecurityToken securityToken, boolean storeTokenInEndpoint);
 
     /**
      * Store a given delegation token in the cache (or update it if it's already there), with a reference to the
      * security token obtained from the STS.
      */
-    void storeToken(Message message, Element delegationToken, String secTokenId, String cacheKey)
-            throws TokenStoreException;
+    void storeToken(Message message, Element delegationToken, String secTokenId, String cacheKey);
 
     /**
      * Remove a cached STS token
      */
-    void removeToken(Message message, SecurityToken securityToken) throws TokenStoreException;
+    void removeToken(Message message, SecurityToken securityToken);
 
 }
 

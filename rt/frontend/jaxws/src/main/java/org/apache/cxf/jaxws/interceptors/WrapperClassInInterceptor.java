@@ -107,7 +107,8 @@ public class WrapperClassInInterceptor extends AbstractPhaseInterceptor<Message>
             MessagePartInfo wrapperPart = wrappedMessageInfo.getFirstMessagePart();
             Class<?> wrapperClass = wrapperPart.getTypeClass();
             Object wrappedObject = lst.get(wrapperPart.getIndex());
-            if (wrapperClass == null || wrappedObject == null || !wrapperClass.isInstance(wrappedObject)) {
+            if (wrapperClass == null || wrappedObject == null
+                || (wrapperClass != null && !wrapperClass.isInstance(wrappedObject))) {
                 return;
             }
 
@@ -197,7 +198,7 @@ public class WrapperClassInInterceptor extends AbstractPhaseInterceptor<Message>
                     partNames.set(idx, null);
                 }
             } else {
-                final String elementType;
+                String elementType = null;
                 if (p.getTypeQName() == null) {
                     // handling anonymous complex type
                     elementType = null;

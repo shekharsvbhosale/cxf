@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.apache.cxf.samples</groupId>
         <artifactId>cxf-samples</artifactId>
-        <version>3.5.0-SNAPSHOT</version>
+        <version>3.4.0-SNAPSHOT</version>
         <relativePath>../../..</relativePath>
     </parent>
     <artifactId>spring-boot-sample-rs-scan-eureka</artifactId>
@@ -24,7 +24,7 @@
             </dependency>
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-netflix-dependencies</artifactId>
+                <artifactId>spring-cloud-netflix</artifactId>
                 <version>${spring.cloud.eureka.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
@@ -32,10 +32,10 @@
         </dependencies>
     </dependencyManagement>
     <dependencies>
+
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
-            <version>${spring.cloud.eureka.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

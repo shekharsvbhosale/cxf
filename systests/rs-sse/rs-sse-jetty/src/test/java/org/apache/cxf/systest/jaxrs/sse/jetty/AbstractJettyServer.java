@@ -23,7 +23,6 @@ import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 
 import org.apache.cxf.jaxrs.servlet.CXFNonSpringJaxrsServlet;
 import org.apache.cxf.systest.jaxrs.sse.BookStore;
-import org.apache.cxf.systest.jaxrs.sse.BookStoreResponseFilter;
 import org.apache.cxf.testutil.common.AbstractBusTestServerBase;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
@@ -31,7 +30,6 @@ import org.eclipse.jetty.server.handler.DefaultHandler;
 import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.webapp.WebAppContext;
 
 import static org.junit.Assert.fail;
@@ -61,11 +59,7 @@ public abstract class AbstractJettyServer extends AbstractBusTestServerBase {
                 // Register and map the dispatcher servlet
                 final ServletHolder holder = new ServletHolder(new CXFNonSpringJaxrsServlet());
                 holder.setInitParameter("jaxrs.serviceClasses", BookStore.class.getName());
-                holder.setInitParameter("jaxrs.providers", String.join(",",
-                    JacksonJsonProvider.class.getName(),
-                    BookStoreResponseFilter.class.getName()
-                ));
-
+                holder.setInitParameter("jaxrs.providers", JacksonJsonProvider.class.getName());
                 final ServletContextHandler context = new ServletContextHandler();
                 context.setContextPath(contextPath);
                 context.addServlet(holder, "/rest/*");
@@ -73,7 +67,7 @@ public abstract class AbstractJettyServer extends AbstractBusTestServerBase {
             } else {
                 final WebAppContext context = new WebAppContext();
                 context.setContextPath(contextPath);
-                context.setBaseResource(Resource.newClassPathResource(resourcePath));
+                context.setWar(getClass().getResource(resourcePath).toURI().getPath());
 
                 HandlerCollection handlers = new HandlerCollection();
                 handlers.setHandlers(new Handler[] {context, new DefaultHandler()});

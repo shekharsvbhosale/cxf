@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache.cxf.karaf</groupId>
         <artifactId>karaf-parent</artifactId>
-        <version>3.5.0-SNAPSHOT</version>
+        <version>3.4.0-SNAPSHOT</version>
     </parent>
     <artifactId>cxf-karaf-commands</artifactId>
     <packaging>bundle</packaging>
@@ -54,7 +54,7 @@
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>osgi.cmpn</artifactId>
+            <artifactId>org.osgi.compendium</artifactId>
         </dependency>
     </dependencies>
     <build>

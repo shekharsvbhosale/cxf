@@ -92,7 +92,8 @@ public class JMSEndpoint {
     private boolean ignoreTimeoutException;
 
     /**
-     * @param endpointUri
+     * @param uri
+     * @param subject
      */
     public JMSEndpoint(String endpointUri) {
         this(null, endpointUri);
@@ -101,7 +102,6 @@ public class JMSEndpoint {
     /**
      * Get the extensors from the wsdl and/or configuration that will
      * then be used to configure the JMSConfiguration object
-     * @param endpointInfo
      * @param target
      */
     public JMSEndpoint(EndpointInfo endpointInfo, EndpointReferenceType target) {
@@ -109,14 +109,14 @@ public class JMSEndpoint {
     }
 
     /**
-     * @param endpointInfo
-     * @param endpointUri
+     * @param uri
+     * @param subject
      */
-    public JMSEndpoint(EndpointInfo endpointInfo, String endpointUri) {
+    public JMSEndpoint(EndpointInfo ei, String endpointUri) {
         this.jmsVariant = JMSEndpoint.QUEUE;
 
-        if (endpointInfo != null) {
-            JMSEndpointWSDLUtil.retrieveWSDLInformation(this, endpointInfo);
+        if (ei != null) {
+            JMSEndpointWSDLUtil.retrieveWSDLInformation(this, ei);
         }
         if (!(StringUtils.isEmpty(endpointUri) || "jms://".equals(endpointUri) || !endpointUri.startsWith("jms"))) {
             this.endpointUri = endpointUri;
@@ -128,11 +128,11 @@ public class JMSEndpoint {
 
             // Use the properties like e.g. from JAXWS properties with "jms." prefix
             Map<String, Object> jmsProps = new HashMap<>();
-            if (endpointInfo != null) {
-                getJaxWsJmsProps(endpointInfo.getProperties(), jmsProps);
+            if (ei != null) {
+                getJaxWsJmsProps(ei.getProperties(), jmsProps);
             }
-            if (endpointInfo != null && endpointInfo.getBinding() != null) {
-                getJaxWsJmsProps(endpointInfo.getBinding().getProperties(), jmsProps);
+            if (ei != null && ei.getBinding() != null) {
+                getJaxWsJmsProps(ei.getBinding().getProperties(), jmsProps);
             }
             configureProperties(jmsProps);
         }
@@ -161,8 +161,10 @@ public class JMSEndpoint {
         }
     }
 
-    private static String getPropSetterName(String name) {
-        return "set" + StringUtils.capitalize(name);
+    private String getPropSetterName(String name) {
+        String first = name.substring(0, 1);
+        String rest = name.substring(1);
+        return "set" + first.toUpperCase() + rest;
     }
 
     /**
@@ -172,6 +174,7 @@ public class JMSEndpoint {
      * depending on the prefix of the key. If it matches JNDI_PARAMETER_NAME_PREFIX it is stored in the
      * jndiParameters else in the parameters
      *
+     * @param endpoint
      * @param params
      */
     private void configureProperties(Map<String, Object> params) {
@@ -204,7 +207,7 @@ public class JMSEndpoint {
 
     public String getRequestURI() {
         StringBuilder requestUri = new StringBuilder("jms:");
-        if (JNDI_TOPIC.equals(jmsVariant)) {
+        if (jmsVariant == JNDI_TOPIC) {
             requestUri.append("jndi");
         } else {
             requestUri.append(jmsVariant);
@@ -236,7 +239,7 @@ public class JMSEndpoint {
     }
 
     /**
-     * @param key
+     * @param targetserviceParameterName
      * @return
      */
     public String getParameter(String key) {

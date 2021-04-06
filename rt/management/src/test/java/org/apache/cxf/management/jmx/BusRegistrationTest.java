@@ -65,6 +65,12 @@ public class BusRegistrationTest {
     }
 
     @Test
+    public void testRegisterMultipleBuses() throws Exception {
+        // classic external IM-bean
+        testRegisterMultipleBuses("managed-spring.xml");
+    }
+
+    @Test
     public void testRegisterMultipleBuses2() throws Exception {
         // integrated IM configuration in bus
         testRegisterMultipleBuses("managed-spring2.xml");

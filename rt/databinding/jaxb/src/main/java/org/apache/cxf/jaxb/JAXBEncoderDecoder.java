@@ -478,7 +478,7 @@ public final class JAXBEncoderDecoder {
     }
 
     private static String getName(Member m1) {
-        final String m1Name;
+        String m1Name = null;
         if (m1 instanceof Field) {
             m1Name = ((Field)m1).getName();
         } else {
@@ -498,7 +498,7 @@ public final class JAXBEncoderDecoder {
             return;
         }
         Object objArray;
-        final Class<?> cls;
+        Class<?> cls = null;
         if (mObj instanceof List) {
             List<?> l = (List<?>)mObj;
             objArray = l.toArray();
@@ -539,7 +539,7 @@ public final class JAXBEncoderDecoder {
             }
 
             Class<?> cls = part.getTypeClass();
-            Object obj;
+            Object obj = null;
             try {
                 Constructor<?> cons = cls.getConstructor();
                 obj = cons.newInstance();
@@ -578,13 +578,14 @@ public final class JAXBEncoderDecoder {
                         Utils.setFieldValue(f, obj, o);
                     }
                 } else {
-                    String s = StringUtils.capitalize(q.getLocalPart());
+                    String s = Character.toUpperCase(q.getLocalPart().charAt(0))
+                               + q.getLocalPart().substring(1);
                     Method m = Utils.getMethod(cls, accessType, "get" + s);
                     if (m == null) {
                         m = Utils.getMethod(cls, accessType, "is" + s);
                     }
                     Type type = m.getGenericReturnType();
-                    Object o;
+                    Object o = null;
                     if (JAXBSchemaInitializer.isArray(type)) {
                         Class<?> compType = JAXBSchemaInitializer
                             .getArrayComponentType(type);
@@ -683,13 +684,13 @@ public final class JAXBEncoderDecoder {
                                     MessagePartInfo part,
                                     boolean unwrap) {
         Class<?> clazz = part != null ? part.getTypeClass() : null;
-        if (clazz != null && Exception.class.isAssignableFrom(clazz)
+        if (clazz != null && Exception.class.isAssignableFrom(clazz) && part != null
             && Boolean.TRUE.equals(part.getProperty(JAXBDataBinding.class.getName() + ".CUSTOM_EXCEPTION"))) {
             return unmarshallException(u, source, part);
         }
 
         QName elName = part != null ? part.getConcreteName() : null;
-        if (clazz != null && clazz.isArray()
+        if (clazz != null && clazz.isArray() && part != null
             && part.getXmlSchema() instanceof XmlSchemaElement) {
             XmlSchemaElement el = (XmlSchemaElement)part.getXmlSchema();
 
@@ -723,7 +724,7 @@ public final class JAXBEncoderDecoder {
                 }
                 return o;
             }
-        } else if (byte[].class == clazz && part.getTypeQName() != null
+        } else if (byte[].class == clazz && part != null && part.getTypeQName() != null
                    && "hexBinary".equals(part.getTypeQName().getLocalPart())) {
 
             String obj = (String)unmarshall(u, source, elName, String.class, unwrap);
@@ -836,7 +837,7 @@ public final class JAXBEncoderDecoder {
                                       final Class<?> clazz,
                                       final boolean unwrap) throws Exception {
 
-        final Object obj;
+        Object obj = null;
         boolean unmarshalWithClass = true;
 
         if (clazz == null

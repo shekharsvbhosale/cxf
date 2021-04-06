@@ -32,8 +32,6 @@ public final class StringUtils {
 
     private static final Predicate<String> NOT_EMPTY = (String s) -> !s.isEmpty();
 
-    private static final char[] HEX = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-
     private StringUtils() {
     }
 
@@ -113,25 +111,22 @@ public final class StringUtils {
      * @return capitalized form.
      */
     public static String capitalize(String name) {
-        return changeFirstCharacterCase(name, true);
+        if (name == null || name.isEmpty()) {
+            return name;
+        }
+        char[] chars = name.toCharArray();
+        chars[0] = Character.toUpperCase(chars[0]);
+        return new String(chars);
     }
 
     public static String uncapitalize(String str) {
-        return changeFirstCharacterCase(str, false);
-    }
-
-    private static String changeFirstCharacterCase(String str, boolean capitalize) {
         if (str == null || str.isEmpty()) {
             return str;
         }
-        char baseChar = str.charAt(0);
-        char updatedChar = capitalize ? Character.toUpperCase(baseChar) : Character.toLowerCase(baseChar);
-        if (baseChar == updatedChar) {
-            return str;
-        }
-        char[] chars = str.toCharArray();
-        chars[0] = updatedChar;
-        return new String(chars);
+        return new StringBuilder(str.length())
+            .append(Character.toLowerCase(str.charAt(0)))
+            .append(str.substring(1))
+            .toString();
     }
 
     public static byte[] toBytesUTF8(String str) {
@@ -149,29 +144,10 @@ public final class StringUtils {
     }
 
     public static String toHexString(byte[] bytes) {
-        final StringBuilder sb = new StringBuilder(bytes.length * 2);
-        for (byte b : bytes) {
-            byteToHex(b, sb);
+        StringBuilder hexString = new StringBuilder();
+        for (int i = 0; i < bytes.length; i++) {
+            hexString.append(Integer.toHexString(0xFF & bytes[i]));
         }
-        return sb.toString();
+        return hexString.toString();
     }
-
-    static void byteToHex(byte b, StringBuilder sb) {
-        sb.append(HEX[(0xF0 & b) >> 4]);
-        sb.append(HEX[0x0F & b]);
-    }
-
-    public static String periodToSlashes(String s) {
-        char[] ch = s.toCharArray();
-        for (int x = 0; x < ch.length; x++) {
-            if (ch[x] == '.') {
-                ch[x] = '/';
-            }
-        }
-        return new String(ch);
-    }
-    public static String slashesToPeriod(String s) {
-        return s.replace('/', '.');
-    }
-
 }

@@ -26,21 +26,18 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 
 import org.apache.cxf.jaxrs.ext.MessageContext;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.cxf.rs.security.jose.jwt.JwtUtils;
 import org.apache.cxf.rs.security.oauth2.common.Client;
 import org.apache.cxf.rs.security.oauth2.common.OAuthContext;
-import org.apache.cxf.rs.security.oauth2.common.OAuthPermission;
 import org.apache.cxf.rs.security.oauth2.provider.OAuthDataProvider;
 import org.apache.cxf.rs.security.oauth2.provider.OAuthServerJoseJwtProducer;
 import org.apache.cxf.rs.security.oauth2.utils.OAuthContextUtils;
 import org.apache.cxf.rs.security.oauth2.utils.OAuthUtils;
 import org.apache.cxf.rs.security.oidc.common.IdToken;
 import org.apache.cxf.rs.security.oidc.common.UserInfo;
-import org.apache.cxf.rs.security.oidc.utils.OidcUtils;
 
 @Path("/userinfo")
 public class UserInfoService extends OAuthServerJoseJwtProducer {
@@ -54,14 +51,6 @@ public class UserInfoService extends OAuthServerJoseJwtProducer {
     @Produces({"application/json", "application/jwt" })
     public Response getUserInfo() {
         OAuthContext oauth = OAuthContextUtils.getContext(mc);
-
-        // Check the access token has the "openid" scope
-        if (!oauth.getPermissions().stream()
-            .map(OAuthPermission::getPermission)
-            .anyMatch(OidcUtils.OPENID_SCOPE::equals)) {
-            return Response.status(Status.UNAUTHORIZED).build();
-        }
-
         UserInfo userInfo = null;
         if (userInfoProvider != null) {
             userInfo = userInfoProvider.getUserInfo(oauth.getClientId(), oauth.getSubject(),
@@ -78,7 +67,7 @@ public class UserInfoService extends OAuthServerJoseJwtProducer {
             return Response.serverError().build();
         }
 
-        final Object responseEntity;
+        Object responseEntity = null;
         // UserInfo may be returned in a clear form as JSON
         if (super.isJwsRequired() || super.isJweRequired()) {
             Client client = null;

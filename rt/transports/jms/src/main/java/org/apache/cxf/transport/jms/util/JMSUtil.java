@@ -18,6 +18,8 @@
  */
 package org.apache.cxf.transport.jms.util;
 
+import java.util.Enumeration;
+
 import javax.jms.BytesMessage;
 import javax.jms.Connection;
 import javax.jms.Destination;
@@ -26,16 +28,19 @@ import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.ObjectMessage;
 import javax.jms.Queue;
+import javax.jms.QueueBrowser;
 import javax.jms.Session;
 
-import org.apache.cxf.common.util.StringUtils;
 import org.apache.cxf.message.Exchange;
 import org.apache.cxf.transport.jms.JMSConstants;
 
 public final class JMSUtil {
-
+    
     public static final String JMS_MESSAGE_CONSUMER = "jms_message_consumer";
     public static final String JMS_IGNORE_TIMEOUT = "jms_ignore_timeout";
+    private static final char[] CORRELATTION_ID_PADDING = {
+        '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'
+    };
 
     private JMSUtil() {
     }
@@ -59,7 +64,7 @@ public final class JMSUtil {
             throw convertJmsException(e);
         }
     }
-
+    
     public static Message receive(Session session,
                                   Destination replyToDestination,
                                   String correlationId,
@@ -93,8 +98,12 @@ public final class JMSUtil {
         return new RuntimeException(e.getMessage(), e);
     }
 
-    public static String createCorrelationId(final String prefix, long sequenceNum) {
-        return prefix + StringUtils.toHexString(java.nio.ByteBuffer.allocate(Long.BYTES).putLong(sequenceNum).array());
+    public static String createCorrelationId(final String prefix, long sequenceNUm) {
+        String index = Long.toHexString(sequenceNUm);
+        StringBuilder id = new StringBuilder(prefix);
+        id.append(CORRELATTION_ID_PADDING, 0, 16 - index.length());
+        id.append(index);
+        return id.toString();
     }
 
     /**
@@ -103,12 +112,12 @@ public final class JMSUtil {
      * @param payload the message payload, expected to be either of type String or byte[] depending on payload
      *            type
      * @param session the JMS session
-     * @param messageType the JMS message type
+     * @param replyTo the ReplyTo destination if any
      * @return a JMS of the appropriate type populated with the given payload
      */
     public static Message createAndSetPayload(Object payload, Session session, String messageType)
         throws JMSException {
-        final Message message;
+        Message message = null;
         if (JMSConstants.TEXT_MESSAGE_TYPE.equals(messageType)) {
             message = session.createTextMessage((String)payload);
         } else if (JMSConstants.BYTE_MESSAGE_TYPE.equals(messageType)) {
@@ -133,4 +142,17 @@ public final class JMSUtil {
         }
     }
 
+    public static int getNumMessages(Connection connection, Queue queue) throws JMSException {
+        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        QueueBrowser browser = session.createBrowser(queue);
+        @SuppressWarnings("unchecked")
+        Enumeration<Message> messages = browser.getEnumeration();
+        int actualNum = 0;
+        while (messages.hasMoreElements()) {
+            actualNum++;
+            messages.nextElement();
+        }
+        browser.close();
+        return actualNum;
+    }
 }

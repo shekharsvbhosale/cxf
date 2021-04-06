@@ -20,17 +20,13 @@ package org.apache.cxf.microprofile.client.proxy;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
@@ -55,16 +51,13 @@ import org.apache.cxf.jaxrs.model.ClassResourceInfo;
 import org.apache.cxf.jaxrs.model.OperationResourceInfo;
 import org.apache.cxf.jaxrs.model.Parameter;
 import org.apache.cxf.jaxrs.model.ParameterType;
-import org.apache.cxf.jaxrs.model.ProviderInfo;
 import org.apache.cxf.jaxrs.utils.HttpUtils;
 import org.apache.cxf.jaxrs.utils.InjectionUtils;
 import org.apache.cxf.message.Exchange;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.microprofile.client.MPRestClientCallback;
 import org.apache.cxf.microprofile.client.MicroProfileClientProviderFactory;
-import org.apache.cxf.microprofile.client.cdi.CDIFacade;
 import org.apache.cxf.microprofile.client.cdi.CDIInterceptorWrapper;
-import org.apache.cxf.microprofile.client.cdi.Instance;
 import org.eclipse.microprofile.rest.client.annotation.ClientHeaderParam;
 import org.eclipse.microprofile.rest.client.annotation.RegisterClientHeaders;
 import org.eclipse.microprofile.rest.client.ext.ClientHeadersFactory;
@@ -103,23 +96,14 @@ public class MicroProfileClientProxyImpl extends ClientProxyImpl {
 
     private final CDIInterceptorWrapper interceptorWrapper;
     private Object objectInstance;
-    private Map<Class<ClientHeadersFactory>, ProviderInfo<ClientHeadersFactory>> clientHeaderFactories = 
-        new WeakHashMap<>();
-    private List<Instance<?>> cdiInstances = new LinkedList<>();
 
     //CHECKSTYLE:OFF
     public MicroProfileClientProxyImpl(URI baseURI, ClassLoader loader, ClassResourceInfo cri,
                                        boolean isRoot, boolean inheritHeaders, ExecutorService executorService,
                                        Configuration configuration, CDIInterceptorWrapper interceptorWrapper, 
                                        Object... varValues) {
-        super(new LocalClientState(baseURI, configuration.getProperties()), loader, cri,
-            isRoot, inheritHeaders, varValues);
+        super(new LocalClientState(baseURI, configuration.getProperties()), loader, cri, isRoot, inheritHeaders, varValues);
         this.interceptorWrapper = interceptorWrapper;
-        
-        if (executorService == null) {
-            throw new IllegalArgumentException("The executorService is required and must be provided");
-        }
-        
         init(executorService, configuration);
     }
 
@@ -195,25 +179,16 @@ public class MicroProfileClientProxyImpl extends ClientProxyImpl {
         for (ResponseExceptionMapper<?> mapper : mappers) {
             if (mapper.handles(r.getStatus(), r.getHeaders())) {
                 Throwable t = mapper.toThrowable(r);
-                if (t == null) {
-                    continue;
-                }
                 if (t instanceof RuntimeException) {
                     throw t;
-                } else if (CompletionStage.class.isAssignableFrom(m.getReturnType())) {
-                    throw new CompletionException(t);
-                } else if (m.getExceptionTypes() != null) {
+                } else if (t != null && m.getExceptionTypes() != null) {
                     // its a checked exception, make sure its declared
                     for (Class<?> c : m.getExceptionTypes()) {
-                        if (c.isAssignableFrom(t.getClass())) {
+                        if (t.getClass().isAssignableFrom(c)) {
                             throw t;
                         }
                     }
-                    if (LOG.isLoggable(Level.FINEST)) {
-                        LOG.log(Level.FINEST, "ResponseExceptionMapper, " + mapper.getClass().getName() + ", handles " 
-                            + "response, but client method does not declare it's Throwable type, " 
-                            + t.getClass().getName());
-                    }
+                    // TODO Log the unhandled declarable
                 }
             }
         }
@@ -227,26 +202,6 @@ public class MicroProfileClientProxyImpl extends ClientProxyImpl {
             returnType = InjectionUtils.getActualType(t);
         }
         return returnType;
-    }
-    
-    @Override
-    protected Type getGenericReturnType(Class<?> serviceCls, Method method, Class<?> returnType) {
-        final Type genericReturnType = super.getGenericReturnType(serviceCls, method, returnType);
-        
-        if (genericReturnType instanceof ParameterizedType) {
-            final ParameterizedType pt = (ParameterizedType)genericReturnType;
-            if (CompletionStage.class.isAssignableFrom(InjectionUtils.getRawType(pt))) {
-                final Type[] actualTypeArguments = pt.getActualTypeArguments();
-                if (actualTypeArguments.length > 0 && actualTypeArguments[0] instanceof ParameterizedType) {
-                    return InjectionUtils.processGenericTypeIfNeeded(serviceCls, returnType, 
-                        (ParameterizedType)actualTypeArguments[0]);
-                } else {
-                    return returnType;
-                }
-            }
-        }
-        
-        return genericReturnType;
     }
 
     @Override
@@ -365,7 +320,7 @@ public class MicroProfileClientProxyImpl extends ClientProxyImpl {
                     LOG.log(Level.FINEST, "Caught exception invoking compute method", t);
                 }
                 if (t instanceof InvocationTargetException) {
-                    throw t.getCause();
+                    t = t.getCause();
                 }
                 throw t;
             }
@@ -395,7 +350,6 @@ public class MicroProfileClientProxyImpl extends ClientProxyImpl {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     protected void handleHeaders(Method m,
                                  Object[] params,
                                  MultivaluedMap<String, String> headers,
@@ -433,53 +387,25 @@ public class MicroProfileClientProxyImpl extends ClientProxyImpl {
                 }
             }
 
+            ClientHeadersFactory headersFactory = null;
+            
             if (headersFactoryAnno != null) {
-                Class<ClientHeadersFactory> headersFactoryClass = (Class<ClientHeadersFactory>)
-                                                                  headersFactoryAnno.value();
-                mergeHeaders(headersFactoryClass, headers);
+                Class<?> headersFactoryClass = headersFactoryAnno.value();
+                headersFactory = (ClientHeadersFactory) headersFactoryClass.newInstance();
+                mergeHeaders(headersFactory, headers);
             }
         } catch (Throwable t) {
             throwException(t);
         }
     }
 
-    private <T> T mapInstance(Instance<T> instance) {
-        cdiInstances.add(instance);
-        return instance.getValue();
+    private void mergeHeaders(ClientHeadersFactory factory,
+                              MultivaluedMap<String, String> existingHeaders) {
+
+        MultivaluedMap<String, String> jaxrsHeaders = getJaxrsHeaders();
+        MultivaluedMap<String, String> updatedHeaders = factory.update(jaxrsHeaders, existingHeaders);
+        existingHeaders.putAll(updatedHeaders);
     }
-
-    private void mergeHeaders(Class<ClientHeadersFactory> factoryCls, MultivaluedMap<String, String> existingHeaders) {
-
-        try {
-            ClientHeadersFactory factory;
-
-            Message m = JAXRS_UTILS_GET_CURRENT_MESSAGE_METHOD == null ? null
-                : (Message) JAXRS_UTILS_GET_CURRENT_MESSAGE_METHOD.invoke(null);
-
-            if (m != null) {
-                factory = CDIFacade.getInstanceFromCDI(factoryCls, m.getExchange().getBus())
-                                   .map(this::mapInstance)
-                                   .orElse(factoryCls.newInstance());
-                ProviderInfo<ClientHeadersFactory> pi = clientHeaderFactories.computeIfAbsent(factoryCls, k -> {
-                    return new ProviderInfo<ClientHeadersFactory>(factory, m.getExchange().getBus(), true);
-                });
-                InjectionUtils.injectContexts(factory, pi, m);
-            } else {
-                factory = CDIFacade.getInstanceFromCDI(factoryCls)
-                                   .map(this::mapInstance)
-                                   .orElse(factoryCls.newInstance());
-            }
-
-            MultivaluedMap<String, String> updatedHeaders = factory.update(getJaxrsHeaders(m), existingHeaders);
-            existingHeaders.putAll(updatedHeaders);
-        } catch (Throwable t) {
-            // expected if not running in a JAX-RS server environment.
-            if (LOG.isLoggable(Level.FINEST)) {
-                LOG.log(Level.FINEST, "Caught exception getting JAX-RS incoming headers", t);
-            }
-        }
-    }
-
     @Override
     public Object invoke(Object o, Method m, Object[] params) throws Throwable {
         checkClosed();
@@ -526,22 +452,19 @@ public class MicroProfileClientProxyImpl extends ClientProxyImpl {
         throw new RuntimeException(t);
     }
 
-    /**
-     * Returns the incoming request headers from the current JAX-RS request, assuming
-     * that this is invoked inside a JAX-RS request. If not, it will return an empty
-     * map.
-     */
-    private static MultivaluedMap<String, String> getJaxrsHeaders(Message m) {
+    private static MultivaluedMap<String, String> getJaxrsHeaders() {
         MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
-        if (m != null) {
-            headers.putAll(CastUtils.cast((Map<?, ?>) m.get(Message.PROTOCOL_HEADERS)));
+        try {
+            if (JAXRS_UTILS_GET_CURRENT_MESSAGE_METHOD != null) {
+                Message m = (Message) JAXRS_UTILS_GET_CURRENT_MESSAGE_METHOD.invoke(null);
+                headers.putAll(CastUtils.cast((Map<?, ?>)m.get(Message.PROTOCOL_HEADERS)));
+            }
+        } catch (Throwable t) {
+            // expected if not running in a JAX-RS server environment.
+            if (LOG.isLoggable(Level.FINEST)) {
+                LOG.log(Level.FINEST, "Caught exception getting JAX-RS incoming headers", t);
+            }
         }
         return headers;
-    }
-
-    @Override
-    public void close() {
-        cdiInstances.forEach(Instance::release);
-        super.close();
     }
 }

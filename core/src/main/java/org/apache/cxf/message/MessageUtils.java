@@ -19,17 +19,12 @@
 
 package org.apache.cxf.message;
 
-import java.lang.reflect.Method;
-import java.net.HttpURLConnection;
-import java.util.Optional;
 import java.util.logging.Logger;
 
 import org.w3c.dom.Node;
 
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.common.util.PropertyUtils;
-import org.apache.cxf.service.invoker.MethodDispatcher;
-import org.apache.cxf.service.model.BindingOperationInfo;
 
 
 /**
@@ -133,7 +128,6 @@ public final class MessageUtils {
      * Returns true if a value is either the String "true" (regardless of case)  or Boolean.TRUE.
      * @param value
      * @return true if value is either the String "true" or Boolean.TRUE
-     * @deprecated replaced by {@link #PropertyUtils#isTrue(Object)}
      */
     @Deprecated
     public static boolean isTrue(Object value) {
@@ -194,68 +188,6 @@ public final class MessageUtils {
         }
         return false;
         */
-    }
-
-    public static Optional<Method> getTargetMethod(Message m) {
-        Method method;
-        BindingOperationInfo bop = m.getExchange().getBindingOperationInfo();
-        if (bop != null) {
-            MethodDispatcher md = (MethodDispatcher) m.getExchange().getService().get(MethodDispatcher.class.getName());
-            method = md.getMethod(bop);
-        } else {
-            // See please JAXRSInInterceptor#RESOURCE_METHOD for the reference
-            method = (Method) m.get("org.apache.cxf.resource.method");
-        }
-        return Optional.ofNullable(method);
-    }
-    
-    /**
-     * Gets the response code from the message and tries to deduct one if it 
-     * is not set yet. 
-     * @param message message to get response code from
-     * @return response code (or deducted value assuming success)
-     */
-    public static int getReponseCodeFromMessage(Message message) {
-        Integer i = (Integer)message.get(Message.RESPONSE_CODE);
-        if (i != null) {
-            return i.intValue();
-        }
-        int code = hasNoResponseContent(message) ? HttpURLConnection.HTTP_ACCEPTED : HttpURLConnection.HTTP_OK;
-        // put the code in the message so that others can get it
-        message.put(Message.RESPONSE_CODE, code);
-        return code;
-    }
-
-    /**
-     * Determines if the current message has no response content.
-     * The message has no response content if either:
-     *  - the request is oneway and the current message is no partial
-     *    response or an empty partial response.
-     *  - the request is not oneway but the current message is an empty partial
-     *    response.
-     * @param message
-     * @return
-     */
-    public static boolean hasNoResponseContent(Message message) {
-        final boolean ow = isOneWay(message);
-        final boolean pr = MessageUtils.isPartialResponse(message);
-        final boolean epr = MessageUtils.isEmptyPartialResponse(message);
-
-        //REVISIT may need to provide an option to choose other behavior?
-        // old behavior not suppressing any responses  => ow && !pr
-        // suppress empty responses for oneway calls   => ow && (!pr || epr)
-        // suppress additionally empty responses for decoupled twoway calls =>
-        return (ow && !pr) || epr;
-    }
-    
-    /**
-     * Checks if the message is oneway or not
-     * @param message the message under consideration
-     * @return true if the message has been marked as oneway
-     */
-    public static boolean isOneWay(Message message) {
-        final Exchange ex = message.getExchange();
-        return ex != null && ex.isOneWay();
     }
 
 }

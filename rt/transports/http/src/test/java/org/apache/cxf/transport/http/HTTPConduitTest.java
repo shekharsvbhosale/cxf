@@ -31,6 +31,7 @@ import java.util.concurrent.RejectedExecutionException;
 
 import org.apache.cxf.Bus;
 import org.apache.cxf.bus.extension.ExtensionManagerBus;
+import org.apache.cxf.common.util.Base64Utility;
 import org.apache.cxf.configuration.security.AuthorizationPolicy;
 import org.apache.cxf.endpoint.Endpoint;
 import org.apache.cxf.endpoint.EndpointImpl;
@@ -41,7 +42,6 @@ import org.apache.cxf.message.Message;
 import org.apache.cxf.message.MessageImpl;
 import org.apache.cxf.service.model.EndpointInfo;
 import org.apache.cxf.transport.http.HTTPConduit.WrappedOutputStream;
-import org.apache.cxf.transport.http.auth.DefaultBasicAuthSupplier;
 import org.apache.cxf.transport.http.auth.HttpAuthSupplier;
 import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
 import org.apache.cxf.ws.addressing.EndpointReferenceType;
@@ -171,7 +171,7 @@ public class HTTPConduitTest {
                 headers.get("Authorization"));
 
         assertEquals("Unexpected Authorization Token",
-            DefaultBasicAuthSupplier.getBasicAuthHeader("testUser", "password"),
+                "Basic " + Base64Utility.encode("testUser:password".getBytes()),
                 headers.get("Authorization").get(0));
     }
 
@@ -203,7 +203,7 @@ public class HTTPConduitTest {
                 headers.get("Authorization"));
 
         assertEquals("Unexpected Authorization Token",
-            DefaultBasicAuthSupplier.getBasicAuthHeader("Satan", "hell"),
+                "Basic " + Base64Utility.encode("Satan:hell".getBytes()),
                 headers.get("Authorization").get(0));
 
         // Setting a Basic Auth User Pass should override
@@ -235,7 +235,7 @@ public class HTTPConduitTest {
             CastUtils.cast((Map<?, ?>)message.get(Message.PROTOCOL_HEADERS));
 
         assertEquals("Unexpected Authorization Token",
-            DefaultBasicAuthSupplier.getBasicAuthHeader("Hello", "world"),
+                "Basic " + Base64Utility.encode("Hello:world".getBytes()),
                 headers.get("Authorization").get(0));
     }
 
@@ -281,6 +281,7 @@ public class HTTPConduitTest {
                 assertEquals("expected", ex.getMessage());
             }
         } catch (Exception ex) {
+            ex.printStackTrace();
             throw ex;
         }
     }

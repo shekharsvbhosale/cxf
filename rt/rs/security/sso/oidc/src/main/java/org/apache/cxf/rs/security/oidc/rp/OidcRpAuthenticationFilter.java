@@ -60,7 +60,7 @@ public class OidcRpAuthenticationFilter implements ContainerRequestFilter {
         if (checkSecurityContext(rc)) {
             return;
         } else if (redirectUri != null) {
-            final UriBuilder redirectBuilder;
+            UriBuilder redirectBuilder = null;
             if (redirectUri.startsWith("/")) {
                 String basePath = (String)mc.get("http.base.path");
                 redirectBuilder = UriBuilder.fromUri(basePath).path(redirectUri);

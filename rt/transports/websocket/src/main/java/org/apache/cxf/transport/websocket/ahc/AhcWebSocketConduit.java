@@ -54,7 +54,8 @@ import org.asynchttpclient.DefaultAsyncHttpClientConfig;
 import org.asynchttpclient.Realm;
 import org.asynchttpclient.Realm.AuthScheme;
 import org.asynchttpclient.ws.WebSocket;
-import org.asynchttpclient.ws.WebSocketListener;
+import org.asynchttpclient.ws.WebSocketByteListener;
+import org.asynchttpclient.ws.WebSocketTextListener;
 import org.asynchttpclient.ws.WebSocketUpgradeHandler;
 
 /**
@@ -137,7 +138,7 @@ public class AhcWebSocketConduit extends URLConnectionHTTPConduit {
 
     public class AhcWebSocketWrappedOutputStream extends WrappedOutputStream {
         private AhcWebSocketConduitRequest entity;
-        private volatile Response response;
+        private Response response;
 
         protected AhcWebSocketWrappedOutputStream(Message message, boolean possibleRetransmit,
                                                   boolean isChunking, int chunkThreshold, String conduitName, URI url) {
@@ -174,7 +175,7 @@ public class AhcWebSocketConduit extends URLConnectionHTTPConduit {
                     Map<String, String> headers = new HashMap<>();
                     headers.put("Content-Type", entity.getContentType());
                     headers.put(requestIdKey, entity.getId());
-                    websocket.sendBinaryFrame(WebSocketUtils.buildRequest(
+                    websocket.sendMessage(WebSocketUtils.buildRequest(
                         entity.getMethod(), entity.getPath(),
                         headers,
                         b, off, len));
@@ -196,7 +197,7 @@ public class AhcWebSocketConduit extends URLConnectionHTTPConduit {
             connect();
             Map<String, String> headers = new HashMap<>();
             headers.put(requestIdKey, entity.getId());
-            websocket.sendBinaryFrame(WebSocketUtils.buildRequest(
+            websocket.sendMessage(WebSocketUtils.buildRequest(
                 entity.getMethod(), entity.getPath(),
                 headers,
                 null, 0, 0));
@@ -339,7 +340,7 @@ public class AhcWebSocketConduit extends URLConnectionHTTPConduit {
         }
     }
 
-    protected class AhcWebSocketListener implements WebSocketListener {
+    protected class AhcWebSocketListener implements WebSocketTextListener, WebSocketByteListener {
 
         public void onOpen(WebSocket ws) {
             if (LOG.isLoggable(Level.FINE)) {
@@ -347,7 +348,7 @@ public class AhcWebSocketConduit extends URLConnectionHTTPConduit {
             }
         }
 
-        public void onClose(WebSocket ws, int code, String reason) {
+        public void onClose(WebSocket ws) {
             if (LOG.isLoggable(Level.FINE)) {
                 LOG.log(Level.FINE, "onCose({0})", ws);
             }
@@ -357,12 +358,11 @@ public class AhcWebSocketConduit extends URLConnectionHTTPConduit {
             LOG.log(Level.SEVERE, "[ws] onError", t);
         }
 
-        @Override
-        public void onBinaryFrame(byte[] payload, boolean finalFragment, int rsv) {
+        public void onMessage(byte[] message) {
             if (LOG.isLoggable(Level.FINE)) {
-                LOG.log(Level.FINE, "onMessage({0})", payload);
+                LOG.log(Level.FINE, "onMessage({0})", message);
             }
-            Response resp = new Response(responseIdKey, payload);
+            Response resp = new Response(responseIdKey, message);
             RequestResponse rr = uncorrelatedRequests.get(resp.getId());
             if (rr != null) {
                 synchronized (rr) {
@@ -372,12 +372,16 @@ public class AhcWebSocketConduit extends URLConnectionHTTPConduit {
             }
         }
 
-        @Override
-        public void onTextFrame(String payload, boolean finalFragment, int rsv) {
+        public void onFragment(byte[] fragment, boolean last) {
+            //TODO
+            LOG.log(Level.WARNING, "NOT IMPLEMENTED onFragment({0}, {1})", new Object[]{fragment, last});
+        }
+
+        public void onMessage(String message) {
             if (LOG.isLoggable(Level.FINE)) {
-                LOG.log(Level.FINE, "onMessage({0})", payload);
+                LOG.log(Level.FINE, "onMessage({0})", message);
             }
-            Response resp = new Response(responseIdKey, payload);
+            Response resp = new Response(responseIdKey, message);
             RequestResponse rr = uncorrelatedRequests.get(resp.getId());
             if (rr != null) {
                 synchronized (rr) {
@@ -387,6 +391,10 @@ public class AhcWebSocketConduit extends URLConnectionHTTPConduit {
             }
         }
 
+        public void onFragment(String fragment, boolean last) {
+            //TODO
+            LOG.log(Level.WARNING, "NOT IMPLEMENTED onFragment({0}, {1})", new Object[]{fragment, last});
+        }
     }
 
     // Request and Response are used to represent request and response messages transfered over the websocket

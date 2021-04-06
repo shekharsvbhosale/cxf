@@ -47,13 +47,14 @@ public class ManagedBus implements ManagedComponent {
     }
 
     public ObjectName getObjectName() throws JMException {
-        final StringBuilder buffer = new StringBuilder(ManagementConstants.DEFAULT_DOMAIN_NAME).append(':')
-            .append(ManagementConstants.BUS_ID_PROP).append('=').append(bus.getId()).append(',')
-            .append(ManagementConstants.TYPE_PROP).append('=').append(TYPE_VALUE).append(',');
+        String busId = bus.getId();
+        StringBuilder buffer = new StringBuilder(ManagementConstants.DEFAULT_DOMAIN_NAME).append(':');
+        buffer.append(ManagementConstants.BUS_ID_PROP).append('=').append(busId).append(',');
+        buffer.append(ManagementConstants.TYPE_PROP).append('=').append(TYPE_VALUE).append(',');
         // Added the instance id to make the ObjectName unique
         String instanceId = (String)bus.getProperties().get(INSTANCE_ID);
         if (StringUtils.isEmpty(instanceId)) {
-            instanceId = Integer.toString(bus.hashCode());
+            instanceId = new StringBuilder().append(bus.hashCode()).toString();
         }
         buffer.append(ManagementConstants.INSTANCE_ID_PROP).append('=').append(instanceId);
 

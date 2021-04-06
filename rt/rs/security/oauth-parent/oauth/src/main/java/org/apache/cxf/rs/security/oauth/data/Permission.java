@@ -57,7 +57,7 @@ public class Permission {
      * Indicates that this permission has been allocated by default.
      * Authorization View handlers may use this property in order to restrict
      * the list of scopes which may be refused to non-default scopes only
-     * @param value
+     * @param isDefault
      */
     public void setDefault(boolean value) {
         this.isDefault = value;

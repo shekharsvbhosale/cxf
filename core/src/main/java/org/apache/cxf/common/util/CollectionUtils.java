@@ -56,16 +56,12 @@ public final class CollectionUtils {
         return true;
     }
 
-    public static <K, V> boolean isEmpty(Map<K, V> m) {
-        return m == null || m.isEmpty();
-    }
-
     public static <S, T> Dictionary<S, T> singletonDictionary(S s, T t) {
         return toDictionary(Collections.singletonMap(s, t));
     }
 
     public static <S, T> Dictionary<S, T> toDictionary(Map<S, T> map) {
-        return new MapToDictionary<>(map);
+        return new MapToDictionary<S, T>(map);
     }
 
     static class MapToDictionary<S, T> extends Dictionary<S, T> {
@@ -80,7 +76,7 @@ public final class CollectionUtils {
 
 
         public Enumeration<T> elements() {
-            return map != null ? new IteratorToEnumeration<>(map.values().iterator()) : null;
+            return map != null ? new IteratorToEnumeration<T>(map.values().iterator()) : null;
         }
 
         public T get(Object key) {
@@ -92,7 +88,7 @@ public final class CollectionUtils {
         }
 
         public Enumeration<S> keys() {
-            return map != null ? new IteratorToEnumeration<>(map.keySet().iterator()) : null;
+            return map != null ? new IteratorToEnumeration<S>(map.keySet().iterator()) : null;
         }
 
         public T put(S key, T value) {

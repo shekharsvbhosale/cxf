@@ -20,7 +20,6 @@ package org.apache.cxf.osgi.itests.soap;
 
 import java.io.InputStream;
 
-import org.apache.cxf.helpers.JavaUtils;
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
 import org.apache.cxf.osgi.itests.AbstractServerActivator;
 import org.apache.cxf.osgi.itests.CXFOSGiTestSupport;
@@ -30,7 +29,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.Option;
-import org.ops4j.pax.exam.OptionUtils;
 import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.karaf.options.LogLevelOption.LogLevel;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
@@ -69,34 +67,23 @@ public class HttpServiceTest extends CXFOSGiTestSupport {
 
     @Configuration
     public Option[] config() {
-        return OptionUtils.combine(
+        return new Option[] {
             cxfBaseConfig(),
             features(cxfUrl, "cxf-jaxws", "cxf-http-jetty"),
             testUtils(),
             logLevel(LogLevel.INFO),
             provision(serviceBundle())
-        );
+        };
     }
 
     private static InputStream serviceBundle() {
-        if (JavaUtils.isJava11Compatible()) {
-            return TinyBundles.bundle()
+        return TinyBundles.bundle()
                   .add(AbstractServerActivator.class)
                   .add(HttpTestActivator.class)
                   .add(Greeter.class)
                   .add(GreeterImpl.class)
                   .set(Constants.BUNDLE_ACTIVATOR, HttpTestActivator.class.getName())
-                  .set("Require-Capability", "osgi.ee;filter:=\"(&(osgi.ee=JavaSE)(version=11))\"")
                   .build(TinyBundles.withBnd());
-        } else {
-            return TinyBundles.bundle()
-                .add(AbstractServerActivator.class)
-                .add(HttpTestActivator.class)
-                .add(Greeter.class)
-                .add(GreeterImpl.class)
-                .set(Constants.BUNDLE_ACTIVATOR, HttpTestActivator.class.getName())
-                .build(TinyBundles.withBnd());
-        }
     }
 
 }

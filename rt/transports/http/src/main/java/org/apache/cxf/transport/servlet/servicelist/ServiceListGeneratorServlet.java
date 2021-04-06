@@ -19,7 +19,6 @@
 package org.apache.cxf.transport.servlet.servicelist;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -92,9 +91,6 @@ public class ServiceListGeneratorServlet extends HttpServlet {
             return;
         }
         List<String> privateEndpoints;
-        if (bus == null) {
-            bus = BusFactory.getDefaultBus(false);
-        }
         if (bus != null) {
             privateEndpoints = (List<String>)bus.getProperty("org.apache.cxf.private.endpoints");
         } else {
@@ -185,9 +181,7 @@ public class ServiceListGeneratorServlet extends HttpServlet {
         response.setContentType("text/css; charset=UTF-8");
         URL url = this.getClass().getResource("servicelist.css");
         if (url != null) {
-            try (InputStream inputStream = url.openStream()) {
-                IOUtils.copy(inputStream, response.getOutputStream());
-            }
+            IOUtils.copy(url.openStream(), response.getOutputStream());
         }
     }
 

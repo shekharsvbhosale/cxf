@@ -82,7 +82,7 @@ public class JoseJwtConsumer extends AbstractJoseConsumer {
     }
 
     protected JwsSignatureVerifier getInitializedSignatureVerifier(JwtToken jwt) {
-        return getInitializedSignatureVerifier(jwt.getJwsHeaders());
+        return super.getInitializedSignatureVerifier(jwt.getJwsHeaders());
     }
 
     protected void validateToken(JwtToken jwt) {

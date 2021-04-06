@@ -31,7 +31,6 @@ import org.apache.cxf.configuration.security.AuthorizationPolicy;
 import org.apache.cxf.jaxrs.utils.ExceptionUtils;
 import org.apache.cxf.jaxrs.utils.JAXRSUtils;
 import org.apache.cxf.message.Message;
-import org.apache.cxf.rs.security.oauth2.services.WellKnownService;
 import org.apache.cxf.rt.security.saml.interceptor.WSS4JBasicAuthValidator;
 
 /**
@@ -42,10 +41,6 @@ import org.apache.cxf.rt.security.saml.interceptor.WSS4JBasicAuthValidator;
 public class WSS4JBasicAuthFilter extends WSS4JBasicAuthValidator implements ContainerRequestFilter {
 
     public void filter(ContainerRequestContext requestContext) throws IOException {
-        if (requestContext.getUriInfo().getPath().contains(WellKnownService.WELL_KNOWN_PATH)) {
-            return;
-        }
-
         Message message = JAXRSUtils.getCurrentMessage();
         AuthorizationPolicy policy = message.get(AuthorizationPolicy.class);
 

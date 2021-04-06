@@ -23,7 +23,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.Option;
-import org.ops4j.pax.exam.OptionUtils;
 import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.karaf.options.LogLevelOption.LogLevel;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
@@ -52,10 +51,9 @@ public class BundlesAndNamespacesTest extends CXFOSGiTestSupport {
 
     @Configuration
     public Option[] config() {
-        return OptionUtils.combine(
-            cxfBaseConfig(),
-            features(cxfUrl, "aries-blueprint", "cxf-core", "cxf-jaxws"),
-            logLevel(LogLevel.INFO)
-        );
+        return new Option[]{
+                cxfBaseConfig(),
+                features(cxfUrl, "aries-blueprint", "cxf-core", "cxf-jaxws"),
+                logLevel(LogLevel.INFO)};
     }
 }

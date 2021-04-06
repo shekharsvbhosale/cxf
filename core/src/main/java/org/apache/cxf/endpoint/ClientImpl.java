@@ -246,7 +246,6 @@ public class ClientImpl
         responseContext.remove(t);
     }
 
-    @Override
     public Contexts getContexts() {
         return new Contexts() {
             @Override
@@ -267,7 +266,10 @@ public class ClientImpl
     public Map<String, Object> getRequestContext() {
         if (isThreadLocalRequestContext()) {
             final Thread t = Thread.currentThread();
-            requestContext.computeIfAbsent(t, k -> new EchoContext(currentRequestContext));
+            if (!requestContext.containsKey(t)) {
+                EchoContext freshRequestContext = new EchoContext(currentRequestContext);
+                requestContext.put(t, freshRequestContext);
+            }
             latestContextThread = t;
             return requestContext.get(t);
         }
@@ -537,12 +539,10 @@ public class ClientImpl
             return processResult(message, exchange, oi, resContext);
         } finally {
             //ensure ResponseContext has HTTP RESPONSE CODE
-            if (null != exchange) {
-                Integer responseCode = (Integer)exchange.get(Message.RESPONSE_CODE);
-                resContext.put(MessageContext.HTTP_RESPONSE_CODE, responseCode);
-                resContext.put(org.apache.cxf.message.Message.RESPONSE_CODE, responseCode);
-                setResponseContext(resContext);
-            }
+            Integer responseCode = (Integer)exchange.get(Message.RESPONSE_CODE);
+            resContext.put(MessageContext.HTTP_RESPONSE_CODE, responseCode);
+            resContext.put(org.apache.cxf.message.Message.RESPONSE_CODE, responseCode);
+            setResponseContext(resContext);
             if (origLoader != null) {
                 origLoader.reset();
             }

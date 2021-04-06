@@ -27,7 +27,7 @@
     <parent>
         <groupId>org.apache.cxf</groupId>
         <artifactId>cxf-parent</artifactId>
-        <version>3.5.0-SNAPSHOT</version>
+        <version>3.4.0-SNAPSHOT</version>
         <relativePath>../../../parent/pom.xml</relativePath>
     </parent>
     <properties>
@@ -40,8 +40,7 @@
             org.apache.aries*;version="${cxf.aries.version.range}";resolution:=optional,
             org.springframework*;resolution:="optional";version="${cxf.osgi.spring.version}",
             javax.xml.bind*;version="${cxf.osgi.javax.bind.version}",
-            javax.annotation*;version="${cxf.osgi.javax.annotation.version}",
-            org.xnio*;version="${cxf.undertow.xnio.osgi.version}",
+            javax.annotation*;version="${cxf.osgi.javax.annotation.version}"
         </cxf.osgi.import>
         <!-- keep in sync with services exported in activator -->
         <cxf.export.service>
@@ -68,7 +67,7 @@
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>osgi.cmpn</artifactId>
+            <artifactId>org.osgi.compendium</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

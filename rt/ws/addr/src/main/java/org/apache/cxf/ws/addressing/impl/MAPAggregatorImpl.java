@@ -836,8 +836,10 @@ public class MAPAggregatorImpl extends MAPAggregator {
             if (ContextUtils.isGenericAddress(replyTo)) {
                 replyTo = getReplyTo(message, replyTo);
                 if (replyTo == null || (isOneway
-                    && (replyTo.getAddress() == null
-                        || !Names.WSA_NONE_ADDRESS.equals(replyTo.getAddress().getValue())))) {
+                    && (replyTo == null
+                        || replyTo.getAddress() == null
+                        || !Names.WSA_NONE_ADDRESS.equals(
+                                replyTo.getAddress().getValue())))) {
                     AttributedURIType address =
                         ContextUtils.getAttributedURI(isOneway
                                                       ? Names.WSA_NONE_ADDRESS
@@ -1061,7 +1063,8 @@ public class MAPAggregatorImpl extends MAPAggregator {
                                              boolean isProviderContext,
                                              boolean isOutbound) {
 
-        AddressingProperties maps = ContextUtils.retrieveMAPs(message,
+        AddressingProperties maps = null;
+        maps = ContextUtils.retrieveMAPs(message,
                                          isProviderContext,
                                          isOutbound);
         LOG.log(Level.FINE, "MAPs retrieved from message {0}", maps);

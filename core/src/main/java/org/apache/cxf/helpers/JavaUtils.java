@@ -51,12 +51,11 @@ public final class JavaUtils {
     private static boolean isJava11Compatible;
     private static boolean isJava9Compatible;
     private static boolean isJava8Before161;
-    private static Integer javaMajorVersion;
 
     static {
         String version = SystemPropertyAction.getProperty("java.version");
         try {
-            isJava8Before161 = version.startsWith("1.8.0_")
+            isJava8Before161 = version != null && version.startsWith("1.8.0_")
                 && Integer.parseInt(version.substring(6)) < 161;
         } catch (NumberFormatException ex) {
             isJava8Before161 = false;
@@ -69,10 +68,8 @@ public final class JavaUtils {
             version = version.substring(0, version.indexOf('-'));
         }
 
-        final Integer javaVersion = Integer.valueOf(version);
-        setJava9Compatible(javaVersion >= 9);
-        setJava11Compatible(javaVersion >= 11);
-        setJavaMajorVersion(javaVersion);
+        setJava9Compatible(Integer.valueOf(version) >= 9);
+        setJava11Compatible(Integer.valueOf(version) >= 11);
     }
 
     private JavaUtils() {
@@ -102,7 +99,7 @@ public final class JavaUtils {
     public static boolean isJava11Compatible() {
         return isJava11Compatible;
     }
-    
+
     private static void setJava9Compatible(boolean java9Compatible) {
         JavaUtils.isJava9Compatible = java9Compatible;
     }
@@ -115,11 +112,4 @@ public final class JavaUtils {
         return isJava8Before161;
     }
 
-    public static void setJavaMajorVersion(Integer javaMajorVersion) {
-        JavaUtils.javaMajorVersion = javaMajorVersion;
-    }
-    
-    public static Integer getJavaMajorVersion() {
-        return javaMajorVersion;
-    }
 }

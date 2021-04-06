@@ -42,6 +42,7 @@ import org.apache.cxf.rs.security.jose.jws.JwsUtils;
 import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
 import org.apache.cxf.rs.security.oauth2.common.ClientAccessToken;
 import org.apache.cxf.rs.security.oauth2.common.OAuthAuthorizationData;
+import org.apache.cxf.systest.jaxrs.security.SecurityTestUtil;
 import org.apache.cxf.systest.jaxrs.security.oauth2.common.OAuth2TestUtils;
 import org.apache.cxf.systest.jaxrs.security.oauth2.common.SamlCallbackHandler;
 import org.apache.cxf.testutil.common.AbstractBusClientServerTestBase;
@@ -52,6 +53,7 @@ import org.apache.wss4j.common.saml.SAMLUtil;
 import org.apache.wss4j.common.saml.SamlAssertionWrapper;
 import org.apache.wss4j.common.saml.builder.SAML2Constants;
 
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized.Parameters;
@@ -99,6 +101,11 @@ public class AuthorizationGrantNegativeTest extends AbstractBusClientServerTestB
                    launchServer(BookServerOAuth2GrantsNegativeJPA.class, true));
         assertTrue("server did not launch correctly",
                    launchServer(BookServerOAuth2GrantsNegativeJCacheJWTNonPersist.class, true));
+    }
+
+    @AfterClass
+    public static void cleanup() throws Exception {
+        SecurityTestUtil.cleanup();
     }
 
     @Parameters(name = "{0}")
@@ -409,52 +416,6 @@ public class AuthorizationGrantNegativeTest extends AbstractBusClientServerTestB
         }
     }
 
-    // Try to refresh the access token specifying an additional scope
-    @org.junit.Test
-    public void testRefreshWithScopeUpgrade() throws Exception {
-        URL busFile = AuthorizationGrantTest.class.getResource("client.xml");
-
-        String address = "https://localhost:" + port + "/services/";
-        WebClient client = WebClient.create(address, OAuth2TestUtils.setupProviders(),
-                "alice", "security", busFile.toString());
-        // Save the Cookie for the second request...
-        WebClient.getConfig(client).getRequestContext().put(
-                org.apache.cxf.message.Message.MAINTAIN_SESSION, Boolean.TRUE);
-
-        // Get Authorization Code
-        String code = OAuth2TestUtils.getAuthorizationCode(client, "read_balance");
-        assertNotNull(code);
-
-        // Now get the access token
-        client = WebClient.create(address, OAuth2TestUtils.setupProviders(),
-                "consumer-id", "this-is-a-secret", busFile.toString());
-        // Save the Cookie for the second request...
-        WebClient.getConfig(client).getRequestContext().put(
-                org.apache.cxf.message.Message.MAINTAIN_SESSION, Boolean.TRUE);
-
-        ClientAccessToken accessToken =
-                OAuth2TestUtils.getAccessTokenWithAuthorizationCode(client, code);
-        assertNotNull(accessToken.getTokenKey());
-        assertNotNull(accessToken.getRefreshToken());
-
-        // Refresh the access token
-        client.type("application/x-www-form-urlencoded").accept("application/json");
-
-        Form form = new Form();
-        form.param("grant_type", "refresh_token");
-        form.param("refresh_token", accessToken.getRefreshToken());
-        form.param("client_id", "consumer-id");
-        form.param("scope", "read_balance create_balance");
-
-        try {
-            Response response = client.post(form);
-            response.readEntity(ClientAccessToken.class);
-            fail("Failure expected on trying to upgrade scopes");
-        } catch (ResponseProcessingException ex) {
-            //expected
-        }
-    }
-
     @org.junit.Test
     public void testAccessTokenBadCode() throws Exception {
         URL busFile = AuthorizationGrantTest.class.getResource("client.xml");
@@ -743,48 +704,6 @@ public class AuthorizationGrantNegativeTest extends AbstractBusClientServerTestB
         form.param("grant_type", "authorization_code");
         form.param("code", code);
         form.param("client_id", "consumer-id");
-
-        // Now try to get a token
-        Response response = client.post(form);
-        try {
-            response.readEntity(ClientAccessToken.class);
-            fail("Failure expected on trying to get a token");
-        } catch (ResponseProcessingException ex) {
-            //expected
-        }
-    }
-
-    // Here we get a code for "consumer-id" but specify "consumer-id-aud" as the clientId in the
-    // token request (but authenticate as "consumer-id").
-    @org.junit.Test
-    public void testNonMatchingClientIdIgnored() throws Exception {
-        URL busFile = AuthorizationGrantTest.class.getResource("client.xml");
-
-        String address = "https://localhost:" + port + "/services/";
-        WebClient client = WebClient.create(address, OAuth2TestUtils.setupProviders(),
-                                            "alice", "security", busFile.toString());
-        // Save the Cookie for the second request...
-        WebClient.getConfig(client).getRequestContext().put(
-            org.apache.cxf.message.Message.MAINTAIN_SESSION, Boolean.TRUE);
-
-        // Get Authorization Code
-        String code = OAuth2TestUtils.getAuthorizationCode(client);
-        assertNotNull(code);
-
-        // Now get the access token using a different client id
-        client = WebClient.create(address, OAuth2TestUtils.setupProviders(),
-                                  "consumer-id", "this-is-a-secret", busFile.toString());
-        // Save the Cookie for the second request...
-        WebClient.getConfig(client).getRequestContext().put(
-            org.apache.cxf.message.Message.MAINTAIN_SESSION, Boolean.TRUE);
-
-        client.type("application/x-www-form-urlencoded").accept("application/json");
-        client.path("token");
-
-        Form form = new Form();
-        form.param("grant_type", "authorization_code");
-        form.param("code", code);
-        form.param("client_id", "consumer-id-aud");
 
         // Now try to get a token
         Response response = client.post(form);

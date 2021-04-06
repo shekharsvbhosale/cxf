@@ -32,7 +32,7 @@ import org.junit.runner.RunWith;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.system.OutputCaptureRule;
+import org.springframework.boot.test.rule.OutputCapture;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.ws.client.core.WebServiceTemplate;
 
@@ -48,7 +48,7 @@ public class SampleWsApplicationTest {
 
     //CHECKSTYLE:OFF
     @Rule
-    public OutputCaptureRule output = new OutputCaptureRule(); // SUPPRESS CHECKSTYLE
+    public OutputCapture output = new OutputCapture(); // SUPPRESS CHECKSTYLE
     //CHECKSTYLE:ON
 
     private WebServiceTemplate webServiceTemplate = new WebServiceTemplate();

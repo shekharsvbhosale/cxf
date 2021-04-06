@@ -100,12 +100,12 @@ public class OidcClaimsValidator extends OAuthJoseJwtConsumer {
             } catch (JwtException ex) {
                 throw new OAuthServiceException("Invalid issuedAt claim", ex);
             }
-
-            // Validate nbf - but don't require it to be present
-            try {
-                JwtUtils.validateJwtNotBefore(claims, getClockOffset(), false);
-            } catch (JwtException ex) {
-                throw new OAuthServiceException("ID Token can not be used yet", ex);
+            if (strictTimeValidation) {
+                try {
+                    JwtUtils.validateJwtNotBefore(claims, getClockOffset(), strictTimeValidation);
+                } catch (JwtException ex) {
+                    throw new OAuthServiceException("ID Token can not be used yet", ex);
+                }
             }
         }
     }
@@ -151,7 +151,7 @@ public class OidcClaimsValidator extends OAuthJoseJwtConsumer {
                 keyMap.putAll(keys.getKeyIdMap());
             }
         }
-        final JwsSignatureVerifier theJwsVerifier;
+        JwsSignatureVerifier theJwsVerifier = null;
         if (key != null) {
             theJwsVerifier = JwsUtils.getSignatureVerifier(key, jwt.getJwsHeaders().getSignatureAlgorithm());
         } else {

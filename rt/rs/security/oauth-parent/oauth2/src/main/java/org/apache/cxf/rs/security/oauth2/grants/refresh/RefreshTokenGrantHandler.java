@@ -51,10 +51,9 @@ public class RefreshTokenGrantHandler implements AccessTokenGrantHandler {
         List<String> requestedScopes = OAuthUtils.getRequestedScopes(client,
                                             params.getFirst(OAuthConstants.SCOPE),
                                             useAllClientScopes,
-                                            partialMatchScopeValidation, false);
-        final ServerAccessToken st = dataProvider.refreshAccessToken(client, refreshToken, requestedScopes);
-        st.setGrantType(OAuthConstants.REFRESH_TOKEN_GRANT);
-        return st;
+                                            partialMatchScopeValidation);
+
+        return dataProvider.refreshAccessToken(client, refreshToken, requestedScopes);
     }
 
     public void setPartialMatchScopeValidation(boolean partialMatchScopeValidation) {

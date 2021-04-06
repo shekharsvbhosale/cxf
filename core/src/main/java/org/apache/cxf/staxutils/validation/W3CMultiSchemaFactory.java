@@ -23,9 +23,6 @@
 
 package org.apache.cxf.staxutils.validation;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -35,44 +32,39 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.transform.Source;
 import javax.xml.transform.dom.DOMSource;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-
+import org.xml.sax.InputSource;
 import org.xml.sax.Locator;
 
+import com.ctc.wstx.msv.BaseSchemaFactory;
 import com.ctc.wstx.msv.W3CSchema;
 import com.sun.msv.grammar.ExpressionPool;
 import com.sun.msv.grammar.xmlschema.XMLSchemaGrammar;
 import com.sun.msv.grammar.xmlschema.XMLSchemaSchema;
 import com.sun.msv.reader.GrammarReaderController;
 import com.sun.msv.reader.State;
-import com.sun.msv.reader.xmlschema.EmbeddedSchema;
 import com.sun.msv.reader.xmlschema.MultiSchemaReader;
 import com.sun.msv.reader.xmlschema.SchemaState;
-import com.sun.msv.reader.xmlschema.WSDLGrammarReaderController;
 import com.sun.msv.reader.xmlschema.XMLSchemaReader;
 
 import org.codehaus.stax2.validation.XMLValidationSchema;
 
 /**
- * Legacy implementation for Woostox 5.x. For Woodstox 6.2+, use W3CMultiSchemaFactory in
- * Woodstox itself.
+ *
  */
-public class W3CMultiSchemaFactory {
+public class W3CMultiSchemaFactory extends BaseSchemaFactory {
 
     private MultiSchemaReader multiSchemaReader;
     private SAXParserFactory parserFactory;
     private RecursiveAllowedXMLSchemaReader xmlSchemaReader;
-    private final Constructor<?> w3cSchemaConstructor;
 
-    public W3CMultiSchemaFactory() throws NoSuchMethodException {
-        w3cSchemaConstructor = W3CSchema.class.getConstructor(XMLSchemaGrammar.class);
+    public W3CMultiSchemaFactory() {
+        super(XMLValidationSchema.SCHEMA_ID_W3C_SCHEMA);
     }
 
     static class RecursiveAllowedXMLSchemaReader extends XMLSchemaReader {
         Set<String> sysIds = new TreeSet<>();
-        RecursiveAllowedXMLSchemaReader(GrammarReaderController controller, SAXParserFactory parserFactory) {
+        RecursiveAllowedXMLSchemaReader(GrammarReaderController controller,
+                        SAXParserFactory parserFactory) {
             super(controller, parserFactory, new StateFactory() {
                 public State schemaHead(String expectedNamespace) {
                     return new SchemaState(expectedNamespace) {
@@ -116,49 +108,28 @@ public class W3CMultiSchemaFactory {
 
     }
 
-    /**
-     * Creates an XMLValidateSchema that can be used to validate XML instances against any of the schemas
-     * defined in the Map of schemaSources.
-     *
-     * Map of schemas is namespace -> Source
-     */
-    public XMLValidationSchema createSchema(String baseURI,
-                                            Map<String, Source> schemaSources) throws XMLStreamException {
+    public XMLValidationSchema loadSchemas(String baseURI,
+                                           Map<String, EmbeddedSchema> sources) throws XMLStreamException {
+        parserFactory = getSaxFactory();
 
-        Map<String, EmbeddedSchema> embeddedSources = new HashMap<>();
-        for (Map.Entry<String, Source> source : schemaSources.entrySet()) {
-            if (source.getValue() instanceof DOMSource) {
-                Node nd = ((DOMSource)source.getValue()).getNode();
-                Element el = null;
-                if (nd instanceof Element) {
-                    el = (Element)nd;
-                } else if (nd instanceof Document) {
-                    el = ((Document)nd).getDocumentElement();
-                }
-                embeddedSources.put(source.getKey(), new EmbeddedSchema(source.getValue().getSystemId(), el));
-            }
-        }
-        parserFactory = SAXParserFactory.newInstance();
-        parserFactory.setNamespaceAware(true);
-
-        WSDLGrammarReaderController ctrl = new WSDLGrammarReaderController(null, baseURI, embeddedSources);
+        ResolvingGrammarReaderController ctrl = new ResolvingGrammarReaderController(baseURI, sources);
         xmlSchemaReader = new RecursiveAllowedXMLSchemaReader(ctrl, parserFactory);
         multiSchemaReader = new MultiSchemaReader(xmlSchemaReader);
-        for (Source source : schemaSources.values()) {
-            multiSchemaReader.parse(source);
+        for (EmbeddedSchema source : sources.values()) {
+            DOMSource domSource = new DOMSource(source.getSchemaElement());
+            domSource.setSystemId(source.getSystemId());
+            multiSchemaReader.parse(domSource);
         }
 
         XMLSchemaGrammar grammar = multiSchemaReader.getResult();
         if (grammar == null) {
             throw new XMLStreamException("Failed to load schemas");
         }
-
-        // Use reflection here to avoid compilation problems with Woodstox 6.2+
-        try {
-            return (XMLValidationSchema)w3cSchemaConstructor.newInstance(grammar);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            throw new XMLStreamException(e);
-        }
+        return new W3CSchema(grammar);
     }
 
+    @Override
+    protected XMLValidationSchema loadSchema(InputSource src, Object sysRef) throws XMLStreamException {
+        throw new XMLStreamException("W3CMultiSchemaFactory does not support the provider API.");
+    }
 }

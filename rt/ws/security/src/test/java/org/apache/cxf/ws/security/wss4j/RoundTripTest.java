@@ -98,16 +98,16 @@ public class RoundTripTest extends AbstractSecurityTest {
 
     @Test
     public void testEncryptionPlusSig() throws Exception {
-        wsIn.setProperty(ConfigurationConstants.ACTION, ConfigurationConstants.ENCRYPTION + " "
+        wsIn.setProperty(ConfigurationConstants.ACTION, ConfigurationConstants.ENCRYPT + " "
                                                     + ConfigurationConstants.SIGNATURE);
-        wsOut.setProperty(ConfigurationConstants.ACTION, ConfigurationConstants.ENCRYPTION + " "
+        wsOut.setProperty(ConfigurationConstants.ACTION, ConfigurationConstants.ENCRYPT + " "
                                                      + ConfigurationConstants.SIGNATURE);
 
         assertEquals("test", echo.echo("test"));
     }
     @Test
     public void testUsernameToken() throws Exception {
-        String actions = ConfigurationConstants.ENCRYPTION + " " + ConfigurationConstants.SIGNATURE + " "
+        String actions = ConfigurationConstants.ENCRYPT + " " + ConfigurationConstants.SIGNATURE + " "
                          + ConfigurationConstants.TIMESTAMP + " " + ConfigurationConstants.USERNAME_TOKEN;
 
         wsIn.setProperty(ConfigurationConstants.ACTION, actions);

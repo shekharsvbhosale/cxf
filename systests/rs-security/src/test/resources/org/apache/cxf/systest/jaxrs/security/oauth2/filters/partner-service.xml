@@ -34,7 +34,7 @@ under the License.
              http://cxf.apache.org/transports/http/configuration http://cxf.apache.org/schemas/configuration/http-conf.xsd
              http://cxf.apache.org/transports/http-jetty/configuration http://cxf.apache.org/schemas/configuration/http-jetty.xsd 
              http://cxf.apache.org/configuration/security http://cxf.apache.org/schemas/configuration/security.xsd">
-    <bean class="org.springframework.context.support.PropertySourcesPlaceholderConfigurer"/>
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"/>
     <cxf:bus>
         <cxf:features>
             <cxf:logging/>
@@ -83,18 +83,15 @@ under the License.
         </jaxrs:providers>
         
    </jaxrs:server>
-
-    <http:conduit name="https://localhost.*">
+   
+   <http:conduit name="https://localhost.*">
         <http:tlsClientParameters disableCNCheck="true">
-            <sec:keyManagers keyPassword="password">
-                <sec:keyStore type="JKS" password="password" resource="keys/Morpit.jks"/>
-            </sec:keyManagers>
             <sec:trustManagers>
                 <sec:keyStore type="JKS" password="password" resource="keys/Truststore.jks"/>
             </sec:trustManagers>
         </http:tlsClientParameters>
     </http:conduit>
-
+    
     <httpj:engine-factory id="tls-config">
         <httpj:engine port="${testutil.ports.jaxrs-oauth2-filters-partner}">
             <httpj:tlsServerParameters>

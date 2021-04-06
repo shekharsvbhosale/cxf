@@ -78,12 +78,7 @@ public class IdTokenResponseFilter extends OAuthServerJoseJwtProducer implements
                 idToken.setAudience(st.getClient().getClientId());
                 idToken.setAuthorizedParty(st.getClient().getClientId());
                 // if this token was refreshed then the cloned IDToken might need to have its
-                // issuedAt and expiry time properties adjusted
-                if (OAuthConstants.REFRESH_TOKEN_GRANT.equals(st.getGrantType())) {
-                    final long iat = st.getIssuedAt();
-                    idToken.setExpiryTime(iat + (idToken.getExpiryTime() - idToken.getIssuedAt()));
-                    idToken.setIssuedAt(iat);
-                }
+                // issuedAt and expiry time properties adjusted if it proves to be necessary
                 setAtHashAndNonce(idToken, st);
                 return processJwt(new JwtToken(idToken), st.getClient());
             }
@@ -103,7 +98,7 @@ public class IdTokenResponseFilter extends OAuthServerJoseJwtProducer implements
         Message m = JAXRSUtils.getCurrentMessage();
         if (atHashRequired || cHashRequired) {
             Properties props = JwsUtils.loadSignatureOutProperties(false);
-            final SignatureAlgorithm sigAlgo;
+            SignatureAlgorithm sigAlgo = null;
             if (super.isSignWithClientSecret()) {
                 sigAlgo = OAuthUtils.getClientSecretSignatureAlgorithm(props);
             } else {

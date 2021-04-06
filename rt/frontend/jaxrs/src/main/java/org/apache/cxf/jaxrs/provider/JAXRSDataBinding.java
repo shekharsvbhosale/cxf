@@ -40,9 +40,10 @@ import org.apache.cxf.databinding.DataWriter;
 import org.apache.cxf.jaxrs.impl.MetadataMap;
 import org.apache.cxf.message.Attachment;
 import org.apache.cxf.message.Message;
-import org.apache.cxf.message.MessageUtils;
 import org.apache.cxf.phase.PhaseInterceptorChain;
 import org.apache.cxf.service.Service;
+import org.apache.cxf.service.invoker.MethodDispatcher;
+import org.apache.cxf.service.model.BindingOperationInfo;
 import org.apache.cxf.service.model.MessagePartInfo;
 
 /**
@@ -95,6 +96,15 @@ public class JAXRSDataBinding extends AbstractDataBinding {
         // Check how to deal with individual parts if needed, build a single JAXBContext, etc
     }
 
+
+    // TODO: The method containing the actual annotations have to retrieved
+    protected Method getTargetMethod(Message m) {
+        BindingOperationInfo bop = m.getExchange().getBindingOperationInfo();
+        MethodDispatcher md = (MethodDispatcher)
+            m.getExchange().getService().get(MethodDispatcher.class.getName());
+        return md.getMethod(bop);
+    }
+
     @SuppressWarnings("unchecked")
     private MultivaluedMap<String, String> getHeaders(Message message) {
         return new MetadataMap<String, String>(
@@ -115,7 +125,7 @@ public class JAXRSDataBinding extends AbstractDataBinding {
         public void write(Object obj, MessagePartInfo part, XMLStreamWriter output) {
             try {
                 Message message = PhaseInterceptorChain.getCurrentMessage();
-                Method method = MessageUtils.getTargetMethod(message).orElse(null);
+                Method method = getTargetMethod(message);
                 MultivaluedMap<String, Object> headers = getWriteHeaders(message);
                 xmlWriter.writeTo(obj,
                                  method.getReturnType(),
@@ -161,7 +171,7 @@ public class JAXRSDataBinding extends AbstractDataBinding {
         @SuppressWarnings("unchecked")
         private <T> T read(Class<T> cls) throws WebApplicationException, IOException {
             Message message = PhaseInterceptorChain.getCurrentMessage();
-            Method method = MessageUtils.getTargetMethod(message).orElse(null);
+            Method method = getTargetMethod(message);
             MessageBodyReader<T> reader = (MessageBodyReader<T>)xmlReader;
 
             return reader.readFrom(cls,

@@ -20,8 +20,6 @@
 package org.apache.cxf.endpoint;
 
 import java.util.Map;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -42,8 +40,12 @@ import org.apache.cxf.message.Message;
  * </ol>
  */
 public class ClientCallback implements Future<Object[]> {
-    protected final CompletableFuture<Object[]> delegate = new CompletableFuture<>();
+
     protected Map<String, Object> context;
+    protected Object[] result;
+    protected Throwable exception;
+    protected volatile boolean done;
+    protected boolean cancelled;
     protected boolean started;
 
     public ClientCallback() {
@@ -70,8 +72,8 @@ public class ClientCallback implements Future<Object[]> {
      */
     public void handleResponse(Map<String, Object> ctx, Object[] res) {
         context = ctx;
-        delegate.complete(res);
-
+        result = res;
+        done = true;
         synchronized (this) {
             notifyAll();
         }
@@ -89,8 +91,8 @@ public class ClientCallback implements Future<Object[]> {
      */
     public void handleException(Map<String, Object> ctx, Throwable ex) {
         context = ctx;
-        delegate.completeExceptionally(ex);
-        
+        exception = ex;
+        done = true;
         synchronized (this) {
             notifyAll();
         }
@@ -99,12 +101,10 @@ public class ClientCallback implements Future<Object[]> {
 
     public boolean cancel(boolean mayInterruptIfRunning) {
         if (!started) {
-            delegate.cancel(mayInterruptIfRunning);
-            
+            cancelled = true;
             synchronized (this) {
                 notifyAll();
             }
-            
             return true;
         }
         return false;
@@ -118,15 +118,15 @@ public class ClientCallback implements Future<Object[]> {
      */
     public Map<String, Object> getResponseContext() throws InterruptedException, ExecutionException {
         synchronized (this) {
-            if (!delegate.isDone()) {
+            if (!done) {
                 wait();
             }
         }
-        if (delegate.isCancelled()) {
+        if (cancelled) {
             throw new InterruptedException("Operation Cancelled");
         }
-        if (delegate.isCompletedExceptionally()) {
-            delegate.get();
+        if (exception != null) {
+            throw new ExecutionException(exception);
         }
         return context;
     }
@@ -135,32 +135,55 @@ public class ClientCallback implements Future<Object[]> {
      * {@inheritDoc}
      */
     public Object[] get() throws InterruptedException, ExecutionException {
-        try {
-            return delegate.get();
-        } catch (final CancellationException ex) {
-            // Preserving the exception raised by former implementation
-            throw new InterruptedException("Operation has been cancelled");
+        synchronized (this) {
+            if (!done) {
+                wait();
+            }
         }
+        if (cancelled) {
+            throw new InterruptedException("Operation Cancelled");
+        }
+        if (exception != null) {
+            throw new ExecutionException(exception);
+        }
+        return result;
     }
 
     /**
      * {@inheritDoc}
      */
-    public Object[] get(long timeout, TimeUnit unit) throws InterruptedException, 
-            ExecutionException, TimeoutException {
-        try {
-            return delegate.get(timeout, unit);
-        } catch (final CancellationException ex) {
-            // Preserving the exception raised by former implementation
-            throw new InterruptedException("Operation has been cancelled");
+    public Object[] get(long timeout, TimeUnit unit)
+        throws InterruptedException, ExecutionException, TimeoutException {
+        synchronized (this) {
+            if (!done) {
+                unit.timedWait(this, timeout);
+            }
         }
+        if (cancelled) {
+            throw new InterruptedException("Operation Cancelled");
+        }
+        if (!done) {
+            throw new TimeoutException("Timeout Exceeded");
+        }
+        if (exception != null) {
+            throw new ExecutionException(exception);
+        }
+        return result;
     }
 
     public boolean isCancelled() {
-        return delegate.isCancelled();
+        return cancelled;
     }
 
     public boolean isDone() {
-        return delegate.isDone();
+        return done;
     }
+
+    /*
+     * If the operation completes with a fault, the resulting exception object ends up here.
+     */
+    public Throwable getException() {
+        return exception;
+    }
+
 }

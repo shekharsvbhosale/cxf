@@ -36,7 +36,6 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.ws.rs.core.Application;
 
-import org.apache.cxf.Bus;
 import org.apache.cxf.common.classloader.ClassLoaderUtils;
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.common.util.PrimitiveUtils;
@@ -56,7 +55,6 @@ import org.apache.cxf.jaxrs.utils.InjectionUtils;
 import org.apache.cxf.jaxrs.utils.ResourceUtils;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.service.invoker.Invoker;
-import org.apache.cxf.transport.http.DestinationRegistry;
 import org.apache.cxf.transport.servlet.CXFNonSpringServlet;
 
 public class CXFNonSpringJaxrsServlet extends CXFNonSpringServlet {
@@ -107,11 +105,6 @@ public class CXFNonSpringJaxrsServlet extends CXFNonSpringServlet {
     }
     public CXFNonSpringJaxrsServlet(Set<Object> applicationSingletons) {
         this(new ApplicationImpl(applicationSingletons));
-    }
-
-    public CXFNonSpringJaxrsServlet(Application app, DestinationRegistry destinationRegistry, Bus bus) {
-        super(destinationRegistry, bus);
-        this.application = app;
     }
 
     @Override
@@ -165,7 +158,7 @@ public class CXFNonSpringJaxrsServlet extends CXFNonSpringServlet {
         setExtensions(bean, servletConfig);
 
         List<? extends Feature> features = getFeatures(servletConfig, splitChar);
-        bean.getFeatures().addAll(features);
+        bean.setFeatures(features);
 
         bean.create();
     }
@@ -190,12 +183,9 @@ public class CXFNonSpringJaxrsServlet extends CXFNonSpringServlet {
              CastUtils.cast((Map<?, ?>)parseMapSequence(servletConfig.getInitParameter(EXTENSIONS_PARAM))));
         bean.setLanguageMappings(
              CastUtils.cast((Map<?, ?>)parseMapSequence(servletConfig.getInitParameter(LANGUAGES_PARAM))));
-        Map<String, Object> properties = CastUtils.cast(
+        bean.setProperties(CastUtils.cast(
                 parseMapSequence(servletConfig.getInitParameter(PROPERTIES_PARAM)),
-                String.class, Object.class);
-        if (properties != null) {
-            bean.getProperties(true).putAll(properties);
-        }
+                String.class, Object.class));
     }
 
     protected void setAllInterceptors(JAXRSServerFactoryBean bean, ServletConfig servletConfig,
@@ -437,7 +427,7 @@ public class CXFNonSpringJaxrsServlet extends CXFNonSpringServlet {
         }
         boolean isApplication = Application.class.isAssignableFrom(c.getDeclaringClass());
         try {
-            final ProviderInfo<? extends Object> provider;
+            ProviderInfo<? extends Object> provider = null;
             if (c.getParameterTypes().length == 0) {
                 if (isApplication) {
                     provider = new ApplicationInfo((Application)c.newInstance(), getBus());
@@ -479,7 +469,8 @@ public class CXFNonSpringJaxrsServlet extends CXFNonSpringServlet {
             methodsMap.put(m.getName(), m);
         }
         for (Map.Entry<String, List<String>> entry : props.entrySet()) {
-            Method m = methodsMap.get("set" + StringUtils.capitalize(entry.getKey()));
+            Method m = methodsMap.get("set" + Character.toUpperCase(entry.getKey().charAt(0))
+                           + entry.getKey().substring(1));
             if (m != null) {
                 Class<?> type = m.getParameterTypes()[0];
                 Object value;
@@ -529,7 +520,7 @@ public class CXFNonSpringJaxrsServlet extends CXFNonSpringServlet {
             List<?> providers = getProviders(servletConfig, splitChar);
             bean.setProviders(providers);
             List<? extends Feature> features = getFeatures(servletConfig, splitChar);
-            bean.getFeatures().addAll(features);
+            bean.setFeatures(features);
 
             bean.setBus(getBus());
             bean.setApplicationInfo(providerApp);
@@ -562,7 +553,7 @@ public class CXFNonSpringJaxrsServlet extends CXFNonSpringServlet {
         List<?> providers = getProviders(servletConfig, splitChar);
         bean.setProviders(providers);
         List<? extends Feature> features = getFeatures(servletConfig, splitChar);
-        bean.getFeatures().addAll(features);
+        bean.setFeatures(features);
 
         bean.setBus(getBus());
         bean.setApplication(getApplication());
@@ -608,7 +599,8 @@ public class CXFNonSpringJaxrsServlet extends CXFNonSpringServlet {
 
     protected Class<?> loadClass(String cName, String classType) throws ServletException {
         try {
-            final Class<?> cls;
+
+            Class<?> cls = null;
             if (classLoader == null) {
                 cls = ClassLoaderUtils.loadClass(cName, CXFNonSpringJaxrsServlet.class);
             } else {

@@ -45,7 +45,6 @@ import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.cxf.ws.security.policy.PolicyUtils;
 import org.apache.cxf.ws.security.tokenstore.SecurityToken;
 import org.apache.cxf.ws.security.tokenstore.TokenStore;
-import org.apache.cxf.ws.security.tokenstore.TokenStoreException;
 import org.apache.cxf.ws.security.wss4j.AttachmentCallbackHandler;
 import org.apache.cxf.ws.security.wss4j.StaxSerializer;
 import org.apache.cxf.ws.security.wss4j.WSS4JUtils;
@@ -87,7 +86,6 @@ import org.apache.wss4j.policy.model.SpnegoContextToken;
 import org.apache.wss4j.policy.model.SymmetricBinding;
 import org.apache.wss4j.policy.model.UsernameToken;
 import org.apache.wss4j.policy.model.X509Token;
-import org.apache.xml.security.c14n.InvalidCanonicalizerException;
 import org.apache.xml.security.utils.XMLUtils;
 
 /**
@@ -102,7 +100,7 @@ public class SymmetricBindingHandler extends AbstractBindingBuilder {
                                     SOAPMessage saaj,
                                     WSSecHeader secHeader,
                                     AssertionInfoMap aim,
-                                    SoapMessage message) throws SOAPException, TokenStoreException {
+                                    SoapMessage message) throws SOAPException {
         super(config, binding, saaj, secHeader, aim, message);
         this.sbinding = binding;
         tokenStore = getTokenStore();
@@ -272,7 +270,7 @@ public class SymmetricBindingHandler extends AbstractBindingBuilder {
                     }
 
                     if (!secondEncrParts.isEmpty()) {
-                        final Element secondRefList;
+                        Element secondRefList = null;
 
                         if (encryptionToken.getDerivedKeys() == DerivedKeys.RequireDerivedKeys) {
                             secondRefList = ((WSSecDKEncrypt)encr).encryptForExternalRef(null, secondEncrParts);
@@ -304,6 +302,7 @@ public class SymmetricBindingHandler extends AbstractBindingBuilder {
         assertTokenWrapper(sigAbstractTokenWrapper);
         AbstractToken sigToken = sigAbstractTokenWrapper.getToken();
         String sigTokId = null;
+        Element sigTokElem = null;
 
         try {
             SecurityToken sigTok = null;
@@ -347,11 +346,11 @@ public class SymmetricBindingHandler extends AbstractBindingBuilder {
             boolean tokIncluded = true;
             if (isTokenRequired(sigToken.getIncludeTokenType())) {
                 Element el = sigTok.getToken();
-                Element sigTokElem = cloneElement(el);
+                sigTokElem = cloneElement(el);
                 this.addEncryptedKeyElement(sigTokElem);
             } else if (isRequestor() && sigToken instanceof X509Token) {
                 Element el = sigTok.getToken();
-                Element sigTokElem = cloneElement(el);
+                sigTokElem = cloneElement(el);
                 this.addEncryptedKeyElement(sigTokElem);
             } else {
                 tokIncluded = false;
@@ -383,7 +382,7 @@ public class SymmetricBindingHandler extends AbstractBindingBuilder {
             //Encryption
             AbstractTokenWrapper encrAbstractTokenWrapper = getEncryptionToken();
             AbstractToken encrToken = encrAbstractTokenWrapper.getToken();
-            final SecurityToken encrTok;
+            SecurityToken encrTok = null;
             if (sigToken.equals(encrToken)) {
                 //Use the same token
                 encrTok = sigTok;
@@ -413,12 +412,12 @@ public class SymmetricBindingHandler extends AbstractBindingBuilder {
             }
 
             if (encrAbstractTokenWrapper.getToken() != null && !enc.isEmpty()) {
-                final WSSecBase encr;
+                WSSecBase encr = null;
                 if (encrAbstractTokenWrapper.getToken().getDerivedKeys() == DerivedKeys.RequireDerivedKeys) {
                     encr = doEncryptionDerived(encrAbstractTokenWrapper, encrTok, tokIncluded, enc, false);
                 } else {
                     byte[] ephemeralKey = encrTok.getSecret();
-                    final SecretKey symmetricKey;
+                    SecretKey symmetricKey = null;
                     String symEncAlgorithm = sbinding.getAlgorithmSuite().getAlgorithmSuiteType().getEncryption();
                     if (ephemeralKey != null) {
                         symmetricKey = KeyUtils.prepareSecretKey(symEncAlgorithm, ephemeralKey);
@@ -530,7 +529,8 @@ public class SymmetricBindingHandler extends AbstractBindingBuilder {
             dkEncr.setSymmetricEncAlgorithm(algType.getEncryption());
             dkEncr.setDerivedKeyLength(algType.getEncryptionDerivedKeyLength() / 8);
             dkEncr.prepare(encrTok.getSecret());
-            Element encrDKTokenElem = dkEncr.getdktElement();
+            Element encrDKTokenElem = null;
+            encrDKTokenElem = dkEncr.getdktElement();
             addDerivedKeyElement(encrDKTokenElem);
 
             Element refList = dkEncr.encryptForExternalRef(null, encrParts);
@@ -643,7 +643,7 @@ public class SymmetricBindingHandler extends AbstractBindingBuilder {
             addAttachmentsForEncryption(atEnd, refList, attachments);
 
             return encr;
-        } catch (InvalidCanonicalizerException | WSSecurityException e) {
+        } catch (WSSecurityException e) {
             LOG.log(Level.FINE, e.getMessage(), e);
             unassertPolicy(recToken, e);
         }
@@ -923,7 +923,7 @@ public class SymmetricBindingHandler extends AbstractBindingBuilder {
         AlgorithmSuiteType algType = sbinding.getAlgorithmSuite().getAlgorithmSuiteType();
         sig.setDigestAlgo(algType.getDigest());
         sig.setSigCanonicalization(sbinding.getAlgorithmSuite().getC14n().getValue());
-        final Crypto crypto;
+        Crypto crypto = null;
         if (sbinding.getProtectionToken() != null) {
             crypto = getEncryptionCrypto();
         } else {

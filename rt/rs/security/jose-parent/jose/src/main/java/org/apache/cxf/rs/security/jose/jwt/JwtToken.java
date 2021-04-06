@@ -24,9 +24,9 @@ import org.apache.cxf.rs.security.jose.jws.JwsHeaders;
 
 
 public class JwtToken {
-    private final JwsHeaders jwsHeaders;
-    private final JweHeaders jweHeaders;
-    private final JwtClaims claims;
+    private JwsHeaders jwsHeaders;
+    private JweHeaders jweHeaders;
+    private JwtClaims claims;
 
     public JwtToken(JwtClaims claims) {
         this(new JwsHeaders(), new JweHeaders(), claims);

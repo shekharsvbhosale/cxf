@@ -31,11 +31,10 @@ import org.apache.cxf.rt.security.crypto.KeyProperties;
 
 public abstract class AbstractWrapKeyEncryptionAlgorithm implements KeyEncryptionProvider {
     protected static final Logger LOG = LogUtils.getL7dLogger(AbstractWrapKeyEncryptionAlgorithm.class);
-    private final Key keyEncryptionKey;
-    private final boolean wrap;
-    private final KeyAlgorithm algorithm;
-    private final Set<String> supportedAlgorithms;
-
+    private Key keyEncryptionKey;
+    private boolean wrap;
+    private KeyAlgorithm algorithm;
+    private Set<String> supportedAlgorithms;
     protected AbstractWrapKeyEncryptionAlgorithm(Key key, Set<String> supportedAlgorithms) {
         this(key, null, true, supportedAlgorithms);
     }

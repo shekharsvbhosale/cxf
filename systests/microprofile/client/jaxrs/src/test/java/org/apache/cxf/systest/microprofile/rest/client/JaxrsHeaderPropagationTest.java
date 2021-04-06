@@ -27,41 +27,48 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.apache.cxf.Bus;
 import org.apache.cxf.jaxrs.JAXRSServerFactoryBean;
 import org.apache.cxf.jaxrs.client.WebClient;
 import org.apache.cxf.jaxrs.lifecycle.SingletonResourceProvider;
 import org.apache.cxf.jaxrs.model.AbstractResourceInfo;
-import org.apache.cxf.testutil.common.AbstractClientServerTestBase;
-import org.apache.cxf.testutil.common.AbstractServerTestServerBase;
+import org.apache.cxf.testutil.common.AbstractBusClientServerTestBase;
+import org.apache.cxf.testutil.common.AbstractBusTestServerBase;
 import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class JaxrsHeaderPropagationTest extends AbstractClientServerTestBase {
+public class JaxrsHeaderPropagationTest extends AbstractBusClientServerTestBase {
     public static final String PORT = allocatePort(JaxrsHeaderPropagationTest.class);
 
     WebClient client;
-
-    public static class Server extends AbstractServerTestServerBase {
-        @Override
-        protected org.apache.cxf.endpoint.Server createServer(Bus bus) throws Exception {
+    @Ignore
+    public static class Server extends AbstractBusTestServerBase {
+        protected void run() {
             final JAXRSServerFactoryBean sf = new JAXRSServerFactoryBean();
             sf.setResourceClasses(JaxrsResource.class);
             sf.setResourceProvider(JaxrsResource.class,
                 new SingletonResourceProvider(new JaxrsResource()));
             sf.setAddress("http://localhost:" + PORT + "/");
             sf.setPublishedEndpointUrl("/");
-            return sf.create();
+            sf.create();
         }
 
-        public static void main(String[] args) throws Exception {
-            new Server().start();
+        public static void main(String[] args) {
+            try {
+                Server s = new Server();
+                s.start();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                System.exit(-1);
+            } finally {
+                System.out.println("done!");
+            }
         }
     }
 
@@ -71,11 +78,8 @@ public class JaxrsHeaderPropagationTest extends AbstractClientServerTestBase {
         AbstractResourceInfo.clearAllMaps();
         //keep out of process due to stack traces testing failures
         assertTrue("server did not launch correctly", launchServer(Server.class, true));
+        createStaticBus();
         System.out.println("Listening on port " + PORT);
-
-        ConfigProviderResolver.setInstance(
-            new MockConfigProviderResolver(Collections.singletonMap(
-                "org.eclipse.microprofile.rest.client.propagateHeaders", "Header1,MultiHeader")));
     }
 
     @Before
@@ -86,6 +90,9 @@ public class JaxrsHeaderPropagationTest extends AbstractClientServerTestBase {
 
     @Test
     public void testHeadersArePropagated() throws Exception {
+        ConfigProviderResolver.setInstance(
+            new MockConfigProviderResolver(Collections.singletonMap(
+                "org.eclipse.microprofile.rest.client.propagateHeaders", "Header1,MultiHeader")));
         Logger logger = 
             Logger.getLogger("org.eclipse.microprofile.rest.client.ext.DefaultClientHeadersFactoryImpl"); //NOPMD
         logger.setLevel(Level.ALL);
@@ -101,15 +108,6 @@ public class JaxrsHeaderPropagationTest extends AbstractClientServerTestBase {
         System.out.println("propagatedHeaderContent: " + propagatedHeaderContent);
         assertTrue(propagatedHeaderContent.contains("Header1=Single"));
         assertTrue(propagatedHeaderContent.contains("MultiHeader=value1,value2,value3"));
-    }
-
-    @Test
-    public void testInjectionOccursInClientHeadersFactory() throws Exception {
-        final Response r = createWebClient("/jaxrs/inject").delete();
-        assertEquals(Status.OK.getStatusCode(), r.getStatus());
-        String returnedHeaderContent = r.readEntity(String.class);
-        System.out.println("returnedHeaderContent: " + returnedHeaderContent);
-        assertTrue(returnedHeaderContent.contains("REQUEST_METHOD=DELETE"));
     }
 
     private static WebClient createWebClient(final String url) {

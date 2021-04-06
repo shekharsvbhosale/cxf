@@ -46,7 +46,6 @@ import org.eclipse.microprofile.rest.client.tck.providers.TestMessageBodyWriter;
 import org.eclipse.microprofile.rest.client.tck.providers.TestParamConverterProvider;
 import org.eclipse.microprofile.rest.client.tck.providers.TestReaderInterceptor;
 import org.eclipse.microprofile.rest.client.tck.providers.TestWriterInterceptor;
-import org.eclipse.microprofile.rest.client.tck.providers.Widget;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -147,12 +146,12 @@ public class CxfTypeSafeClientBuilderTest {
             .baseUri(new URI("http://localhost:8080/neverUsed"))
             .build(InterfaceWithoutProvidersDefined.class);
 
-        Response response = client.executePut(new Widget("foo", 7), "bar");
+        Response response = client.executePut("foo", "bar");
         assertEquals(200, response.getStatus());
         assertEquals(Response.class.getName(), response.getHeaderString("ReturnType"));
         assertEquals("PUT", response.getHeaderString("PUT"));
         assertEquals("/{id}", response.getHeaderString("Path"));
-        assertEquals(Widget.class.getName(), response.getHeaderString("Parm1"));
+        assertEquals(String.class.getName(), response.getHeaderString("Parm1"));
         assertEquals(PathParam.class.getName(), response.getHeaderString("Parm1Annotation"));
         assertEquals(String.class.getName(), response.getHeaderString("Parm2"));
     }
@@ -191,36 +190,4 @@ public class CxfTypeSafeClientBuilderTest {
         Assert.fail(failureMessage);
     }
 
-    @Test
-    public void testFollowRedirectSetsProperty() {
-        CxfTypeSafeClientBuilder builder = (CxfTypeSafeClientBuilder) RestClientBuilder.newBuilder()
-                                                                                       .followRedirects(true);
-        assertEquals("true", builder.getConfiguration().getProperty("http.autoredirect"));
-
-        builder = (CxfTypeSafeClientBuilder) RestClientBuilder.newBuilder().followRedirects(false);
-        assertEquals("false", builder.getConfiguration().getProperty("http.autoredirect"));
-    }
-
-    @Test
-    public void testProxyAddressSetsProperty() {
-        CxfTypeSafeClientBuilder builder = (CxfTypeSafeClientBuilder)
-            RestClientBuilder.newBuilder().proxyAddress("cxf.apache.org", 8080);
-        assertEquals("cxf.apache.org", builder.getConfiguration().getProperty("http.proxy.server.uri"));
-        assertEquals(8080, builder.getConfiguration().getProperty("http.proxy.server.port"));
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testProxyAddressInvalidPort1() {
-        RestClientBuilder.newBuilder().proxyAddress("cxf.apache.org", -1);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testProxyAddressInvalidPort2() {
-        RestClientBuilder.newBuilder().proxyAddress("a.com", Integer.MAX_VALUE);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testProxyAddressNullHost() {
-        RestClientBuilder.newBuilder().proxyAddress(null, 8080);
-    }
 }

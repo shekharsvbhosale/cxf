@@ -19,13 +19,10 @@
 package org.apache.cxf.systest.jms.tx;
 
 import java.util.Collections;
-import java.util.Enumeration;
 
 import javax.jms.Connection;
 import javax.jms.JMSException;
 import javax.jms.Queue;
-import javax.jms.QueueBrowser;
-import javax.jms.Session;
 import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAException;
 
@@ -54,8 +51,7 @@ public class JMSTransactionTest extends AbstractVmJMSTest {
     private static TransactionManager transactionManager;
 
     public static void startBusAndJMS(Class<?> testClass) {
-        final String brokerURI =
-            "vm://" + testClass.getName() + "?broker.persistent=false&broker.useJmx=false&jms.xaAckMode=1";
+        String brokerURI = "vm://" + testClass.getName() + "?broker.persistent=false&broker.useJmx=false";
         startBusAndJMS(brokerURI);
         startBroker(brokerURI);
     }
@@ -152,25 +148,18 @@ public class JMSTransactionTest extends AbstractVmJMSTest {
         return (Greeter)markForClose(factory.create());
     }
 
-    private static void assertNumMessagesInQueue(String message, Connection connection, Queue queue,
-                                          int expectedNum, int timeout) throws JMSException, InterruptedException {
-        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-        QueueBrowser browser = session.createBrowser(queue);
-        int actualNum = 0;
-        for (long startTime = System.currentTimeMillis(); System.currentTimeMillis() - startTime < timeout;
-            Thread.sleep(100L)) {
-            actualNum = 0;
-            for (Enumeration<?> messages = browser.getEnumeration(); messages.hasMoreElements(); actualNum++) {
-                messages.nextElement();
-            }
-            if (actualNum == expectedNum) {
-                break;
-            }
+    private void assertNumMessagesInQueue(String message, Connection connection, Queue queue,
+                                          int expectedNum, int timeout) throws JMSException,
+        InterruptedException {
+        long startTime = System.currentTimeMillis();
+        int actualNum;
+        do {
+            actualNum = JMSUtil.getNumMessages(connection, queue);
+
             //System.out.println("Messages in queue " + queue.getQueueName() + ": " + actualNum
             //                   + ", expecting: " + expectedNum);
-        }
-        browser.close();
-        session.close();
+            Thread.sleep(100);
+        } while ((System.currentTimeMillis() - startTime < timeout) && expectedNum != actualNum);
         Assert.assertEquals(message + " -> number of messages", expectedNum, actualNum);
     }
 

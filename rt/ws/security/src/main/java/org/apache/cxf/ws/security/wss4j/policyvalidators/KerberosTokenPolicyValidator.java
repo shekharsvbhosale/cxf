@@ -22,17 +22,14 @@ package org.apache.cxf.ws.security.wss4j.policyvalidators;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.logging.Logger;
 
 import javax.xml.namespace.QName;
 
-import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.ws.policy.AssertionInfo;
 import org.apache.cxf.ws.policy.AssertionInfoMap;
 import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.cxf.ws.security.policy.PolicyUtils;
 import org.apache.cxf.ws.security.tokenstore.SecurityToken;
-import org.apache.cxf.ws.security.tokenstore.TokenStoreException;
 import org.apache.cxf.ws.security.tokenstore.TokenStoreUtils;
 import org.apache.wss4j.common.ext.WSSecurityException;
 import org.apache.wss4j.common.token.BinarySecurity;
@@ -52,8 +49,6 @@ import org.apache.xml.security.utils.XMLUtils;
  * against the appropriate policy.
  */
 public class KerberosTokenPolicyValidator extends AbstractSecurityPolicyValidator {
-
-    private static final Logger LOG = LogUtils.getL7dLogger(KerberosTokenPolicyValidator.class);
 
     /**
      * Return true if this SecurityPolicyValidator implementation is capable of validating a
@@ -106,11 +101,7 @@ public class KerberosTokenPolicyValidator extends AbstractSecurityPolicyValidato
             if (asserted) {
                 SecurityToken token = createSecurityToken(kerberosToken);
                 token.setSecret((byte[])kerberosResult.get(WSSecurityEngineResult.TAG_SECRET));
-                try {
-                    TokenStoreUtils.getTokenStore(parameters.getMessage()).add(token);
-                } catch (TokenStoreException ex) {
-                    LOG.warning(ex.getMessage());
-                }
+                TokenStoreUtils.getTokenStore(parameters.getMessage()).add(token);
                 parameters.getMessage().getExchange().put(SecurityConstants.TOKEN_ID, token.getId());
                 return;
             }

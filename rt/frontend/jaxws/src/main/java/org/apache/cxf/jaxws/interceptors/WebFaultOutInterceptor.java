@@ -65,7 +65,7 @@ public class WebFaultOutInterceptor extends FaultOutInterceptor {
 
     private QName getFaultName(WebFault wf, Class<?> cls, OperationInfo op) {
         String ns = wf.targetNamespace();
-        if (StringUtils.isEmpty(ns) && op != null) {
+        if (StringUtils.isEmpty(ns)) {
             ns = op.getName().getNamespaceURI();
         }
         String name = wf.name();
@@ -136,7 +136,7 @@ public class WebFaultOutInterceptor extends FaultOutInterceptor {
         }
         if (cause instanceof Exception && fault != null) {
             Exception ex = (Exception)cause;
-            Object faultInfo;
+            Object faultInfo = null;
             try {
                 Method method = cause.getClass().getMethod("getFaultInfo", new Class[0]);
                 faultInfo = method.invoke(cause, new Object[0]);
@@ -160,14 +160,9 @@ public class WebFaultOutInterceptor extends FaultOutInterceptor {
                     writer.setSchema(schema);
                 }
 
-                OperationInfo op = null;
-                // Prevent a NPE if we can't match the operation
-                if (message.getExchange().getBindingOperationInfo() != null) {
-                    op = message.getExchange().getBindingOperationInfo().getOperationInfo();
-                }
+                OperationInfo op = message.getExchange().getBindingOperationInfo().getOperationInfo();
                 QName faultName = getFaultName(fault, cause.getClass(), op);
-                MessagePartInfo part = op != null ? getFaultMessagePart(faultName, op) : null;
-
+                MessagePartInfo part = getFaultMessagePart(faultName, op);
                 if (f.hasDetails()) {
                     writer.write(faultInfo, part, new W3CDOMStreamWriter(f.getDetail()));
                 } else {
@@ -241,7 +236,7 @@ public class WebFaultOutInterceptor extends FaultOutInterceptor {
     private MessagePartInfo getFaultMessagePart(QName qname, OperationInfo op) {
         for (FaultInfo faultInfo : op.getFaults()) {
             for (MessagePartInfo mpi : faultInfo.getMessageParts()) {
-                final String ns;
+                String ns = null;
                 if (mpi.isElement()) {
                     ns = mpi.getElementQName().getNamespaceURI();
                 } else {

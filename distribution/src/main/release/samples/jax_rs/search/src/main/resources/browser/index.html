@@ -118,7 +118,7 @@
     			}
     			
     			var encodedWildcardsQuery = encodeURIComponent( wildcardsQuery.trim() );
-    			var filter = contentQuery + encodedWildcardsQuery;
+    			var filter = contentQuery + wildcardsQuery;
 
 	    		$.ajax({
 	    			url: $(this).attr("action") + "?$filter=" + filter,

@@ -27,9 +27,8 @@ import org.apache.cxf.common.util.Base64UrlUtility;
 
 public class JwsOutputStream extends FilterOutputStream {
     private boolean flushed;
-    private final JwsSignature signature;
-    private final boolean writeSignature;
-
+    private JwsSignature signature;
+    private boolean writeSignature;
     public JwsOutputStream(OutputStream out, JwsSignature signature, boolean writeSignature) {
         super(out);
         this.signature = signature;

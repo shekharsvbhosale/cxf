@@ -277,7 +277,7 @@ public class RedeliveryQueueImpl implements RedeliveryQueue {
     /**
      * Accepts a new resend candidate.
      *
-     * @param message the message.
+     * @param ctx the message context.
      * @return ResendCandidate
      */
     protected RedeliverCandidate cacheUndelivered(Message message) {
@@ -286,7 +286,7 @@ public class RedeliveryQueueImpl implements RedeliveryQueue {
         Identifier sid = st.getIdentifier();
         String key = sid.getValue();
 
-        RedeliverCandidate candidate;
+        RedeliverCandidate candidate = null;
 
         synchronized (this) {
             List<RedeliverCandidate> sequenceCandidates = getSequenceCandidates(key);
@@ -487,8 +487,10 @@ public class RedeliveryQueueImpl implements RedeliveryQueue {
                 message.removeContent(Node.class);
             }
 
+
+            InputStream is = null;
             CachedOutputStream cos = (CachedOutputStream)message.get(RMMessageConstants.SAVED_CONTENT);
-            InputStream is = cos.getInputStream();
+            is = cos.getInputStream();
             message.setContent(InputStream.class, is);
             message = message.getExchange().getEndpoint().getBinding().createMessage(message);
             restartingPhase = Phase.POST_STREAM;

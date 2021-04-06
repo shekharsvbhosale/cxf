@@ -871,7 +871,7 @@ public class RMTxStore implements RMStore {
             }
         } finally {
             con.setAutoCommit(false);
-            if (connection == null) {
+            if (connection == null && con != null) {
                 con.close();
             }
         }
@@ -1158,8 +1158,8 @@ public class RMTxStore implements RMStore {
     public static void deleteDatabaseFiles(String dbName, boolean now) {
         String dsh = SystemPropertyAction.getPropertyOrNull("derby.system.home");
 
-        final File root;
-        final File log;
+        File root = null;
+        File log = null;
         if (null == dsh) {
             log = new File("derby.log");
             root = new File(dbName);

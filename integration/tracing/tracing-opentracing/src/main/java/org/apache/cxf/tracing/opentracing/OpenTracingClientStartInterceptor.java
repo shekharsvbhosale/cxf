@@ -47,14 +47,5 @@ public class OpenTracingClientStartInterceptor extends AbstractOpenTracingClient
             message.getExchange().put(TRACE_SPAN, holder);
         }
     }
-    
-    @Override
-    public void handleFault(Message message) {
-        @SuppressWarnings("unchecked")
-        final TraceScopeHolder<TraceScope> holder =
-            (TraceScopeHolder<TraceScope>)message.getExchange().get(TRACE_SPAN);
-        
-        final Exception ex = message.getContent(Exception.class);
-        super.stopTraceSpan(holder, ex);
-    }
+
 }

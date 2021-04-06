@@ -19,24 +19,25 @@
 package org.apache.cxf.systest.brave;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import zipkin2.Span;
 import zipkin2.reporter.Reporter;
 
 public class TestSpanReporter implements Reporter<Span> {
-    private static final List<Span> SPANS = new ArrayList<>(12);
+    private static List<Span> spans = Collections.synchronizedList(new ArrayList<>());
 
     @Override
     public void report(Span span) {
-        SPANS.add(span);
+        spans.add(span);
     }
 
     public static List<Span> getAllSpans() {
-        return SPANS;
+        return spans;
     }
 
     public static void clear() {
-        SPANS.clear();
+        spans.clear();
     }
 }

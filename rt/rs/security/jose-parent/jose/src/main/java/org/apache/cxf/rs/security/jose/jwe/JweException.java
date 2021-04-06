@@ -23,8 +23,7 @@ import org.apache.cxf.rs.security.jose.common.JoseException;
 public class JweException extends JoseException {
 
     private static final long serialVersionUID = 4118589816228511524L;
-    private final Error status;
-
+    private Error status;
     public JweException(Error status) {
         this(status, null);
     }

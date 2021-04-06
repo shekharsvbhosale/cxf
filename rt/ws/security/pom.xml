@@ -27,16 +27,15 @@
     <parent>
         <groupId>org.apache.cxf</groupId>
         <artifactId>cxf-parent</artifactId>
-        <version>3.5.0-SNAPSHOT</version>
+        <version>3.4.0-SNAPSHOT</version>
         <relativePath>../../../parent/pom.xml</relativePath>
     </parent>
     <properties>
         <cxf.module.name>org.apache.cxf.ws.security</cxf.module.name>
         <cxf.osgi.import>
             javax.xml.soap;version="${cxf.osgi.saaj.version}",
-            javax.jws*;version="${cxf.osgi.jws.version}",
             javax.activation;version="${cxf.osgi.javax.activation.version}",
-            org.ehcache*;resolution:=optional;version="[3.0.0, 4.0.0)",
+            net.sf.ehcache*;resolution:=optional;version="[2.5, 3.0.0)",
             org.opensaml*;version="${cxf.opensaml.osgi.version.range}",
             javax.xml.ws*;version="${cxf.osgi.javax.xml.ws.version}",
             javax.xml.bind*;version="${cxf.osgi.javax.bind.version}",
@@ -91,9 +90,9 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>org.ehcache</groupId>
+            <groupId>net.sf.ehcache</groupId>
             <artifactId>ehcache</artifactId>
-            <version>${cxf.ehcache3.version}</version>
+            <version>${cxf.ehcache.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -109,12 +108,6 @@
         <dependency>
             <groupId>org.apache.wss4j</groupId>
             <artifactId>wss4j-policy</artifactId>
-            <exclusions>
-                 <exclusion>
-                     <groupId>org.codehaus.woodstox</groupId>
-                     <artifactId>woodstox-core-asl</artifactId>
-                 </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.wss4j</groupId>
@@ -137,11 +130,6 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

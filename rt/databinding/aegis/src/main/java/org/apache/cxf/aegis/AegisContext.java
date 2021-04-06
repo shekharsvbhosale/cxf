@@ -130,6 +130,8 @@ public class AegisContext {
     /**
      * Initialize the context. The encodingStyleURI allows .aegis.xml files to have multiple mappings for,
      * say, SOAP 1.1 versus SOAP 1.2. Passing null uses a default URI.
+     *
+     * @param mappingNamespaceURI URI to select mappings based on the encoding.
      */
     public void initialize() {
         // allow spring config of an alternative mapping.
@@ -224,6 +226,9 @@ public class AegisContext {
 
     /**
      * Examine a list of override classes, and register all of them.
+     *
+     * @param tm type manager for this binding
+     * @param classes list of class names
      */
     private void processRootTypes() {
         rootTypes = new HashSet<>();
@@ -234,11 +239,14 @@ public class AegisContext {
         rootTypeQNames = new HashSet<>();
         if (this.rootClassNames != null) {
             for (String typeName : rootClassNames) {
+                Class<?> c = null;
                 try {
-                    rootClasses.add(ClassLoaderUtils.loadClass(typeName, TypeUtil.class));
+                    c = ClassLoaderUtils.loadClass(typeName, TypeUtil.class);
                 } catch (ClassNotFoundException e) {
                     throw new DatabindingException("Could not find override type class: " + typeName, e);
                 }
+
+                rootClasses.add(c);
             }
         }
 
@@ -352,7 +360,7 @@ public class AegisContext {
     /**
      * Set the configuration object. The configuration specifies default type mapping behaviors.
      *
-     * @param newConfiguration The configuration to set.
+     * @param configuration The configuration to set.
      */
     public void setTypeCreationOptions(TypeCreationOptions newConfiguration) {
         this.configuration = newConfiguration;

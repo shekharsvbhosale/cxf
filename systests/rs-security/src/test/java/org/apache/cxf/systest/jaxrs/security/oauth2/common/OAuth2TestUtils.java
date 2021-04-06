@@ -18,23 +18,15 @@
  */
 package org.apache.cxf.systest.jaxrs.security.oauth2.common;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.GeneralSecurityException;
-import java.security.KeyStore;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.TrustManagerFactory;
 import javax.ws.rs.core.Form;
 import javax.ws.rs.core.Response;
 
-import org.apache.cxf.configuration.jsse.TLSClientParameters;
 import org.apache.cxf.jaxrs.client.WebClient;
 import org.apache.cxf.jaxrs.provider.json.JSONProvider;
 import org.apache.cxf.jaxrs.provider.json.JsonMapObjectProvider;
@@ -45,17 +37,9 @@ import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactProducer;
 import org.apache.cxf.rs.security.jose.jws.JwsSignatureProvider;
 import org.apache.cxf.rs.security.jose.jws.JwsUtils;
 import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
-import org.apache.cxf.rs.security.oauth2.client.Consumer;
-import org.apache.cxf.rs.security.oauth2.client.OAuthClientUtils;
 import org.apache.cxf.rs.security.oauth2.common.ClientAccessToken;
 import org.apache.cxf.rs.security.oauth2.common.OAuthAuthorizationData;
-import org.apache.cxf.rs.security.oauth2.grants.code.AuthorizationCodeGrant;
 import org.apache.cxf.rs.security.oauth2.provider.OAuthJSONProvider;
-import org.apache.cxf.rs.security.oauth2.utils.OAuthConstants;
-import org.apache.cxf.rs.security.oauth2.utils.OAuthUtils;
-import org.apache.cxf.rt.security.crypto.CryptoUtils;
-import org.apache.cxf.transport.http.HTTPConduit;
-import org.apache.cxf.transport.http.HTTPConduitConfigurer;
 import org.apache.wss4j.common.ext.WSSecurityException;
 import org.apache.wss4j.common.saml.SAMLCallback;
 import org.apache.wss4j.common.saml.SAMLUtil;
@@ -152,9 +136,6 @@ public final class OAuth2TestUtils {
         if (authzData.getClientCodeChallenge() != null) {
             form.param("code_challenge", authzData.getClientCodeChallenge());
         }
-        if (authzData.getClientCodeChallengeMethod() != null) {
-            form.param("code_challenge_method", authzData.getClientCodeChallengeMethod());
-        }
         form.param("response_type", authzData.getResponseType());
         form.param("oauthDecision", "allow");
 
@@ -183,20 +164,23 @@ public final class OAuth2TestUtils {
                                                                         String consumerId,
                                                                         String audience,
                                                                         String codeVerifier) {
-        Map<String, String> extraParams = new HashMap<>(3);
-        extraParams.put(OAuthConstants.REDIRECT_URI, "http://www.blah.apache.org");
+        client.type("application/x-www-form-urlencoded").accept("application/json");
+        client.path("token");
+
+        Form form = new Form();
+        form.param("grant_type", "authorization_code");
+        form.param("code", code);
+        form.param("client_id", consumerId);
         if (audience != null) {
-            extraParams.put(OAuthConstants.CLIENT_AUDIENCE, audience);
+            form.param("audience", audience);
         }
         if (codeVerifier != null) {
-            extraParams.put(OAuthConstants.AUTHORIZATION_CODE_VERIFIER, codeVerifier);
+            form.param("code_verifier", codeVerifier);
         }
-        return OAuthClientUtils.getAccessToken(
-            client.path("token"),
-            new Consumer(consumerId),
-            new AuthorizationCodeGrant(code),
-            extraParams,
-            false);
+        form.param("redirect_uri", "http://www.blah.apache.org");
+        Response response = client.post(form);
+
+        return response.readEntity(ClientAccessToken.class);
     }
 
     public static List<Object> setupProviders() {
@@ -246,9 +230,10 @@ public final class OAuth2TestUtils {
         if (issuer != null) {
             claims.setIssuer(issuer);
         }
-        claims.setIssuedAt(OAuthUtils.getIssuedAt());
+        Instant now = Instant.now();
+        claims.setIssuedAt(now.getEpochSecond());
         if (expiry) {
-            claims.setExpiryTime(claims.getIssuedAt() + 60L);
+            claims.setExpiryTime(now.plusSeconds(60L).getEpochSecond());
         }
         if (audience != null) {
             claims.setAudiences(Collections.singletonList(audience));
@@ -289,37 +274,6 @@ public final class OAuth2TestUtils {
             ampersandIndex = foundString.length();
         }
         return foundString.substring(0, ampersandIndex);
-    }
-
-    public static HTTPConduitConfigurer clientHTTPConduitConfigurer() throws IOException, GeneralSecurityException {
-        final TLSClientParameters tlsCP = new TLSClientParameters();
-        tlsCP.setDisableCNCheck(true);
-
-        try (InputStream is = OAuth2TestUtils.class.getResourceAsStream("/keys/Morpit.jks")) {
-            final KeyStore keyStore = CryptoUtils.loadKeyStore(is, "password".toCharArray(), null);
-            final KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            kmf.init(keyStore, "password".toCharArray());
-            tlsCP.setKeyManagers(kmf.getKeyManagers());
-        }
-
-        try (InputStream is = OAuth2TestUtils.class.getResourceAsStream("/keys/Truststore.jks")) {
-            final KeyStore keyStore = CryptoUtils.loadKeyStore(is, "password".toCharArray(), null);
-            final TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(keyStore);
-            tlsCP.setTrustManagers(tmf.getTrustManagers());
-        }
-
-        return new HTTPConduitConfigurer() {
-            public void configure(String name, String address, HTTPConduit c) {
-                c.setTlsClientParameters(tlsCP);
-                // 5 mins for long debug session
-//                org.apache.cxf.transports.http.configuration.HTTPClientPolicy httpClientPolicy =
-//                    new org.apache.cxf.transports.http.configuration.HTTPClientPolicy();
-//                httpClientPolicy.setConnectionTimeout(300000L);
-//                httpClientPolicy.setReceiveTimeout(300000L);
-//                c.setClient(httpClientPolicy);
-            }
-        };
     }
 
     public static class AuthorizationCodeParameters {

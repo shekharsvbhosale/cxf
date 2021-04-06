@@ -35,7 +35,6 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 
 import org.apache.cxf.common.util.PropertyUtils;
-import org.apache.cxf.common.util.StringUtils;
 import org.apache.cxf.jaxrs.ext.search.Beanspector.TypeInfo;
 import org.apache.cxf.jaxrs.ext.search.collections.CollectionCheck;
 import org.apache.cxf.jaxrs.ext.search.collections.CollectionCheckInfo;
@@ -188,7 +187,7 @@ public abstract class AbstractSearchConditionParser<T> implements SearchConditio
                 ? Proxy.newProxyInstance(this.getClass().getClassLoader(),
                                          new Class[]{actualType},
                                          new InterfaceProxy())
-                : actualType.getDeclaredConstructor().newInstance();
+                : actualType.newInstance();
             Object nextObject;
 
             if (lastTry) {
@@ -205,12 +204,12 @@ public abstract class AbstractSearchConditionParser<T> implements SearchConditio
                     }
                 }
             } else if (!returnCollection) {
-                nextObject = returnType.getDeclaredConstructor().newInstance();
+                nextObject = returnType.newInstance();
             } else {
-                nextObject = actualReturnType.getDeclaredConstructor().newInstance();
+                nextObject = actualReturnType.newInstance();
             }
             Method setterM = actualType.getMethod("set" + nextPart, new Class[]{returnType});
-            final Object valueObjectValue;
+            Object valueObjectValue = null;
             if (lastTry || !returnCollection) {
                 valueObjectValue = nextObject;
             } else {
@@ -333,8 +332,11 @@ public abstract class AbstractSearchConditionParser<T> implements SearchConditio
         return df.parse(dateValue);
     }
 
-    private static String getMethodNameSuffix(String name) {
-        return StringUtils.capitalize(name);
+    private String getMethodNameSuffix(String name) {
+        if (name.length() == 1) {
+            return name.toUpperCase();
+        }
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
     }
 
     private int getDotIndex(String setter) {

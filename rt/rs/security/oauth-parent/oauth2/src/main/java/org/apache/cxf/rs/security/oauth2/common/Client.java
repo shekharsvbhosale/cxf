@@ -19,7 +19,6 @@
 package org.apache.cxf.rs.security.oauth2.common;
 
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -224,7 +223,7 @@ public class Client implements Serializable {
      * @param redirectUris the redirect uris
      */
     public void setRedirectUris(List<String> redirectUris) {
-        this.redirectUris = redirectUris != null ? redirectUris : Collections.emptyList();
+        this.redirectUris = redirectUris;
     }
 
     /**
@@ -244,7 +243,7 @@ public class Client implements Serializable {
      * @param allowedGrantTypes the list of grant types
      */
     public void setAllowedGrantTypes(List<String> allowedGrantTypes) {
-        this.allowedGrantTypes = allowedGrantTypes != null ? allowedGrantTypes : Collections.emptyList();
+        this.allowedGrantTypes = allowedGrantTypes;
     }
 
     /**
@@ -329,7 +328,7 @@ public class Client implements Serializable {
      * @param registeredScopes the scopes
      */
     public void setRegisteredScopes(List<String> registeredScopes) {
-        this.registeredScopes = registeredScopes != null ? registeredScopes : Collections.emptyList();
+        this.registeredScopes = registeredScopes;
     }
 
     @ElementCollection(fetch = FetchType.EAGER)
@@ -343,7 +342,7 @@ public class Client implements Serializable {
      * @param registeredAudiences audiences
      */
     public void setRegisteredAudiences(List<String> registeredAudiences) {
-        this.registeredAudiences = registeredAudiences != null ? registeredAudiences : Collections.emptyList();
+        this.registeredAudiences = registeredAudiences;
     }
 
     @ElementCollection(fetch = FetchType.EAGER)
@@ -359,8 +358,7 @@ public class Client implements Serializable {
      * Basic or other password-aware authentication on top of 2-way TLS.
      */
     public void setApplicationCertificates(List<String> applicationCertificates) {
-        this.applicationCertificates = applicationCertificates != null
-                ? applicationCertificates : Collections.emptyList();
+        this.applicationCertificates = applicationCertificates;
     }
 
     public String getClientIpAddress() {

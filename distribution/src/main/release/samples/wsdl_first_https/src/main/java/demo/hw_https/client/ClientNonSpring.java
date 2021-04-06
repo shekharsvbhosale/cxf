@@ -21,13 +21,17 @@ package demo.hw_https.client;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 
+import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.xml.namespace.QName;
 
@@ -56,7 +60,7 @@ public final class ClientNonSpring {
             System.exit(1);
         }
 
-        final URL wsdlURL;
+        URL wsdlURL;
         File wsdlFile = new File(args[0]);
         if (wsdlFile.exists()) {
             wsdlURL = wsdlFile.toURI().toURL();
@@ -91,24 +95,43 @@ public final class ClientNonSpring {
     }
 
     private static void setupTLS(Greeter port)
-        throws IOException, GeneralSecurityException {
-        final TLSClientParameters tlsCP = new TLSClientParameters();
+        throws FileNotFoundException, IOException, GeneralSecurityException {
+        String keyStoreLoc = "src/main/config/clientKeystore.jks";
+        HTTPConduit httpConduit = (HTTPConduit) ClientProxy.getClient(port).getConduit();
+
+        TLSClientParameters tlsCP = new TLSClientParameters();
+        String keyPassword = "ckpass";
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        keyStore.load(new FileInputStream(keyStoreLoc), "cspass".toCharArray());
+        KeyManager[] myKeyManagers = getKeyManagers(keyStore, keyPassword);
+        tlsCP.setKeyManagers(myKeyManagers);
+
+
+        KeyStore trustStore = KeyStore.getInstance("JKS");
+        trustStore.load(new FileInputStream(keyStoreLoc), "cspass".toCharArray());
+        TrustManager[] myTrustStoreKeyManagers = getTrustManagers(trustStore);
+        tlsCP.setTrustManagers(myTrustStoreKeyManagers);
         tlsCP.setDisableCNCheck(true);
+        httpConduit.setTlsClientParameters(tlsCP);
+    }
 
-        final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-        try (InputStream is = new FileInputStream("src/main/config/clientKeystore.jks")) {
-            keyStore.load(is, "cspass".toCharArray());
-        }
+    private static TrustManager[] getTrustManagers(KeyStore trustStore)
+        throws NoSuchAlgorithmException, KeyStoreException {
+        String alg = TrustManagerFactory.getDefaultAlgorithm();
+        TrustManagerFactory fac = TrustManagerFactory.getInstance(alg);
+        fac.init(trustStore);
+        return fac.getTrustManagers();
+    }
 
-        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        kmf.init(keyStore, "ckpass".toCharArray());
-        tlsCP.setKeyManagers(kmf.getKeyManagers());
-
-        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        tmf.init(keyStore);
-        tlsCP.setTrustManagers(tmf.getTrustManagers());
-
-        ((HTTPConduit) ClientProxy.getClient(port).getConduit()).setTlsClientParameters(tlsCP);
+    private static KeyManager[] getKeyManagers(KeyStore keyStore, String keyPassword)
+        throws GeneralSecurityException, IOException {
+        String alg = KeyManagerFactory.getDefaultAlgorithm();
+        char[] keyPass = keyPassword != null
+                     ? keyPassword.toCharArray()
+                     : null;
+        KeyManagerFactory fac = KeyManagerFactory.getInstance(alg);
+        fac.init(keyStore, keyPass);
+        return fac.getKeyManagers();
     }
 
 }

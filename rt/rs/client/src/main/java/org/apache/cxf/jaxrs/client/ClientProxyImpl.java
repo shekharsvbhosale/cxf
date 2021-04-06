@@ -476,19 +476,17 @@ public class ClientProxyImpl extends AbstractClient implements
 
         List<MediaType> accepts = getAccept(headers);
         if (accepts == null) {
-            if (responseClass == Void.class || responseClass == Void.TYPE) {
+            List<MediaType> produceTypes = ori.getProduceTypes();
+            boolean produceWildcard = produceTypes.isEmpty()
+                || produceTypes.get(0).equals(MediaType.WILDCARD_TYPE);
+            if (produceWildcard) {
+                accepts = InjectionUtils.isPrimitive(responseClass)
+                    ? Collections.singletonList(MediaType.TEXT_PLAIN_TYPE)
+                    : Collections.singletonList(MediaType.APPLICATION_XML_TYPE);
+            } else if (responseClass == Void.class || responseClass == Void.TYPE) {
                 accepts = Collections.singletonList(MediaType.WILDCARD_TYPE);
             } else {
-                List<MediaType> produceTypes = ori.getProduceTypes();
-                boolean produceWildcard = produceTypes.isEmpty()
-                    || produceTypes.get(0).equals(MediaType.WILDCARD_TYPE);
-                if (produceWildcard) {
-                    accepts = InjectionUtils.isPrimitive(responseClass)
-                        ? Collections.singletonList(MediaType.TEXT_PLAIN_TYPE)
-                        : Collections.singletonList(MediaType.APPLICATION_XML_TYPE);
-                } else {
-                    accepts = produceTypes;
-                }
+                accepts = produceTypes;
             }
 
             for (MediaType mt : accepts) {
@@ -1011,8 +1009,10 @@ public class ClientProxyImpl extends AbstractClient implements
             }
 
             Class<?> returnType = getReturnType(method, outMessage);
-            Type genericType = getGenericReturnType(serviceCls, method, returnType);
-            
+            Type genericType =
+                InjectionUtils.processGenericTypeIfNeeded(serviceCls,
+                                                          returnType,
+                                                          method.getGenericReturnType());
             returnType = InjectionUtils.updateParamClassToTypeIfNeeded(returnType, genericType);
             return readBody(r,
                             outMessage,
@@ -1022,10 +1022,6 @@ public class ClientProxyImpl extends AbstractClient implements
         } finally {
             ClientProviderFactory.getInstance(outMessage).clearThreadLocalProxies();
         }
-    }
-
-    protected Type getGenericReturnType(Class<?> serviceCls, Method method, Class<?> returnType) {
-        return InjectionUtils.processGenericTypeIfNeeded(serviceCls, returnType, method.getGenericReturnType());
     }
 
     protected Class<?> getReturnType(Method method, Message outMessage) {
@@ -1085,17 +1081,13 @@ public class ClientProxyImpl extends AbstractClient implements
             Annotation[] anns = customAnns != null ? customAnns
                 : getMethodAnnotations(ori.getAnnotatedMethod(), bodyIndex);
             try {
-                Class<?>[] parameterTypes = method.getParameterTypes();
-                if (bodyIndex >= 0 && bodyIndex < parameterTypes.length) {
-                    Class<?> paramClass = parameterTypes[bodyIndex];
+                if (bodyIndex != -1) {
+                    Class<?> paramClass = method.getParameterTypes()[bodyIndex];
                     Class<?> bodyClass =
                         paramClass.isAssignableFrom(body.getClass()) ? paramClass : body.getClass();
-                    Type genericType = bodyType;
-                    if (genericType == null) {
-                        Type[] genericParameterTypes = method.getGenericParameterTypes();
-                        if (bodyIndex < genericParameterTypes.length) {
-                            genericType = genericParameterTypes[bodyIndex];
-                        }
+                    Type genericType = method.getGenericParameterTypes()[bodyIndex];
+                    if (bodyType != null) {
+                        genericType = bodyType;
                     }
                     genericType = InjectionUtils.processGenericTypeIfNeeded(
                         ori.getClassResourceInfo().getServiceClass(), bodyClass, genericType);

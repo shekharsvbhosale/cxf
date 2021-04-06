@@ -19,6 +19,7 @@
 package org.apache.cxf.jaxrs.model.wadl;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
@@ -31,14 +32,12 @@ import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.net.URI;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -70,7 +69,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.MessageBodyWriter;
-import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlSeeAlso;
@@ -154,7 +152,7 @@ public class WadlGenerator implements ContainerRequestFilter {
     private static final String DEFAULT_NS_PREFIX = "prefix";
     private static final Map<ParameterType, Class<? extends Annotation>> PARAMETER_TYPE_MAP;
     static {
-        PARAMETER_TYPE_MAP = new EnumMap<>(ParameterType.class);
+        PARAMETER_TYPE_MAP = new HashMap<>();
         PARAMETER_TYPE_MAP.put(ParameterType.FORM, FormParam.class);
         PARAMETER_TYPE_MAP.put(ParameterType.QUERY, QueryParam.class);
         PARAMETER_TYPE_MAP.put(ParameterType.HEADER, HeaderParam.class);
@@ -190,7 +188,7 @@ public class WadlGenerator implements ContainerRequestFilter {
 
     private ElementQNameResolver resolver;
     private List<String> privateAddresses;
-    private List<String> allowList;
+    private List<String> whiteList;
     private String applicationTitle;
     private String nsPrefix = DEFAULT_NS_PREFIX;
     private MediaType defaultWadlResponseMediaType = MediaType.APPLICATION_XML_TYPE;
@@ -219,7 +217,7 @@ public class WadlGenerator implements ContainerRequestFilter {
         if (extraClasses != null) {
             this.extraClasses = extraClasses;
         }
-    }
+    }    
 
     @Override
     public void filter(ContainerRequestContext context) {
@@ -239,7 +237,7 @@ public class WadlGenerator implements ContainerRequestFilter {
         if (!ui.getQueryParameters().containsKey(WADL_QUERY)) {
             if (stylesheetReference != null || !docLocationMap.isEmpty()) {
                 String path = ui.getPath(false);
-                if (path.startsWith("/") && !path.isEmpty()) {
+                if (path.startsWith("/") && path.length() > 0) {
                     path = path.substring(1);
                 }
                 if (stylesheetReference != null && path.endsWith(".xsl")
@@ -255,17 +253,17 @@ public class WadlGenerator implements ContainerRequestFilter {
             return;
         }
 
-        if (allowList != null && !allowList.isEmpty()) {
+        if (whiteList != null && !whiteList.isEmpty()) {
             ServletRequest servletRequest = (ServletRequest)m.getContextualProperty(
                 "HTTP.REQUEST");
-            final String remoteAddress;
+            String remoteAddress = null;
             if (servletRequest != null) {
                 remoteAddress = servletRequest.getRemoteAddr();
             } else {
                 remoteAddress = "";
             }
             boolean foundMatch = false;
-            for (String addr : allowList) {
+            for (String addr : whiteList) {
                 if (addr.equals(remoteAddress)) {
                     foundMatch = true;
                     break;
@@ -1014,7 +1012,7 @@ public class WadlGenerator implements ContainerRequestFilter {
         try {
             Method m = enumClass.getMethod("values", new Class<?>[] {});
             Object[] values = (Object[])m.invoke(null, new Object[] {});
-            m = enumClass.getMethod("name", new Class<?>[] {});
+            m = enumClass.getMethod("toString", new Class<?>[] {});
             for (Object o : values) {
                 String str = (String)m.invoke(o, new Object[] {});
                 sb.append("<option value=\"").append(str).append("\"/>");
@@ -1195,9 +1193,9 @@ public class WadlGenerator implements ContainerRequestFilter {
                 }
                 if (result == 0 && ignoreOverloadedMethods
                     && op1.getMethodToInvoke().getName().equals(op2.getMethodToInvoke().getName())) {
-                    int paramLen1 = op1.getMethodToInvoke().getParameterTypes().length;
-                    int paramLen2 = op2.getMethodToInvoke().getParameterTypes().length;
-                    result = Integer.compare(paramLen1, paramLen2) * -1;
+                    Integer paramLen1 = op1.getMethodToInvoke().getParameterTypes().length;
+                    Integer paramLen2 = op2.getMethodToInvoke().getParameterTypes().length;
+                    result = paramLen1.compareTo(paramLen2) * -1;
                 }
                 return result;
             }
@@ -1301,29 +1299,14 @@ public class WadlGenerator implements ContainerRequestFilter {
         StringWriter stringWriter = new StringWriter();
         TransformerFactory transformerFactory = TransformerFactory.newInstance();
         transformerFactory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);
-        try {
-            transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
-            transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
-        } catch (IllegalArgumentException ex) {
-            // ignore
-        }
-
         Transformer transformer = transformerFactory.newTransformer();
         transformer.transform(domSource, new StreamResult(stringWriter));
         return stringWriter.toString();
     }
-
     private String transformLocally(Message m, UriInfo ui, Source source) throws Exception {
         InputStream is = ResourceUtils.getResourceStream(stylesheetReference, m.getExchange().getBus());
         TransformerFactory transformerFactory = TransformerFactory.newInstance();
         transformerFactory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);
-        try {
-            transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
-            transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
-        } catch (IllegalArgumentException ex) {
-            // ignore
-        }
-
         Transformer t = transformerFactory.newTemplates(new StreamSource(is)).newTransformer();
         t.setParameter("base.path", m.get("http.base.path"));
         StringWriter stringWriter = new StringWriter();
@@ -1879,7 +1862,8 @@ public class WadlGenerator implements ContainerRequestFilter {
     public void setSchemaLocations(List<String> locations) {
         externalQnamesMap = new HashMap<>();
         externalSchemasCache = new ArrayList<>(locations.size());
-        for (String loc : locations) {
+        for (int i = 0; i < locations.size(); i++) {
+            String loc = locations.get(i);
             try {
                 loadSchemasIntoCache(loc);
             } catch (Exception ex) {
@@ -1978,7 +1962,7 @@ public class WadlGenerator implements ContainerRequestFilter {
             this.theSchemas = new LinkedList<>();
             // we'll need to do the proper schema caching eventually
             for (String s : schemas) {
-                XMLSource source = new XMLSource(new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8)));
+                XMLSource source = new XMLSource(new ByteArrayInputStream(s.getBytes()));
                 source.setBuffering();
                 Map<String, String> locs = getLocationsMap(source, "import", links, ui);
                 locs.putAll(getLocationsMap(source, "include", links, ui));
@@ -2026,16 +2010,17 @@ public class WadlGenerator implements ContainerRequestFilter {
         }
 
         private String transformSchema(String schema, Map<String, String> locs) {
-            StringWriter sw = new StringWriter();
-            SchemaConverter sc = new SchemaConverter(StaxUtils.createXMLStreamWriter(sw), locs);
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            SchemaConverter sc = new SchemaConverter(StaxUtils.createXMLStreamWriter(bos), locs);
             try {
                 StaxUtils.copy(new StreamSource(new StringReader(schema)), sc);
                 sc.flush();
                 sc.close();
-                return sw.toString();
+                return bos.toString();
             } catch (Exception ex) {
                 return schema;
             }
+
         }
 
         @Override
@@ -2304,12 +2289,12 @@ public class WadlGenerator implements ContainerRequestFilter {
     }
 
 
-    public List<String> getAllowList() {
-        return allowList;
+    public List<String> getWhiteList() {
+        return whiteList;
     }
 
-    public void setAllowList(List<String> allowList) {
-        this.allowList = allowList;
+    public void setWhiteList(List<String> whiteList) {
+        this.whiteList = whiteList;
     }
 
     private static class SchemaConverter extends DelegatingXMLStreamWriter {

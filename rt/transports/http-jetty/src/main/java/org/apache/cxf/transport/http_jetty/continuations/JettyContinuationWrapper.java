@@ -20,8 +20,6 @@
 package org.apache.cxf.transport.http_jetty.continuations;
 
 
-import java.util.concurrent.atomic.AtomicLong;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -38,7 +36,7 @@ public class JettyContinuationWrapper implements Continuation, ContinuationListe
     volatile boolean isResumed;
     volatile boolean isPending;
     volatile boolean isTimeout;
-    AtomicLong pendingTimeout = new AtomicLong();
+    volatile long pendingTimeout;
     volatile Object obj;
 
     private Message message;
@@ -97,22 +95,22 @@ public class JettyContinuationWrapper implements Continuation, ContinuationListe
             // with the non-Servlet3 Jetty Continuation
         }
         obj = null;
-        pendingTimeout.set(0L);
+        pendingTimeout = 0;
         isTimeout = false;
     }
 
 
     public boolean suspend(long timeout) {
         if (isPending && timeout != 0) {
-            pendingTimeout.addAndGet(timeout);
+            pendingTimeout += pendingTimeout + timeout;
         } else {
-            pendingTimeout.set(timeout);
+            pendingTimeout = timeout;
         }
         isNew = false;
 
         message.getExchange().getInMessage().getInterceptorChain().suspend();
 
-        continuation.setTimeout(pendingTimeout.get());
+        continuation.setTimeout(pendingTimeout);
         if (!isPending) {
             continuation.suspend();
             isPending = true;
@@ -132,7 +130,7 @@ public class JettyContinuationWrapper implements Continuation, ContinuationListe
     public void onComplete(org.eclipse.jetty.continuation.Continuation cont) {
         getMessage().remove(AbstractHTTPDestination.CXF_CONTINUATION_MESSAGE);
         isPending = false;
-        pendingTimeout.set(0L);
+        pendingTimeout = 0;
         isResumed = false;
         if (callback != null) {
             callback.onComplete();
@@ -141,7 +139,7 @@ public class JettyContinuationWrapper implements Continuation, ContinuationListe
 
     public void onTimeout(org.eclipse.jetty.continuation.Continuation cont) {
         isPending = false;
-        pendingTimeout.set(0L);
+        pendingTimeout = 0;
         isResumed = true;
         isTimeout = true;
     }

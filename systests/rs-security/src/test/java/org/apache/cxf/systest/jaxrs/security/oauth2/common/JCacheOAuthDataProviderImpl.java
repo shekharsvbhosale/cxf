@@ -21,7 +21,6 @@ package org.apache.cxf.systest.jaxrs.security.oauth2.common;
 import java.io.InputStream;
 import java.security.cert.Certificate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -101,15 +100,13 @@ public class JCacheOAuthDataProviderImpl extends JCacheCodeDataProvider {
         // OIDC filters test client
         client = createPublicClients ? new Client("consumer-id-oidc", null, false)
             : new Client("consumer-id-oidc", "this-is-a-secret", true);
-        client.setRedirectUris(Arrays.asList(
-            "https://localhost:" + servicePort + "/secured/bookstore/books",
-            "http://www.blah.apache.org"));
+        client.setRedirectUris(Collections.singletonList("https://localhost:" + servicePort
+                                                         + "/secured/bookstore/books"));
 
         client.getAllowedGrantTypes().add("authorization_code");
         client.getAllowedGrantTypes().add("refresh_token");
 
         client.getRegisteredScopes().add("openid");
-        client.getRegisteredScopes().add(OAuthConstants.REFRESH_TOKEN_SCOPE);
 
         this.setClient(client);
 
@@ -220,39 +217,66 @@ public class JCacheOAuthDataProviderImpl extends JCacheCodeDataProvider {
 
         List<OAuthPermission> permissions = new ArrayList<>();
         for (String requestedScope : requestedScopes) {
-            final OAuthPermission permission;
             if ("read_book".equals(requestedScope)) {
-                permission = new OAuthPermission("read_book");
+                OAuthPermission permission = new OAuthPermission("read_book");
                 permission.setHttpVerbs(Collections.singletonList("GET"));
-                permission.setUris(Collections.singletonList("/secured/bookstore/books/*"));
+                List<String> uris = new ArrayList<>();
+                String partnerAddress = "/secured/bookstore/books/*";
+                uris.add(partnerAddress);
+                permission.setUris(uris);
+
+                permissions.add(permission);
             } else if ("create_book".equals(requestedScope)) {
-                permission = new OAuthPermission("create_book");
+                OAuthPermission permission = new OAuthPermission("create_book");
                 permission.setHttpVerbs(Collections.singletonList("POST"));
-                permission.setUris(Collections.singletonList("/secured/bookstore/books/*"));
+                List<String> uris = new ArrayList<>();
+                String partnerAddress = "/secured/bookstore/books/*";
+                uris.add(partnerAddress);
+                permission.setUris(uris);
+
+                permissions.add(permission);
             } else if ("create_image".equals(requestedScope)) {
-                permission = new OAuthPermission("create_image");
+                OAuthPermission permission = new OAuthPermission("create_image");
                 permission.setHttpVerbs(Collections.singletonList("POST"));
-                permission.setUris(Collections.singletonList("/secured/bookstore/image/*"));
+                List<String> uris = new ArrayList<>();
+                String partnerAddress = "/secured/bookstore/image/*";
+                uris.add(partnerAddress);
+                permission.setUris(uris);
+
+                permissions.add(permission);
             } else if ("read_balance".equals(requestedScope)) {
-                permission = new OAuthPermission("read_balance");
+                OAuthPermission permission = new OAuthPermission("read_balance");
                 permission.setHttpVerbs(Collections.singletonList("GET"));
-                permission.setUris(Collections.singletonList("/partners/balance/*"));
+                List<String> uris = new ArrayList<>();
+                String partnerAddress = "/partners/balance/*";
+                uris.add(partnerAddress);
+                permission.setUris(uris);
+
+                permissions.add(permission);
             } else if ("create_balance".equals(requestedScope)) {
-                permission = new OAuthPermission("create_balance");
+                OAuthPermission permission = new OAuthPermission("create_balance");
                 permission.setHttpVerbs(Collections.singletonList("POST"));
-                permission.setUris(Collections.singletonList("/partners/balance/*"));
+                List<String> uris = new ArrayList<>();
+                String partnerAddress = "/partners/balance/*";
+                uris.add(partnerAddress);
+                permission.setUris(uris);
+
+                permissions.add(permission);
             } else if ("read_data".equals(requestedScope)) {
-                permission = new OAuthPermission("read_data");
+                OAuthPermission permission = new OAuthPermission("read_data");
                 permission.setHttpVerbs(Collections.singletonList("GET"));
-                permission.setUris(Collections.singletonList("/partners/data/*"));
+                List<String> uris = new ArrayList<>();
+                String partnerAddress = "/partners/data/*";
+                uris.add(partnerAddress);
+                permission.setUris(uris);
+
+                permissions.add(permission);
             } else if ("openid".equals(requestedScope)) {
-                permission = new OAuthPermission("openid", "Authenticate user");
-            } else if (OAuthConstants.REFRESH_TOKEN_SCOPE.equals(requestedScope)) {
-                permission = new OAuthPermission(requestedScope);
+                OAuthPermission permission = new OAuthPermission("openid", "Authenticate user");
+                permissions.add(permission);
             } else {
                 throw new OAuthServiceException("invalid_scope");
             }
-            permissions.add(permission);
         }
 
         return permissions;

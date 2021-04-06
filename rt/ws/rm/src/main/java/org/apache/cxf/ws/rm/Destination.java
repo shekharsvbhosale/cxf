@@ -106,7 +106,11 @@ public class Destination extends AbstractEndpoint {
      * response will be sent to the acksTo address onto which the acknowldegment
      * can be piggybacked.
      *
-     * @param message the message to be acknowledged
+     * @param sequenceType the sequenceType object that includes identifier and
+     *            message number (and possibly a lastMessage element) for the
+     *            message to be acknowledged)
+     * @param replyToAddress the replyTo address of the message that carried
+     *            this sequence information
      * @throws SequenceFault if the sequence specified in
      *             <code>sequenceType</code> does not exist
      */

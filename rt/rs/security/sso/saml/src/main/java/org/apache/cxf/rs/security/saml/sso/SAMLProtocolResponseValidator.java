@@ -69,7 +69,7 @@ import org.opensaml.xmlsec.signature.KeyInfo;
 import org.opensaml.xmlsec.signature.Signature;
 import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.opensaml.xmlsec.signature.support.SignatureValidationProvider;
-import org.opensaml.xmlsec.signature.support.impl.provider.ApacheSantuarioSignatureValidationProviderImpl;
+import org.opensaml.xmlsec.signature.support.provider.ApacheSantuarioSignatureValidationProviderImpl;
 
 /**
  * Validate a SAML (1.1 or 2.0) Protocol Response. It validates the Response against the specs,
@@ -343,7 +343,7 @@ public class SAMLProtocolResponseValidator {
             throw new WSSecurityException(WSSecurityException.ErrorCode.FAILURE, "invalidSAMLsecurity");
         }
 
-        final BasicCredential credential;
+        BasicCredential credential = null;
         if (samlKeyInfo.getCerts() != null) {
             credential = new BasicX509Credential(samlKeyInfo.getCerts()[0]);
         } else if (samlKeyInfo.getPublicKey() != null) {
@@ -469,7 +469,7 @@ public class SAMLProtocolResponseValidator {
             throw new WSSecurityException(WSSecurityException.ErrorCode.FAILURE, "invalidSAMLsecurity");
         }
 
-        final PrivateKey key;
+        PrivateKey key = null;
         try {
             key = sigCrypto.getPrivateKey(cert, callbackHandler);
         } catch (Exception ex) {
@@ -478,7 +478,7 @@ public class SAMLProtocolResponseValidator {
         }
         Cipher cipher =
                 EncryptionUtils.initCipherWithKey(keyEncAlgo, digestAlgo, Cipher.DECRYPT_MODE, key);
-        final byte[] decryptedBytes;
+        byte[] decryptedBytes = null;
         try {
             byte[] encryptedBytes = Base64Utility.decode(cipherValue.getTextContent().trim());
             decryptedBytes = cipher.doFinal(encryptedBytes);
@@ -492,7 +492,7 @@ public class SAMLProtocolResponseValidator {
 
         String symKeyAlgo = getEncodingMethodAlgorithm(encryptedDataDOM);
 
-        final byte[] decryptedPayload;
+        byte[] decryptedPayload = null;
         try {
             decryptedPayload = decryptPayload(encryptedDataDOM, decryptedBytes, symKeyAlgo);
         } catch (Exception ex) {
@@ -503,8 +503,9 @@ public class SAMLProtocolResponseValidator {
         // Clean the symmetric key from memory now that we're done with it
         Arrays.fill(decryptedBytes, (byte) 0);
 
+        Document payloadDoc = null;
         try {
-            Document payloadDoc = StaxUtils.read(new InputStreamReader(new ByteArrayInputStream(decryptedPayload),
+            payloadDoc = StaxUtils.read(new InputStreamReader(new ByteArrayInputStream(decryptedPayload),
                                                StandardCharsets.UTF_8));
             return payloadDoc.getDocumentElement();
         } catch (Exception ex) {

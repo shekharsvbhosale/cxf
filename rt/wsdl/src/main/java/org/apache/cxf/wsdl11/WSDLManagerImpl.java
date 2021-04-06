@@ -223,7 +223,7 @@ public class WSDLManagerImpl implements WSDLManager {
                                                                                 catLocator,
                                                                                 bus);
         InputSource src = wsdlLocator.getBaseInputSource();
-        final Definition def;
+        Definition def = null;
         if (src.getByteStream() != null || src.getCharacterStream() != null) {
             final Document doc;
             XMLStreamReader xmlReader = null;
@@ -338,7 +338,6 @@ public class WSDLManagerImpl implements WSDLManager {
         this.disableSchemaCache = disableSchemaCache;
     }
 
-    @Override
     public void removeDefinition(Definition wsdl) {
         synchronized (definitionsMap) {
             List<Object> keys = new ArrayList<>();
@@ -354,23 +353,5 @@ public class WSDLManagerImpl implements WSDLManager {
         }
     }
 
-    @Override
-    public void removeDefinition(String url) {
-        synchronized (definitionsMap) {
-            Definition wsdl = definitionsMap.get(url);
-            if (wsdl != null) {
-                List<Object> keys = new ArrayList<>();
-                for (Map.Entry<Object, Definition> e : definitionsMap.entrySet()) {
-                    if (e.getValue() == wsdl) {
-                        keys.add(e.getKey());
-                    }
-                }
-                for (Object o : keys) {
-                    definitionsMap.remove(o);
-                    schemaCacheMap.remove(o);
-                }
-            }
-        }
-    }
 
 }

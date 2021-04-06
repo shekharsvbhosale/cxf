@@ -47,11 +47,11 @@ public class InboundSseEventProcessor {
     public static final MediaType SERVER_SENT_EVENTS_TYPE = MediaType.valueOf(SERVER_SENT_EVENTS);
 
     private static final Logger LOG = LogUtils.getL7dLogger(InboundSseEventProcessor.class);
-    private static final String COMMENT = ":";
-    private static final String EVENT = "event:";
-    private static final String ID = "id:";
-    private static final String RETRY = "retry:";
-    private static final String DATA = "data:";
+    private static final String COMMENT = ": ";
+    private static final String EVENT = "event: ";
+    private static final String ID = "id: ";
+    private static final String RETRY = "retry: ";
+    private static final String DATA = "data: ";
 
     private final Endpoint endpoint;
     private final InboundSseEventListener listener;
@@ -93,23 +93,16 @@ public class InboundSseEventProcessor {
                         builder = null; /* reset the builder for next event */
                         listener.onNext(event);
                     } else {
-                        // Parsing and interpreting event stream: 
-                        // https://www.w3.org/TR/eventsource/#parsing-an-event-stream
                         if (line.startsWith(EVENT)) {
-                            int beginIndex = findFirstNonSpacePosition(line, EVENT);
-                            builder = getOrCreate(builder).name(line.substring(beginIndex));
+                            builder = getOrCreate(builder).name(line.substring(EVENT.length()));
                         } else if (line.startsWith(ID)) {
-                            int beginIndex = findFirstNonSpacePosition(line, ID);
-                            builder = getOrCreate(builder).id(line.substring(beginIndex));
+                            builder = getOrCreate(builder).id(line.substring(ID.length()));
                         } else if (line.startsWith(COMMENT)) {
-                            int beginIndex = findFirstNonSpacePosition(line, COMMENT);
-                            builder = getOrCreate(builder).comment(line.substring(beginIndex));
+                            builder = getOrCreate(builder).comment(line.substring(COMMENT.length()));
                         } else if (line.startsWith(RETRY)) {
-                            int beginIndex = findFirstNonSpacePosition(line, RETRY);
-                            builder = getOrCreate(builder).reconnectDelay(line.substring(beginIndex));
+                            builder = getOrCreate(builder).reconnectDelay(line.substring(RETRY.length()));
                         } else if (line.startsWith(DATA)) {
-                            int beginIndex = findFirstNonSpacePosition(line, DATA);
-                            builder = getOrCreate(builder).appendData(line.substring(beginIndex));
+                            builder = getOrCreate(builder).data(line.substring(DATA.length()));
                         }
                     }
                     line = reader.readLine();
@@ -162,28 +155,5 @@ public class InboundSseEventProcessor {
      */
     private static Builder getOrCreate(final Builder builder) {
         return (builder == null) ? new InboundSseEventImpl.Builder() : builder;
-    }
-    
-    /**
-     * Remove only leading spaces from the line as per specification, space after 
-     * the colon is optional.
-     * 
-     * The following stream fires two identical events:
-     * 
-     *   data:test
-     *   data: test
-     *   
-     *   This is because the space after the colon is ignored if present.
-     */
-    private static int findFirstNonSpacePosition(final String str, final String prefix) {
-        int beginIndex = prefix.length();
-        
-        for (; beginIndex < str.length(); ++beginIndex) {
-            if (str.charAt(beginIndex) != ' ') {
-                break;
-            }
-        }
-        
-        return beginIndex;
     }
 }

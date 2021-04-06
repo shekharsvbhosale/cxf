@@ -57,8 +57,8 @@ public abstract class AbstractOpenTracingProvider extends AbstractTracingProvide
                     .collect(Collectors.toMap(Map.Entry::getKey, this::getFirstValueOrEmpty))
             ));
         
-        final Span activeSpan;
-        final Scope scope;
+        Span activeSpan = null;
+        Scope scope = null;
         if (parent == null) {
             activeSpan = tracer.buildSpan(buildSpanDescription(uri.getPath(), method)).start(); 
             scope = tracer.scopeManager().activate(activeSpan);
@@ -106,7 +106,6 @@ public abstract class AbstractOpenTracingProvider extends AbstractTracingProvide
             }
 
             span.setTag(Tags.HTTP_STATUS.getKey(), responseStatus);
-            span.setTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER);
             span.finish();
             
             scope.close();

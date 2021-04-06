@@ -41,7 +41,7 @@ public interface MetricsContext {
      * @param timeInNS
      * @param inSize
      * @param outSize
-     * @param exchange
+     * @param fm
      */
-    void stop(long timeInNS, long inSize, long outSize, Exchange exchange);
+    void stop(long timeInNS, long inSize, long outSize, Exchange m);
 }

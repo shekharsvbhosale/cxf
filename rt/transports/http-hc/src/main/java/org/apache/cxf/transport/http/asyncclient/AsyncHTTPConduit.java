@@ -193,6 +193,7 @@ public class AsyncHTTPConduit extends URLConnectionHTTPConduit {
         if (StringUtils.isEmpty(uri.getPath())) {
             //hc needs to have the path be "/"
             uri = uri.resolve("/");
+            addressChanged = true;
         }
 
         message.put(USE_ASYNC, Boolean.TRUE);
@@ -569,7 +570,7 @@ public class AsyncHTTPConduit extends URLConnectionHTTPConduit {
             }
 
 
-            if (sslURL != null && isSslTargetDifferent(sslURL, url)) {
+            if (sslURL != null && !sslURL.equals(url)) {
                 sslURL = null;
                 sslState = null;
                 session = null;
@@ -596,12 +597,6 @@ public class AsyncHTTPConduit extends URLConnectionHTTPConduit {
                       new CXFHttpAsyncResponseConsumer(this, inbuf, responseCallback),
                       ctx,
                       callback);
-        }
-
-        private boolean isSslTargetDifferent(URI lastURL, URI url) {
-            return !lastURL.getScheme().equals(url.getScheme())
-                    || !lastURL.getHost().equals(url.getHost())
-                    || lastURL.getPort() != url.getPort();
         }
 
         protected boolean retrySetHttpResponse(HttpResponse r) {
@@ -899,7 +894,7 @@ public class AsyncHTTPConduit extends URLConnectionHTTPConduit {
             return sslContext;
         }
 
-        final SSLContext ctx;
+        SSLContext ctx = null;
         if (tlsClientParameters.getSslContext() != null) {
             ctx = tlsClientParameters.getSslContext();
         } else {

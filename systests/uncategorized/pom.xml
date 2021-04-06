@@ -21,7 +21,7 @@
     <parent>
         <artifactId>cxf-parent</artifactId>
         <groupId>org.apache.cxf</groupId>
-        <version>3.5.0-SNAPSHOT</version>
+        <version>3.4.0-SNAPSHOT</version>
         <relativePath>../../parent/pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -130,6 +130,20 @@
             </plugin>
         </plugins>
     </build>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.jacorb</groupId>
+                <artifactId>jacorb</artifactId>
+                <version>3.7</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jacorb</groupId>
+                <artifactId>jacorb-omgapi</artifactId>
+                <version>3.7</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.apache.cxf</groupId>
@@ -258,11 +272,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.derby</groupId>
-            <artifactId>derbytools</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-aop</artifactId>
             <version>${cxf.spring.version}</version>
@@ -325,6 +334,10 @@
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
+            <artifactId>spring-jms</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
             <artifactId>spring-tx</artifactId>
         </dependency>
         <dependency>
@@ -343,6 +356,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-acl</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
@@ -350,6 +368,11 @@
         <dependency>
             <groupId>org.apache.geronimo.specs</groupId>
             <artifactId>geronimo-j2ee-connector_1.5_spec</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.ant</groupId>
+            <artifactId>ant</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.sun.xml.fastinfoset</groupId>
@@ -366,13 +389,23 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>net.java.dev.msv</groupId>
+            <artifactId>msv-core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>net.java.dev.msv</groupId>
+                    <artifactId>msv-testharness</artifactId>
+                </exclusion>
+            </exclusions>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.qi4j.library</groupId>
             <artifactId>org.qi4j.library.circuitbreaker</artifactId>
         </dependency>
         <dependency>
             <groupId>org.jacorb</groupId>
             <artifactId>jacorb</artifactId>
-            <version>${cxf.jacorb.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

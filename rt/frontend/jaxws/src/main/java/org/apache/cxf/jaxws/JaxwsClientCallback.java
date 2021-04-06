@@ -39,12 +39,10 @@ class JaxwsClientCallback<T> extends ClientCallback {
     }
     public void handleResponse(Map<String, Object> ctx, Object[] res) {
         context = ctx;
-        
-        // The handler has to be called *before* future completes
+        result = res;
         if (handler != null) {
             handler.handleResponse(new Response<T>() {
-                protected boolean cancelled;
-                
+
                 public Map<String, Object> getContext() {
                     return context;
                 }
@@ -56,13 +54,13 @@ class JaxwsClientCallback<T> extends ClientCallback {
 
                 @SuppressWarnings("unchecked")
                 public T get() throws InterruptedException, ExecutionException {
-                    return (T)res[0];
+                    return (T)result[0];
                 }
 
                 @SuppressWarnings("unchecked")
                 public T get(long timeout, TimeUnit unit) throws InterruptedException,
                     ExecutionException, TimeoutException {
-                    return (T)res[0];
+                    return (T)result[0];
                 }
 
                 public boolean isCancelled() {
@@ -75,9 +73,7 @@ class JaxwsClientCallback<T> extends ClientCallback {
 
             });
         }
-        
-        delegate.complete(res);
-        
+        done = true;
         synchronized (this) {
             notifyAll();
         }
@@ -86,10 +82,9 @@ class JaxwsClientCallback<T> extends ClientCallback {
     @Override
     public void handleException(Map<String, Object> ctx, final Throwable ex) {
         context = ctx;
-        
+        exception = mapThrowable(ex);
         if (handler != null) {
             handler.handleResponse(new Response<T>() {
-                protected boolean cancelled;
 
                 public Map<String, Object> getContext() {
                     return context;
@@ -120,10 +115,7 @@ class JaxwsClientCallback<T> extends ClientCallback {
 
             });
         }
-
-        // The handler has to be called *before* future completes
-        delegate.completeExceptionally(mapThrowable(ex));
-        
+        done = true;
         synchronized (this) {
             notifyAll();
         }

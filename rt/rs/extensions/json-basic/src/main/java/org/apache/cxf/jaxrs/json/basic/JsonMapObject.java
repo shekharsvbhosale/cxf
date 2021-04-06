@@ -21,22 +21,18 @@ package org.apache.cxf.jaxrs.json.basic;
 
 import java.io.Serializable;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 import org.apache.cxf.helpers.CastUtils;
 
 public class JsonMapObject implements Serializable {
     private static final long serialVersionUID = 2620765136328623790L;
-
-    private final Map<String, Object> values;
-    private Map<String, Integer> updateCount;
-
+    Map<String, Integer> updateCount;
+    Map<String, Object> values = new LinkedHashMap<>();
     public JsonMapObject() {
-        this(new LinkedHashMap<>());
+
     }
 
     public JsonMapObject(Map<String, Object> values) {
@@ -44,12 +40,17 @@ public class JsonMapObject implements Serializable {
     }
 
     public void setProperty(String name, Object value) {
-        if (null != values.put(name, value instanceof JsonMapObject ? ((JsonMapObject)value).asMap() : value)) {
+        if (values.containsKey(name)) {
             if (updateCount == null) {
-                updateCount = new HashMap<>();
+                updateCount = new LinkedHashMap<>();
             }
-            updateCount.compute(name, (k, v) -> (v == null) ? 2 : v + 1);
+            final Integer count = updateCount.getOrDefault(name, 1) + 1;
+            updateCount.put(name, count);
         }
+        if (value instanceof JsonMapObject) {
+            value = ((JsonMapObject)value).asMap();
+        }
+        values.put(name, value);
     }
 
     public boolean containsProperty(String name) {
@@ -80,30 +81,23 @@ public class JsonMapObject implements Serializable {
         return values;
     }
     public Integer getIntegerProperty(String name) {
-        Number number = getNumberProperty(name, Integer::valueOf);
-        if (number != null) {
-            return number instanceof Integer ? (Integer) number : Integer.valueOf(number.intValue());
+        Object value = getProperty(name);
+        if (value != null) {
+            return value instanceof Integer ? (Integer)value : Integer.parseInt(value.toString());
         }
         return null;
     }
     public Long getLongProperty(String name) {
-        Number number = getNumberProperty(name, Long::valueOf);
-        if (number != null) {
-            return number instanceof Long ? (Long) number : Long.valueOf(number.longValue());
-        }
-        return null;
-    }
-    private Number getNumberProperty(String name, Function<String, Number> converter) {
         Object value = getProperty(name);
         if (value != null) {
-            return value instanceof Number ? (Number) value : converter.apply(value.toString());
+            return value instanceof Long ? (Long)value : Long.parseLong(value.toString());
         }
         return null;
     }
     public Boolean getBooleanProperty(String name) {
         Object value = getProperty(name);
         if (value != null) {
-            return value instanceof Boolean ? (Boolean)value : Boolean.valueOf(value.toString());
+            return value instanceof Boolean ? (Boolean)value : Boolean.parseBoolean(value.toString());
         }
         return null;
     }
@@ -134,15 +128,15 @@ public class JsonMapObject implements Serializable {
     }
 
     public boolean equals(Object obj) {
-        return this == obj || obj instanceof JsonMapObject && ((JsonMapObject)obj).values.equals(this.values);
+        return obj instanceof JsonMapObject && ((JsonMapObject)obj).values.equals(this.values);
     }
-
+    
     public int size() {
         return values.size();
     }
     
     public Map<String, Object> getUpdateCount() {
-        return updateCount == null ? null : Collections.unmodifiableMap(updateCount);
+        return updateCount == null ? null : Collections.<String, Object>unmodifiableMap(updateCount);
     }
     
     public Object removeProperty(String name) {

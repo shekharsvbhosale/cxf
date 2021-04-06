@@ -244,7 +244,7 @@ final class InternalContextUtils {
 
     /**
      * Get the Executor for this invocation.
-     * @param message
+     * @param endpoint
      * @return
      */
     private static Executor getExecutor(final Message message) {

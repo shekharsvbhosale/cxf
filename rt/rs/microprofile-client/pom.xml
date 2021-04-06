@@ -27,7 +27,7 @@
     <parent>
         <groupId>org.apache.cxf</groupId>
         <artifactId>cxf-parent</artifactId>
-        <version>3.5.0-SNAPSHOT</version>
+        <version>3.4.0-SNAPSHOT</version>
         <relativePath>../../../parent/pom.xml</relativePath>
     </parent>
     <properties>
@@ -68,11 +68,6 @@
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-rs-client</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>org.reactivestreams</groupId>
-          <artifactId>reactive-streams</artifactId>
-          <version>${cxf.reactivestreams.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.cxf</groupId>
@@ -117,8 +112,8 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>jakarta.json</groupId>
-            <artifactId>jakarta.json-api</artifactId>
+            <groupId>javax.json</groupId>
+            <artifactId>javax.json-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.microprofile.rest.client</groupId>
@@ -136,12 +131,12 @@
             <artifactId>microprofile-config-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>jakarta.annotation</groupId>
-            <artifactId>jakarta.annotation-api</artifactId>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>jakarta.enterprise</groupId>
-            <artifactId>jakarta.enterprise.cdi-api</artifactId>
+            <groupId>javax.enterprise</groupId>
+            <artifactId>cdi-api</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

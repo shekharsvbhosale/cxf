@@ -89,8 +89,6 @@ import org.apache.cxf.common.util.PropertyUtils;
 import org.apache.cxf.common.util.ReflectionUtil;
 import org.apache.cxf.common.util.StringUtils;
 import org.apache.cxf.helpers.DOMUtils;
-import org.apache.cxf.helpers.IOUtils;
-import org.apache.cxf.helpers.LoadingByteArrayOutputStream;
 import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.io.CacheAndWriteOutputStream;
 import org.apache.cxf.io.ReaderInputStream;
@@ -183,12 +181,12 @@ public final class JAXRSUtils {
 
     public static List<PathSegment> getPathSegments(String thePath, boolean decode,
                                                     boolean ignoreLastSlash) {
-        List<PathSegment> theList =
+        List<PathSegment> theList = 
             Arrays.asList(thePath.split("/")).stream()
             .filter(StringUtils.notEmpty())
             .map(p -> new PathSegmentImpl(p, decode))
             .collect(Collectors.toList());
-
+        
         int len = thePath.length();
         if (len > 0 && thePath.charAt(len - 1) == '/') {
             String value = ignoreLastSlash ? "" : "/";
@@ -200,7 +198,7 @@ public final class JAXRSUtils {
     private static String[] getUserMediaTypes(Object provider, boolean consumes) {
         String[] values = null;
         if (AbstractConfigurableProvider.class.isAssignableFrom(provider.getClass())) {
-            final List<String> types;
+            List<String> types = null;
             if (consumes) {
                 types = ((AbstractConfigurableProvider)provider).getConsumeMediaTypes();
             } else {
@@ -280,7 +278,7 @@ public final class JAXRSUtils {
         for (Field f : bri.getParameterFields()) {
             Parameter p = ResourceUtils.getParameter(0, f.getAnnotations(),
                                                      f.getType());
-            final Object o;
+            Object o = null;
 
             if (p.getType() == ParameterType.BEAN) {
                 o = createBeanParamValue(message, f.getType(), ori);
@@ -403,7 +401,7 @@ public final class JAXRSUtils {
             LOG.fine(() -> new org.apache.cxf.common.i18n.Message("START_OPER_MATCH",
                                                                   BUNDLE,
                                                                   resource.getServiceClass().getName()).toString());
-
+            
             for (OperationResourceInfo ori : resource.getMethodDispatcher().getOperationResourceInfos()) {
                 boolean added = false;
 
@@ -517,8 +515,8 @@ public final class JAXRSUtils {
 
     }
 
-
-
+    
+    
     public static Level getExceptionLogLevel(Message message, Class<? extends WebApplicationException> exClass) {
         Level logLevel = null;
         Object logLevelProp = message.get(exClass.getName() + ".log.level");
@@ -587,7 +585,7 @@ public final class JAXRSUtils {
     private static Supplier<String> matchMessageLogSupplier(OperationResourceInfo ori,
         String path, String httpMethod, MediaType requestType, List<MediaType> acceptContentTypes,
         boolean added) {
-        org.apache.cxf.common.i18n.Message errorMsg = added
+        org.apache.cxf.common.i18n.Message errorMsg = added 
             ? new org.apache.cxf.common.i18n.Message("OPER_SELECTED_POSSIBLY",
                                                    BUNDLE, ori.getMethodToInvoke().getName())
             : new org.apache.cxf.common.i18n.Message("OPER_NO_MATCH",
@@ -651,7 +649,7 @@ public final class JAXRSUtils {
     public static List<MediaType> getConsumeTypes(Consumes cm) {
         return getConsumeTypes(cm, Collections.singletonList(ALL_TYPES));
     }
-
+ 
     public static List<MediaType> getConsumeTypes(Consumes cm, List<MediaType> defaultTypes) {
         return cm == null ? defaultTypes
                           : getMediaTypes(cm.value());
@@ -660,7 +658,7 @@ public final class JAXRSUtils {
     public static List<MediaType> getProduceTypes(Produces pm) {
         return getProduceTypes(pm, Collections.singletonList(ALL_TYPES));
     }
-
+ 
     public static List<MediaType> getProduceTypes(Produces pm, List<MediaType> defaultTypes) {
         return pm == null ? defaultTypes
                           : getMediaTypes(pm.value());
@@ -716,25 +714,14 @@ public final class JAXRSUtils {
         }
         return size1 == size2 ? 0 : size1 < size2 ? -1 : 1;
     }
-
+    
     public static int compareMethodParameters(Class<?>[] paraList1, Class<?>[] paraList2) {
         int size1 = paraList1.length;
         int size2 = paraList2.length;
         for (int i = 0; i < size1 && i < size2; i++) {
-            if (!paraList1[i].equals(paraList2[i])) {
-                // Handling the case when bridge / synthetic methods may be taken
-                // into account (f.e. when service implements generic interfaces or
-                // extends the generic classes).
-                if (paraList1[i].isAssignableFrom(paraList2[i])) {
-                    return 1;
-                } else if (paraList2[i].isAssignableFrom(paraList1[i])) {
-                    return -1;
-                } else {
-                    int result = paraList1[i].getName().compareTo(paraList2[i].getName());
-                    if (result != 0) {
-                        return result;
-                    }
-                }
+            int result = paraList1[i].getName().compareTo(paraList2[i].getName());
+            if (result != 0) {
+                return result;
             }
         }
         return size1 == size2 ? 0 : size1 < size2 ? -1 : 1;
@@ -820,7 +807,7 @@ public final class JAXRSUtils {
                 tuple[i].param = parameterTypes[i];
                 tuple[i].genericParam = InjectionUtils.processGenericTypeIfNeeded(
                     ori.getClassResourceInfo().getServiceClass(), tuple[i].param, genericParameterTypes[i]);
-                tuple[i].param = InjectionUtils.updateParamClassToTypeIfNeeded(tuple[i].param,
+                tuple[i].param = InjectionUtils.updateParamClassToTypeIfNeeded(tuple[i].param, 
                                                                                tuple[i].genericParam);
                 tuple[i].paramAnns = anns == null ? EMPTY_ANNOTATIONS : anns[i];
             } else {
@@ -829,8 +816,8 @@ public final class JAXRSUtils {
                 tuple[i].paramAnns = EMPTY_ANNOTATIONS;
             }
             if (paramsInfo.get(i).getType() == ParameterType.REQUEST_BODY) {
-                params[i] = processRequestBodyParameter(tuple[i].param,
-                                                        tuple[i].genericParam,
+                params[i] = processRequestBodyParameter(tuple[i].param, 
+                                                        tuple[i].genericParam, 
                                                         tuple[i].paramAnns,
                                                         message,
                                                         ori);
@@ -865,6 +852,14 @@ public final class JAXRSUtils {
                                                       OperationResourceInfo ori)
         throws IOException, WebApplicationException {
 
+        InputStream is = message.getContent(InputStream.class);
+        if (is == null) {
+            Reader reader = message.getContent(Reader.class);
+            if (reader != null) {
+                is = new ReaderInputStream(reader);
+            }
+        }
+
         if (parameterClass == AsyncResponse.class) {
             return new AsyncResponseImpl(message);
         }
@@ -876,33 +871,11 @@ public final class JAXRSUtils {
             contentType = defaultCt == null ? MediaType.APPLICATION_OCTET_STREAM : defaultCt;
         }
 
-        final MediaType contentTypeMt = toMediaType(contentType);
-        final MessageContext mc = new MessageContextImpl(message);
-
-        MediaType mt = mc.getHttpHeaders().getMediaType();
-        if (mt == null) {
-            mt = contentTypeMt;
-        }
-
-        InputStream is;
-        if (mt.isCompatible(MediaType.APPLICATION_FORM_URLENCODED_TYPE)) {
-            is = copyAndGetEntityStream(message);
-        } else {
-            is = message.getContent(InputStream.class);
-        }
-
-        if (is == null) {
-            Reader reader = message.getContent(Reader.class);
-            if (reader != null) {
-                is = new ReaderInputStream(reader);
-            }
-        }
-
         return readFromMessageBody(parameterClass,
                                    parameterType,
                                    parameterAnns,
                                    is,
-                                   contentTypeMt,
+                                   toMediaType(contentType),
                                    ori,
                                    message);
     }
@@ -1034,9 +1007,8 @@ public final class JAXRSUtils {
             m.put(FormUtils.FORM_PARAM_MAP, params);
 
             if (mt == null || mt.isCompatible(MediaType.APPLICATION_FORM_URLENCODED_TYPE)) {
-                InputStream entityStream = copyAndGetEntityStream(m);
                 String enc = HttpUtils.getEncoding(mt, StandardCharsets.UTF_8.name());
-                String body = FormUtils.readBody(entityStream, enc);
+                String body = FormUtils.readBody(m.getContent(InputStream.class), enc);
                 FormUtils.populateMapFromStringOrHttpRequest(params, m, body, enc, decode);
             } else {
                 if ("multipart".equalsIgnoreCase(mt.getType())
@@ -1236,7 +1208,7 @@ public final class JAXRSUtils {
         return createContextValue(m, genericType, clazz);
     }
 
-
+    
     //CHECKSTYLE:OFF
     private static Object readFromUriParam(Message m,
                                            String parameterName,
@@ -1290,6 +1262,7 @@ public final class JAXRSUtils {
 
     /**
      * Retrieve map of query parameters from the passed in message
+     * @param message
      * @return a Map of query parameters.
      */
     public static MultivaluedMap<String, String> getStructuredParams(String query,
@@ -1330,10 +1303,8 @@ public final class JAXRSUtils {
                     value = index < part.length() ? part.substring(index + 1) : "";
                 }
                 if (valueIsCollection) {
-                    if (value != null) {
-                        for (String s : value.split(",")) {
-                            addStructuredPartToMap(queries, sep, name, s, decode, decodePlus);
-                        }
+                    for (String s : value.split(",")) {
+                        addStructuredPartToMap(queries, sep, name, s, decode, decodePlus);
                     }
                 } else {
                     addStructuredPartToMap(queries, sep, name, value, decode, decodePlus);
@@ -1449,12 +1420,11 @@ public final class JAXRSUtils {
         throws WebApplicationException, IOException {
 
         OutputStream entityStream = message.getContent(OutputStream.class);
-        if ("org.apache.cxf.jaxrs.reactivestreams.server.StreamingAsyncSubscriber$StreamingResponseImpl".equals(
-            entity.getClass().getName())) {
+        if (entity.getClass().getName().equals("org.apache.cxf.jaxrs.reactivestreams.server.StreamingAsyncSubscriber$StreamingResponseImpl")) {
             //cache the OutputStream when it's reactive response
             entityStream = new CacheAndWriteOutputStream(entityStream);
         }
-
+            
         if (writers.size() > 1) {
             WriterInterceptor first = writers.remove(0);
             WriterInterceptorContext context = new WriterInterceptorContextImpl(entity,
@@ -1538,9 +1508,8 @@ public final class JAXRSUtils {
     /**
      * intersect two mime types
      *
-     * @param requiredMediaTypes
-     * @param userMediaTypes
-     * @param addRequiredParamsIfPossible
+     * @param mimeTypesA
+     * @param mimeTypesB
      * @return return a list of intersected mime types
      */
     public static List<MediaType> intersectMimeTypes(List<MediaType> requiredMediaTypes,
@@ -1592,7 +1561,7 @@ public final class JAXRSUtils {
     }
 
     private static String stripDoubleQuotesIfNeeded(String value) {
-        if (value != null && value.startsWith("\"")
+        if (value != null && value.startsWith("\"") 
             && value.endsWith("\"") && value.length() > 1) {
             value = value.substring(1,  value.length() - 1);
         }
@@ -1808,7 +1777,7 @@ public final class JAXRSUtils {
     public static ResponseBuilder fromResponse(Response response) {
         return fromResponse(response, true);
     }
-
+    
     public static ResponseBuilder fromResponse(Response response, boolean copyEntity) {
         ResponseBuilder rb = toResponseBuilder(response.getStatus());
         if (copyEntity) {
@@ -1863,7 +1832,7 @@ public final class JAXRSUtils {
         }
 
 
-        final List<String> values;
+        List<String> values = null;
         if (params.size() <= 1) {
             values = Collections.emptyList();
         } else {
@@ -1875,7 +1844,7 @@ public final class JAXRSUtils {
         stack.push(new MethodInvocationInfo(ori, realClass, values));
     }
 
-    private static void addTemplateVarValues(List<String> values,
+    private static void addTemplateVarValues(List<String> values, 
                                              MultivaluedMap<String, String> params,
                                              URITemplate template) {
         if (template != null) {
@@ -1895,114 +1864,5 @@ public final class JAXRSUtils {
         LOG.severe(errorMessage);
         return errorMessage;
     }
-    
-    /**
-     * Get path URI template, combining base path, class & method & subresource templates 
-     * @param message message instance
-     * @param cri class resource info
-     * @param ori operation resource info
-     * @param subOri operation subresource info
-     * @return the URI template for the method in question
-     */
-    public static String getUriTemplate(Message message, ClassResourceInfo cri, OperationResourceInfo ori, 
-            OperationResourceInfo subOri) {
-        final String template = getUriTemplate(message, cri, ori);
-        final String methodPathTemplate = getUriTemplate(subOri);
-        return combineUriTemplates(template, methodPathTemplate);
-    }
 
-    /**
-     * Get path URI template, combining base path, class & method templates 
-     * @param message message instance
-     * @param cri class resource info
-     * @param ori operation resource info
-     * @return the URI template for the method in question
-     */
-    public static String getUriTemplate(Message message, ClassResourceInfo cri, OperationResourceInfo ori) {
-        final String basePath = (String)message.get(Message.BASE_PATH);
-        final String classPathTemplate = getUriTemplate(cri);
-        final String methodPathTemplate = getUriTemplate(ori);
-
-        // The application path (@ApplicationPath) is incorporated into Message.BASE_PATH,
-        // since it is part of the address.
-        String template = basePath;
-        if (StringUtils.isEmpty(template)) {
-            template = "/";
-        } else if (!template.startsWith("/")) {
-            template = "/" + template;
-        }
-        
-        template = combineUriTemplates(template, classPathTemplate);
-        return combineUriTemplates(template, methodPathTemplate);
-    }
-    
-    /**
-     * Gets the URI template of the operation from its resource info
-     * to assemble final URI template 
-     * @param ori operation resource info
-     * @return URI template
-     */
-    private static String getUriTemplate(OperationResourceInfo ori) {
-        final URITemplate template = ori.getURITemplate();
-        if (template != null) {
-            return template.getValue();
-        } else {
-            return null;
-        }
-    }
-    
-    /**
-     * Goes over sub-resource class resource templates (through parent chain) if necessary
-     * to assemble final URI template 
-     * @param cri root or subresource class resource info
-     * @return URI template chain
-     */
-    private static String getUriTemplate(ClassResourceInfo cri) {
-        final URITemplate template = cri.getURITemplate();
-        if (template != null) {
-            return template.getValue();
-        } else if (cri.getParent() != null) { /* probably subresource */
-            return getUriTemplate(cri.getParent());
-        } else {
-            return null; /* should not happen */
-        }
-    }
-    
-    /**
-     * Combines two URI templates together
-     * @param parent parent URI template
-     * @param child child URI template
-     * @return the URI template combined from the parent and child
-     */
-    private static String combineUriTemplates(final String parent, final String child) {
-        if (StringUtils.isEmpty(child)) {
-            return parent;
-        }
-
-        // The way URI templates are normalized in org.apache.cxf.jaxrs.model.URITemplate:
-        //  - empty or null become "/"
-        //  - "/" is added at the start if not present 
-        if ("/".equals(parent)) {
-            return child;
-        } else if ("/".equals(child)) {
-            return parent;
-        } else if (parent.endsWith("/")) {
-            // Remove only last slash
-            return parent.replaceAll("/$", "") + child;
-        } else {
-            return parent + child;
-        }
-    }
-
-    // copy the input stream so that it is not inadvertently closed
-    private static InputStream copyAndGetEntityStream(Message m) {
-        LoadingByteArrayOutputStream baos = new LoadingByteArrayOutputStream(); 
-        try (InputStream in = m.getContent(InputStream.class)) {
-            IOUtils.copy(in, baos);
-        } catch (IOException e) {
-            throw ExceptionUtils.toInternalServerErrorException(e, null);
-        }
-        m.setContent(InputStream.class, baos.createInputStream());
-        return baos.createInputStream();
-    }
 }

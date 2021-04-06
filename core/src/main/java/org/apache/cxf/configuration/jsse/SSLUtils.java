@@ -19,6 +19,7 @@
 
 package org.apache.cxf.configuration.jsse;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -170,13 +171,13 @@ public final class SSLUtils {
 
     public static KeyManager[] loadKeyStore(KeyManagerFactory kmf,
                                                KeyStore ks,
-                                               InputStream is,
+                                               ByteArrayInputStream bin,
                                                String keyStoreLocation,
                                                String keyStorePassword,
                                                Logger log) {
         KeyManager[] keystoreManagers = null;
         try {
-            ks.load(is, keyStorePassword.toCharArray());
+            ks.load(bin, keyStorePassword.toCharArray());
             kmf.init(ks, keyStorePassword.toCharArray());
             keystoreManagers = kmf.getKeyManagers();
             LogUtils.log(log,

@@ -37,6 +37,7 @@ public class BeanValidationFeature extends DelegatingFeature<BeanValidationFeatu
         delegate.setProvider(provider);
     }
 
+    @Provider(value = Type.Feature, scope = Scope.Server)
     public static class Portable implements AbstractPortableFeature {
 
         private BeanValidationProvider validationProvider;

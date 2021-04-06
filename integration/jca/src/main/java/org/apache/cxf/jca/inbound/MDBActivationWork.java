@@ -100,7 +100,7 @@ public class MDBActivationWork implements Work {
     }
 
     /**
-     * @param invoker
+     * @param endpoint
      * @param classLoader
      */
     private void activate(MDBInvoker invoker, ClassLoader classLoader) {
@@ -163,7 +163,7 @@ public class MDBActivationWork implements Work {
     private Server createServer(Bus bus, Class<?> serviceClass, MDBInvoker invoker) {
 
         // create server bean factory
-        final ServerFactoryBean factory;
+        ServerFactoryBean factory = null;
         if (serviceClass != null && EndpointUtils.hasWebServiceAnnotation(serviceClass)) {
             factory = new JaxWsServerFactoryBean();
         } else {
@@ -205,7 +205,7 @@ public class MDBActivationWork implements Work {
         // Don't start the server yet
         factory.setStart(false);
 
-        final Server retval;
+        Server retval = null;
         if (factory instanceof JaxWsServerFactoryBean) {
             retval = createServerFromJaxwsEndpoint((JaxWsServerFactoryBean)factory);
         } else {
@@ -233,6 +233,10 @@ public class MDBActivationWork implements Work {
         return endpoint.getServer(factory.getAddress());
     }
 
+    /**
+     * @param str
+     * @return
+     */
     private List<String> getListOfString(String str) {
         if (str == null) {
             return null;
@@ -241,8 +245,12 @@ public class MDBActivationWork implements Work {
         return Arrays.asList(str.split(","));
     }
 
+    /**
+     * @param endpoint
+     * @return
+     */
     private MDBInvoker createInvoker() {
-        final MDBInvoker answer;
+        MDBInvoker answer = null;
         if (spec instanceof DispatchMDBActivationSpec) {
             answer = new DispatchMDBInvoker(endpointFactory,
                     ((DispatchMDBActivationSpec)spec).getTargetBeanJndiName());

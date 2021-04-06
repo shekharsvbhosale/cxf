@@ -32,10 +32,9 @@ import org.apache.cxf.common.util.StringUtils;
 
 public class JwsJsonOutputStream extends FilterOutputStream {
     private boolean flushed;
-    private final List<String> protectedHeaders;
-    private final List<JwsSignature> signatures;
-    private final ExecutorService executor;
-
+    private List<String> protectedHeaders;
+    private List<JwsSignature> signatures;
+    private ExecutorService executor;
     public JwsJsonOutputStream(OutputStream out,
                                List<String> protectedHeaders,
                                List<JwsSignature> signatures) {

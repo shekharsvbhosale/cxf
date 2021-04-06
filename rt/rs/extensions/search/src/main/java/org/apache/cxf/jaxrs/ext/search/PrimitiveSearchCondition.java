@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.cxf.common.util.StringUtils;
 import org.apache.cxf.jaxrs.utils.InjectionUtils;
 
 public class PrimitiveSearchCondition<T> implements SearchCondition<T> {
@@ -192,9 +191,6 @@ public class PrimitiveSearchCondition<T> implements SearchCondition<T> {
         if (rval.charAt(0) == '*') {
             starts = true;
             rval = rval.substring(1);
-            if (rval.isEmpty()) {
-                throw new SearchParseException("A single wildcard is not a valid search condition");
-            }
         }
         if (rval.charAt(rval.length() - 1) == '*') {
             ends = true;
@@ -221,7 +217,12 @@ public class PrimitiveSearchCondition<T> implements SearchCondition<T> {
             name = name.substring(index + 1);
             if (value != null && !InjectionUtils.isPrimitive(value.getClass())) {
                 try {
-                    String nextPart = StringUtils.capitalize(names[1]);
+                    String nextPart = names[1];
+                    if (nextPart.length() == 1) {
+                        nextPart = nextPart.toUpperCase();
+                    } else {
+                        nextPart = Character.toUpperCase(nextPart.charAt(0)) + nextPart.substring(1);
+                    }
                     Method m = value.getClass().getMethod("get" + nextPart, new Class[]{});
                     value = m.invoke(value, new Object[]{});
                 } catch (Throwable ex) {

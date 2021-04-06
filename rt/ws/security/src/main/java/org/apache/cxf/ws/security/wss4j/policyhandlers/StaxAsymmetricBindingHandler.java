@@ -48,6 +48,7 @@ import org.apache.wss4j.policy.model.AlgorithmSuite;
 import org.apache.wss4j.policy.model.AsymmetricBinding;
 import org.apache.wss4j.policy.model.IssuedToken;
 import org.apache.wss4j.policy.model.SamlToken;
+import org.apache.wss4j.policy.model.SecureConversationToken;
 import org.apache.wss4j.policy.model.SecurityContextToken;
 import org.apache.wss4j.policy.model.SpnegoContextToken;
 import org.apache.wss4j.policy.model.X509Token;
@@ -276,8 +277,8 @@ public class StaxAsymmetricBindingHandler extends AbstractStaxBindingHandler {
                 }
             }
 
-            final List<SecurePart> encrParts;
-            final List<SecurePart> sigParts;
+            List<SecurePart> encrParts = null;
+            List<SecurePart> sigParts = null;
             try {
                 encrParts = getEncryptedParts();
                 //Signed parts are determined before encryption because encrypted signed headers
@@ -355,9 +356,9 @@ public class StaxAsymmetricBindingHandler extends AbstractStaxBindingHandler {
 
             // Action
             WSSSecurityProperties properties = getProperties();
-            WSSConstants.Action actionToPerform = XMLSecurityConstants.ENCRYPTION;
+            WSSConstants.Action actionToPerform = XMLSecurityConstants.ENCRYPT;
             if (recToken.getToken().getDerivedKeys() == DerivedKeys.RequireDerivedKeys) {
-                actionToPerform = WSSConstants.ENCRYPTION_WITH_DERIVED_KEY;
+                actionToPerform = WSSConstants.ENCRYPT_WITH_DERIVED_KEY;
             }
             properties.addAction(actionToPerform);
 
@@ -443,7 +444,8 @@ public class StaxAsymmetricBindingHandler extends AbstractStaxBindingHandler {
                 new SecurePart(new QName(WSSConstants.NS_WSSE10, "BinarySecurityToken"), Modifier.Element);
             properties.addSignaturePart(securePart);
         } else if (sigToken instanceof IssuedToken || sigToken instanceof SecurityContextToken
-            || sigToken instanceof SpnegoContextToken || sigToken instanceof SamlToken) {
+            || sigToken instanceof SecureConversationToken || sigToken instanceof SpnegoContextToken
+            || sigToken instanceof SamlToken) {
             properties.setIncludeSignatureToken(false);
         }
 

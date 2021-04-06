@@ -20,7 +20,6 @@
 package org.apache.cxf.jaxrs.utils;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.annotation.Annotation;
@@ -560,13 +559,13 @@ public final class ResourceUtils {
         return null;
     }
 
-    public static InputStream getResourceStream(String loc, Bus bus) throws IOException {
+    public static InputStream getResourceStream(String loc, Bus bus) throws Exception {
         URL url = getResourceURL(loc, bus);
         return url == null ? null : url.openStream();
     }
 
-    public static URL getResourceURL(String loc, Bus bus) throws IOException {
-        URL url;
+    public static URL getResourceURL(String loc, Bus bus) throws Exception {
+        URL url = null;
         if (loc.startsWith(CLASSPATH_PREFIX)) {
             String path = loc.substring(CLASSPATH_PREFIX.length());
             url = ResourceUtils.getClasspathResourceURL(path, ResourceUtils.class, bus);
@@ -610,7 +609,7 @@ public final class ResourceUtils {
         return null;
     }
 
-    public static Properties loadProperties(String propertiesLocation, Bus bus) throws IOException {
+    public static Properties loadProperties(String propertiesLocation, Bus bus) throws Exception {
         Properties props = new Properties();
         try (InputStream is = getResourceStream(propertiesLocation, bus)) {
             props.load(is);
@@ -944,7 +943,7 @@ public final class ResourceUtils {
         bean.setStaticSubresourceResolution(staticSubresourceResolution);
         bean.setResourceClasses(resourceClasses);
         bean.setProviders(providers);
-        bean.getFeatures().addAll(features);
+        bean.setFeatures(features);
         for (Map.Entry<Class<?>, ResourceProvider> entry : map.entrySet()) {
             bean.setResourceProvider(entry.getKey(), entry.getValue());
         }

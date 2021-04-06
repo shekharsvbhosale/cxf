@@ -31,6 +31,7 @@ import javax.xml.ws.BindingProvider;
 import org.apache.cxf.BusFactory;
 import org.apache.cxf.endpoint.Client;
 import org.apache.cxf.frontend.ClientProxy;
+import org.apache.cxf.systest.ws.common.SecurityTestUtil;
 import org.apache.cxf.systest.ws.wssec10.server.Server;
 import org.apache.cxf.systest.ws.wssec10.server.StaxServer;
 import org.apache.cxf.test.TestUtilities;
@@ -133,6 +134,7 @@ public class WSSecurity10Test extends AbstractBusClientServerTestBase {
 
     @org.junit.AfterClass
     public static void cleanup() throws Exception {
+        SecurityTestUtil.cleanup();
         stopAllServers();
     }
 

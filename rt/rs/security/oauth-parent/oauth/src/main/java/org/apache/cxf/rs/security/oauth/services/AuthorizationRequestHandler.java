@@ -63,9 +63,10 @@ import org.apache.cxf.security.SecurityContext;
 public class AuthorizationRequestHandler {
 
     private static final Logger LOG = LogUtils.getL7dLogger(AuthorizationRequestHandler.class);
-    private static final String[] REQUIRED_PARAMETERS = {
-        OAuth.OAUTH_TOKEN
-    };
+    private static final String[] REQUIRED_PARAMETERS =
+        new String[] {
+            OAuth.OAUTH_TOKEN
+        };
 
     public Response handle(MessageContext mc, OAuthDataProvider dataProvider) {
         HttpServletRequest request = mc.getHttpServletRequest();
@@ -157,7 +158,7 @@ public class AuthorizationRequestHandler {
             LOG.log(Level.WARNING, "An OAuth related problem: {0}", new Object[]{e.fillInStackTrace()});
             int code = e.getHttpStatusCode();
             if (code == HttpServletResponse.SC_OK) {
-                code = OAuth.Problems.CONSUMER_KEY_UNKNOWN.equals(e.getProblem())
+                code = e.getProblem() == OAuth.Problems.CONSUMER_KEY_UNKNOWN
                     ? 401 : 400;
             }
             return OAuthUtils.handleException(mc, e, code);
@@ -226,7 +227,7 @@ public class AuthorizationRequestHandler {
     private boolean compareRequestSessionTokens(HttpServletRequest request,
             OAuthMessage oAuthMessage) {
         HttpSession session = request.getSession();
-        final String requestToken;
+        String requestToken = null;
         try {
             requestToken = oAuthMessage.getParameter(OAuthConstants.AUTHENTICITY_TOKEN);
         } catch (IOException ex) {

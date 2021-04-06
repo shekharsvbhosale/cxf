@@ -37,13 +37,12 @@ import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 
 public class JwsJsonProducer {
     protected static final Logger LOG = LogUtils.getL7dLogger(JwsJsonProducer.class);
-    private final boolean supportFlattened;
-    private final boolean supportDetached;
-    private final String plainPayload;
+    private boolean supportFlattened;
+    private boolean supportDetached;
+    private String plainPayload;
     private String encodedPayload;
-    private final List<JwsJsonSignatureEntry> signatures = new LinkedList<>();
-    private final JsonMapObjectReaderWriter writer = new JsonMapObjectReaderWriter();
-
+    private List<JwsJsonSignatureEntry> signatures = new LinkedList<>();
+    private JsonMapObjectReaderWriter writer = new JsonMapObjectReaderWriter();
     public JwsJsonProducer(String tbsDocument) {
         this(tbsDocument, false);
     }

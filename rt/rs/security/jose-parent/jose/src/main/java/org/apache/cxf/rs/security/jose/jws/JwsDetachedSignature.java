@@ -19,14 +19,13 @@
 package org.apache.cxf.rs.security.jose.jws;
 
 public class JwsDetachedSignature {
-    private final JwsHeaders headers;
-    private final String base64UrlEncodedHeaders;
-    private final JwsSignature signature;
-    private final boolean useJwsJsonSignatureFormat;
-
+    private JwsHeaders headers;
+    private String base64UrlEncodedHeaders;
+    private JwsSignature signature;
+    private boolean useJwsJsonSignatureFormat;
     public JwsDetachedSignature(JwsHeaders headers,
                                 String base64UrlEncodedHeaders,
-                                JwsSignature signature,
+                                JwsSignature signature, 
                                 boolean useJwsJsonSignatureFormat) {
         this.headers = headers;
         this.base64UrlEncodedHeaders = base64UrlEncodedHeaders;
@@ -45,5 +44,5 @@ public class JwsDetachedSignature {
     public boolean isUseJwsJsonSignatureFormat() {
         return useJwsJsonSignatureFormat;
     }
-
+    
 }

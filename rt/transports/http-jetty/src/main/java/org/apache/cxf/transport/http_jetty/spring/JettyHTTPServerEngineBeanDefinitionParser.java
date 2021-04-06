@@ -302,7 +302,9 @@ public class JettyHTTPServerEngineBeanDefinitionParser extends AbstractBeanDefin
         }
 
         @PostConstruct
-        public void finalizeConfig() {
+        public void finalizeConfig()
+            throws GeneralSecurityException,
+                   IOException {
             if (tlsRef != null || threadingRef != null) {
 
                 if (threadingRef != null) {

@@ -21,17 +21,13 @@
     <parent>
         <groupId>org.apache.cxf</groupId>
         <artifactId>cxf-parent</artifactId>
-        <version>3.5.0-SNAPSHOT</version>
+        <version>3.4.0-SNAPSHOT</version>
         <relativePath>../../parent/pom.xml</relativePath>
     </parent>
     <groupId>org.apache.cxf.osgi.itests</groupId>
     <artifactId>org.apache.cxf.osgi.itests-felix</artifactId>
     <name>Apache CXF :: OSGi :: Integration Tests pure felix</name>
-
-    <properties>
-        <cxf.module.name>org.apache.cxf.osgi.itests_felix</cxf.module.name>
-    </properties>
-
+    <packaging>jar</packaging>
     <dependencies>
         <dependency>
             <groupId>org.apache.cxf</groupId>
@@ -108,20 +104,15 @@
         <dependency>
             <groupId>org.ops4j.pax.url</groupId>
             <artifactId>pax-url-aether</artifactId>
-            <version>2.6.2</version>
+            <version>1.6.0</version>
             <scope>test</scope>
         </dependency>
        
         <dependency>
             <groupId>org.apache.felix</groupId>
             <artifactId>org.apache.felix.framework</artifactId>
-            <version>6.0.3</version>
+            <version>5.6.2</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.felix</groupId>
-            <artifactId>org.apache.felix.configadmin</artifactId>
-            <version>1.9.16</version>
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
@@ -129,14 +120,14 @@
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>osgi.cmpn</artifactId>
+            <artifactId>org.osgi.compendium</artifactId>
         </dependency>
         <dependency>
-            <groupId>jakarta.inject</groupId>
-            <artifactId>jakarta.inject-api</artifactId>
-            <version>${cxf.jakarta.injectapi.version}</version>
+            <groupId>org.apache.geronimo.specs</groupId>
+            <artifactId>geronimo-atinject_1.0_spec</artifactId>
+            <version>${cxf.geronimo.inject.version}</version>
             <scope>provided</scope>
-        </dependency> 
+        </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -147,8 +138,8 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-    </dependencies>
 
+    </dependencies>
     <build>
         <plugins>
             <!-- generate dependencies versions -->

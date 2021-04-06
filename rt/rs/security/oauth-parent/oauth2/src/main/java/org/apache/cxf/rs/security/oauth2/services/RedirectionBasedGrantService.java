@@ -137,15 +137,11 @@ public abstract class RedirectionBasedGrantService extends AbstractOAuthService 
      * Starts the authorization process
      */
     protected Response startAuthorization(MultivaluedMap<String, String> params) {
-        UserSubject userSubject = null;
-        SecurityContext securityContext =
-                (SecurityContext)getMessageContext().get(SecurityContext.class.getName());
-        if (securityContext != null && securityContext.getUserPrincipal() != null) {
-            // Create a UserSubject representing the end user, if we have already authenticated
-            userSubject = createUserSubject(securityContext, params);
-        }
-        checkTransportSecurity();
+        // Make sure the end user has authenticated, check if HTTPS is used
+        SecurityContext sc = getAndValidateSecurityContext(params);
         Client client = getClient(params.getFirst(OAuthConstants.CLIENT_ID), params);
+        // Create a UserSubject representing the end user
+        UserSubject userSubject = createUserSubject(sc, params);
 
         if (authorizationFilter != null) {
             params = authorizationFilter.process(params, userSubject, client);
@@ -176,8 +172,8 @@ public abstract class RedirectionBasedGrantService extends AbstractOAuthService 
         }
         // Get the requested scopes
         String providedScope = params.getFirst(OAuthConstants.SCOPE);
-        final List<String> requestedScope;
-        final List<OAuthPermission> requestedPermissions;
+        List<String> requestedScope = null;
+        List<OAuthPermission> requestedPermissions = null;
         try {
             requestedScope = OAuthUtils.getRequestedScopes(client,
                                                            providedScope,
@@ -213,7 +209,7 @@ public abstract class RedirectionBasedGrantService extends AbstractOAuthService 
                 OAuthUtils.convertPermissionsToScopeList(alreadyAuthorizedPerms).containsAll(requestedScope);
         }
 
-        Response finalResponse;
+        Response finalResponse = null;
         try {
             final boolean authorizationCanBeSkipped = preAuthorizationComplete
                 || canAuthorizationBeSkipped(params, client, userSubject, requestedScope, requestedPermissions);
@@ -247,11 +243,11 @@ public abstract class RedirectionBasedGrantService extends AbstractOAuthService 
         return finalResponse;
 
     }
+    //CHECKSTYLE:OFF
 
     public Set<String> getSupportedResponseTypes() {
         return supportedResponseTypes;
     }
-
     protected boolean canAuthorizationBeSkipped(MultivaluedMap<String, String> params,
                                                 Client client,
                                                 UserSubject userSubject,
@@ -296,8 +292,6 @@ public abstract class RedirectionBasedGrantService extends AbstractOAuthService 
             }
             secData.setProposedScope(builder.toString().trim());
         }
-        secData.setClientCodeChallenge(params.getFirst(OAuthConstants.AUTHORIZATION_CODE_CHALLENGE));
-        secData.setClientCodeChallengeMethod(params.getFirst(OAuthConstants.AUTHORIZATION_CODE_CHALLENGE_METHOD));
         if (!authorizationCanBeSkipped) {
             secData.setPermissions(requestedPerms);
             secData.setAlreadyAuthorizedPermissions(alreadyAuthorizedPerms);
@@ -344,7 +338,7 @@ public abstract class RedirectionBasedGrantService extends AbstractOAuthService 
         return state;
     }
     protected void personalizeData(OAuthAuthorizationData data, UserSubject userSubject) {
-        if (resourceOwnerNameProvider != null && userSubject != null) {
+        if (resourceOwnerNameProvider != null) {
             data.setEndUserName(resourceOwnerNameProvider.getName(userSubject));
         }
     }
@@ -439,8 +433,9 @@ public abstract class RedirectionBasedGrantService extends AbstractOAuthService 
 
     protected UserSubject createUserSubject(SecurityContext securityContext,
                                             MultivaluedMap<String, String> params) {
+        UserSubject subject = null;
         if (subjectCreator != null) {
-            UserSubject subject = subjectCreator.createUserSubject(getMessageContext(),
+            subject = subjectCreator.createUserSubject(getMessageContext(),
                                                        params);
             if (subject != null) {
                 return subject;

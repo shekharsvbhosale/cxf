@@ -46,7 +46,7 @@ import org.apache.cxf.ws.rm.v200702.TerminateSequenceType;
  */
 public abstract class EncoderDecoder {
     protected volatile DataBinding databinding;
-
+    
     /**
      * Get context for JAXB marshalling/unmarshalling.
      *
@@ -54,7 +54,7 @@ public abstract class EncoderDecoder {
      * @throws JAXBException
      */
     protected abstract JAXBContext getContext() throws JAXBException;
-
+        
 
     /**
      * Get the WS-ReliableMessaging namespace used by this encoder/decoder.
@@ -105,7 +105,7 @@ public abstract class EncoderDecoder {
      */
     public abstract Class<?> getTerminateSequenceResponseType();
 
-
+    
     /**
      * Get the databinding used for the header objects
      * @return databinding
@@ -124,13 +124,14 @@ public abstract class EncoderDecoder {
         return result;
     }
 
-
+    
     /**
      * Builds an element containing WS-RM headers. This adds the appropriate WS-RM namespace declaration to the element,
      * and then adds any WS-RM headers set in the supplied properties as child elements.
      *
      * @param rmps
-     * @param headers the list of headers
+     * @param qname constructed element name
+     * @return element (<code>null</code> if none)
      */
     public void buildHeaders(RMProperties rmps, List<Header> headers) throws JAXBException {
 
@@ -150,11 +151,12 @@ public abstract class EncoderDecoder {
      * the element, and then adds the Fault as a child element.
      *
      * @param sf
-     * @return Header fault
+     * @param qname constructed element name
+     * @return element
      */
     public Header buildHeaderFault(SequenceFault sf) throws JAXBException {
         Object o = buildHeaderFaultObject(sf);
-
+        
         return new Header(new QName(getConstants().getWSRMNamespace(),
                                     RMConstants.SEQUENCE_FAULT_NAME),
                           o, getDataBinding());
@@ -167,7 +169,8 @@ public abstract class EncoderDecoder {
      * @param acks
      * @param reqs
      * @param last
-     * @param headers
+     * @param header
+     * @param marshaller
      * @throws JAXBException
      */
     protected abstract void buildHeaders(SequenceType seq, Collection<SequenceAcknowledgement> acks,
@@ -177,7 +180,7 @@ public abstract class EncoderDecoder {
      * Build a header fault, using the correct protocol variation.
      *
      * @param sf
-     * @return the object marshallable with the JAXContext
+     * @return the object marshallable with the JAXContext 
      */
     protected abstract Object buildHeaderFaultObject(SequenceFault sf);
 

@@ -43,6 +43,7 @@ public class JAXRSBeanValidationFeature extends DelegatingFeature<JAXRSBeanValid
         delegate.setSupportMultipleValidations(supportMultipleValidations);
     }
 
+    @Provider(value = Type.Feature, scope = Scope.Server)
     public static class Portable implements AbstractPortableFeature {
 
         private BeanValidationProvider validationProvider;

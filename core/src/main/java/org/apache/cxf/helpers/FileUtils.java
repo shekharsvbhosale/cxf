@@ -19,8 +19,11 @@
 
 package org.apache.cxf.helpers;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.AccessController;
@@ -285,6 +288,54 @@ public final class FileUtils {
         return result;
     }
 
+    public static String getStringFromFile(File location) {
+        try (InputStream is  = Files.newInputStream(location.toPath())) {
+            return normalizeCRLF(is);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static String normalizeCRLF(InputStream instream) {
+        BufferedReader in = new BufferedReader(new InputStreamReader(instream));
+        StringBuilder result = new StringBuilder();
+        String line = null;
+
+        try {
+            line = in.readLine();
+            while (line != null) {
+                String[] tok = line.split("\\s");
+
+                for (int x = 0; x < tok.length; x++) {
+                    String token = tok[x];
+                    result.append("  ").append(token);
+                }
+                line = in.readLine();
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        String rtn = result.toString();
+
+        rtn = ignoreTokens(rtn, "<!--", "-->");
+        rtn = ignoreTokens(rtn, "/*", "*/");
+        return rtn;
+    }
+
+    private static String ignoreTokens(final String contents,
+                                       final String startToken, final String endToken) {
+        String rtn = contents;
+        int headerIndexStart = rtn.indexOf(startToken);
+        int headerIndexEnd = rtn.indexOf(endToken);
+        if (headerIndexStart != -1 && headerIndexEnd != -1 && headerIndexStart < headerIndexEnd) {
+            rtn = rtn.substring(0, headerIndexStart - 1)
+                + rtn.substring(headerIndexEnd + endToken.length() + 1);
+        }
+        return rtn;
+    }
+
     public static List<File> getFilesUsingSuffix(File dir, final String suffix) {
         return getFilesRecurseUsingSuffix(dir, suffix, false, new ArrayList<>());
     }
@@ -334,7 +385,7 @@ public final class FileUtils {
     }
 
     public static boolean exists(File file) {
-        if (System.getSecurityManager() == null) {
+        if (System.getSecurityManager() != null) {
             return file.exists();
         }
         return AccessController.doPrivileged((PrivilegedAction<Boolean>) () -> {

@@ -24,12 +24,9 @@ import java.security.Principal;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.security.auth.Subject;
 
-import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.common.security.GroupPrincipal;
 import org.apache.cxf.common.util.ReflectionUtil;
 import org.apache.cxf.security.LoginSecurityContext;
@@ -40,7 +37,7 @@ import org.apache.cxf.security.LoginSecurityContext;
  * Groups the principal is a member of
  */
 public class DefaultSecurityContext implements LoginSecurityContext {
-    private static final Logger LOG = LogUtils.getL7dLogger(DefaultSecurityContext.class);
+    
     private static Class<?> javaGroup; 
     private static Class<?> karafGroup;
     
@@ -110,7 +107,7 @@ public class DefaultSecurityContext implements LoginSecurityContext {
         if (subject != null) {
             for (Principal principal : subject.getPrincipals()) {
                 if (isGroupPrincipal(principal) 
-                    && checkGroup(principal, role)) {
+                    && checkGroup((Principal)principal, role)) {
                     return true;
                 } else if (p != principal
                            && role.equals(principal.getName())) {
@@ -130,14 +127,10 @@ public class DefaultSecurityContext implements LoginSecurityContext {
         Enumeration<? extends Principal> members;
         try {
             Method m = ReflectionUtil.getMethod(principal.getClass(), "members");
-            m.setAccessible(true);
             @SuppressWarnings("unchecked")
             Enumeration<? extends Principal> ms = (Enumeration<? extends Principal>)m.invoke(principal);
             members = ms;
         } catch (Exception e) {
-            if (LOG.isLoggable(Level.FINE)) {
-                LOG.fine("Unable to invoke memebers in " + principal.getName() + ":" + e.getMessage());
-            }
             return false;
         }
         

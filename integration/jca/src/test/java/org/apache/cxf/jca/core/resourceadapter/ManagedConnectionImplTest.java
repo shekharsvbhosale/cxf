@@ -19,9 +19,8 @@
 package org.apache.cxf.jca.core.resourceadapter;
 
 import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.resource.NotSupportedException;
 import javax.resource.spi.ConnectionEvent;
 import javax.resource.spi.ConnectionEventListener;
 import javax.resource.spi.ConnectionRequestInfo;
@@ -33,8 +32,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class ManagedConnectionImplTest {
     private DummyManagedConnectionImpl mc;
@@ -46,19 +45,15 @@ public class ManagedConnectionImplTest {
 
     @Test
     public void testGetSetLogWriter() throws Exception {
-        final AtomicBoolean closed = new AtomicBoolean();
-        PrintWriter writer = new PrintWriter(new StringWriter()) {
-            @Override
-            public void close() {
-                super.close();
-                closed.set(true);
-            }
-        };
+        PrintWriter writer = EasyMock.createMock(PrintWriter.class);
         mc.setLogWriter(writer);
-        assertSame(writer, mc.getLogWriter());
-
+        assertTrue(mc.getLogWriter() == writer);
+        writer.close();
+        EasyMock.expectLastCall();
+        EasyMock.replay(writer);
         mc.destroy();
-        assertTrue(closed.get());
+        EasyMock.verify(writer);
+
     }
 
     @Test
@@ -90,7 +85,11 @@ public class ManagedConnectionImplTest {
 
     @Test
     public void testGetMetaData() throws Exception {
-        mc.getMetaData();
+        try {
+            mc.getMetaData();
+        } catch (NotSupportedException expected) {
+            fail("Got the Exception here");
+        }
     }
 
     @Test

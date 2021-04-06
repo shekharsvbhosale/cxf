@@ -37,7 +37,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -269,7 +268,7 @@ public final class JwkUtils {
         return loadJwkSet(props, bus, decryption);
     }
     public static JsonWebKeys loadJwkSet(Properties props, Bus bus, JweDecryptionProvider jwe) {
-        String keyContent;
+        String keyContent = null;
         String keyStoreLoc = props.getProperty(JoseConstants.RSSEC_KEY_STORE_FILE);
         if (keyStoreLoc != null) {
             try (InputStream isResource = JoseUtils.getResourceStream(keyStoreLoc, bus)) {
@@ -303,7 +302,7 @@ public final class JwkUtils {
     public static JsonWebKey loadJsonWebKey(Message m, Properties props, KeyOperation keyOper, String inHeaderKid) {
         PrivateKeyPasswordProvider cb = KeyManagementUtils.loadPasswordProvider(m, props, keyOper);
         JsonWebKeys jwkSet = loadJwkSet(m, props, cb);
-        final String kid;
+        String kid = null;
         if (inHeaderKid != null
             && MessageUtils.getContextualBoolean(m, JoseConstants.RSSEC_ACCEPT_PUBLIC_KEY, false)) {
             kid = inHeaderKid;
@@ -320,18 +319,10 @@ public final class JwkUtils {
         }
         return null;
     }
-
     public static List<JsonWebKey> loadJsonWebKeys(Message m,
                                                    Properties props,
                                                    KeyOperation keyOper) {
         PrivateKeyPasswordProvider cb = KeyManagementUtils.loadPasswordProvider(m, props, keyOper);
-        return loadJsonWebKeys(m, props, keyOper, cb);
-    }
-
-    public static List<JsonWebKey> loadJsonWebKeys(Message m,
-                                                   Properties props,
-                                                   KeyOperation keyOper,
-                                                   PrivateKeyPasswordProvider cb) {
         JsonWebKeys jwkSet = loadJwkSet(m, props, cb);
         String kid = KeyManagementUtils.getKeyId(m, props, JoseConstants.RSSEC_KEY_STORE_ALIAS, keyOper);
         if (kid != null) {
@@ -377,14 +368,12 @@ public final class JwkUtils {
     }
     public static JsonWebKey fromECPublicKey(ECPublicKey pk, String curve, String kid) {
         JsonWebKey jwk = prepareECJwk(curve, kid);
-        int fieldSize = pk.getParams().getCurve().getField().getFieldSize();
         jwk.setProperty(JsonWebKey.EC_X_COORDINATE,
-                encodeCoordinate(fieldSize, pk.getW().getAffineX()));
+                        Base64UrlUtility.encode(pk.getW().getAffineX().toByteArray()));
         jwk.setProperty(JsonWebKey.EC_Y_COORDINATE,
-                encodeCoordinate(fieldSize, pk.getW().getAffineY()));
+                        Base64UrlUtility.encode(pk.getW().getAffineY().toByteArray()));
         return jwk;
     }
-
     public static JsonWebKey fromECPrivateKey(ECPrivateKey pk, String curve) {
         return fromECPrivateKey(pk, curve, null);
     }
@@ -404,7 +393,7 @@ public final class JwkUtils {
         return jwk;
     }
     public static JsonWebKey fromPublicKey(PublicKey key, Properties props, String algoProp) {
-        final JsonWebKey jwk;
+        JsonWebKey jwk = null;
         if (key instanceof RSAPublicKey) {
             String algo = props.getProperty(algoProp);
             jwk = JwkUtils.fromRSAPublicKey((RSAPublicKey)key, algo);
@@ -490,10 +479,6 @@ public final class JwkUtils {
     public static SecretKey toSecretKey(JsonWebKey jwk) {
         return CryptoUtils.createSecretKeySpec((String)jwk.getProperty(JsonWebKey.OCTET_KEY_VALUE),
                                                AlgorithmUtils.toJavaName(jwk.getAlgorithm()));
-    }
-    public static SecretKey toSecretKey(JsonWebKey jwk, KeyAlgorithm algorithm) {
-        return CryptoUtils.createSecretKeySpec((String)jwk.getProperty(JsonWebKey.OCTET_KEY_VALUE),
-                                               algorithm.getJavaName());
     }
     public static JsonWebKey fromSecretKey(SecretKey secretKey, String algo) {
         return fromSecretKey(secretKey, algo, null);
@@ -581,89 +566,5 @@ public final class JwkUtils {
             }
             headers.setJsonWebKey(jwkPublic);
         }
-    }
-
-    public static List<JsonWebKey> stripPrivateParameters(List<JsonWebKey> keys) {
-        if (keys == null) {
-            return Collections.emptyList();
-        }
-
-        List<JsonWebKey> parsedKeys = new ArrayList<>(keys.size());
-        Iterator<JsonWebKey> iter = keys.iterator();
-        while (iter.hasNext()) {
-            JsonWebKey key = iter.next();
-            if (!(key.containsProperty("k") || key.getKeyType() == KeyType.OCTET)) {
-                // We don't allow secret keys in a public keyset
-                key.removeProperty(JsonWebKey.RSA_PRIVATE_EXP);
-                key.removeProperty(JsonWebKey.RSA_FIRST_PRIME_FACTOR);
-                key.removeProperty(JsonWebKey.RSA_SECOND_PRIME_FACTOR);
-                key.removeProperty(JsonWebKey.RSA_FIRST_PRIME_CRT);
-                key.removeProperty(JsonWebKey.RSA_SECOND_PRIME_CRT);
-                key.removeProperty(JsonWebKey.RSA_FIRST_CRT_COEFFICIENT);
-                parsedKeys.add(key);
-            }
-        }
-        return parsedKeys;
-    }
-
-    /**
-     * Returns the Base64URL encoding of the specified elliptic curve 'x',
-     * 'y' or 'd' coordinate, with leading zero padding up to the specified
-     * field size in bits.
-     * Copied and adapted from nimbus-jose-jwt (ECKey#encodeCoordinate)
-     *
-     * @param fieldSize  The field size in bits.
-     * @param coordinate The elliptic curve coordinate. Must not be
-     *                   {@code null}.
-     *
-     * @return The Base64URL-encoded coordinate, with leading zero padding
-     *         up to the curve's field size.
-     */
-    private static String encodeCoordinate(final int fieldSize, final BigInteger coordinate) {
-        final byte[] notPadded = toIntegerBytes(coordinate);
-        int bytesToOutput = (fieldSize + 7) / 8;
-
-        if (notPadded.length >= bytesToOutput) {
-            // Greater-than check to prevent exception on malformed
-            // key below
-            return Base64UrlUtility.encode(notPadded);
-        }
-
-        final byte[] padded = new byte[bytesToOutput];
-        System.arraycopy(notPadded, 0, padded, bytesToOutput - notPadded.length, notPadded.length);
-        return Base64UrlUtility.encode(padded);
-    }
-
-    /**
-     * Returns a byte-array representation of a {@code BigInteger} without sign bit.
-     * Copied from Apache Commons Codec
-     *
-     * @param bigInt
-     *            {@code BigInteger} to be converted
-     * @return a byte array representation of the BigInteger parameter
-     */
-    private static byte[] toIntegerBytes(final BigInteger bigInt) {
-
-        int bitlen = bigInt.bitLength();
-        // round bitlen
-        bitlen = ((bitlen + 7) >> 3) << 3;
-        final byte[] bigBytes = bigInt.toByteArray();
-
-        if (((bigInt.bitLength() % 8) != 0) && (((bigInt.bitLength() / 8) + 1) == (bitlen / 8))) {
-            return bigBytes;
-        }
-        // set up params for copying everything but sign bit
-        int startSrc = 0;
-        int len = bigBytes.length;
-
-        // if bigInt is exactly byte-aligned, just skip signbit in copy
-        if ((bigInt.bitLength() % 8) == 0) {
-            startSrc = 1;
-            len--;
-        }
-        final int startDst = bitlen / 8 - len; // to pad w/ nulls as per spec
-        final byte[] resizedBytes = new byte[bitlen / 8];
-        System.arraycopy(bigBytes, startSrc, resizedBytes, startDst, len);
-        return resizedBytes;
     }
 }

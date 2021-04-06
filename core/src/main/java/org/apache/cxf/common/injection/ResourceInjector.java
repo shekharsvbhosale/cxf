@@ -42,7 +42,6 @@ import org.apache.cxf.common.annotation.AnnotationProcessor;
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.common.util.ClassHelper;
 import org.apache.cxf.common.util.ReflectionUtil;
-import org.apache.cxf.common.util.StringUtils;
 import org.apache.cxf.resource.ResourceManager;
 import org.apache.cxf.resource.ResourceResolver;
 
@@ -148,7 +147,6 @@ public class ResourceInjector extends AbstractAnnotationVisitor {
 
     // Implementation of org.apache.cxf.common.annotation.AnnotationVisitor
 
-    @Override
     public final void visitClass(final Class<?> clz, final Annotation annotation) { //NOPMD
 
         assert annotation instanceof Resource || annotation instanceof Resources : annotation;
@@ -279,9 +277,12 @@ public class ResourceInjector extends AbstractAnnotationVisitor {
         return setterMethod;
     }
 
-    private static String resourceNameToSetter(String resName) {
-        return "set" + StringUtils.capitalize(resName);
+
+    private String resourceNameToSetter(String resName) {
+
+        return "set" + Character.toUpperCase(resName.charAt(0)) + resName.substring(1);
     }
+
 
     private void invokeSetter(Method method, Object resource) {
         try {
@@ -295,7 +296,9 @@ public class ResourceInjector extends AbstractAnnotationVisitor {
             }
         } catch (IllegalAccessException e) {
             LOG.log(Level.SEVERE, "INJECTION_SETTER_NOT_VISIBLE", method);
-        } catch (InvocationTargetException | SecurityException e) {
+        } catch (InvocationTargetException e) {
+            LogUtils.log(LOG, Level.SEVERE, "INJECTION_SETTER_RAISED_EXCEPTION", e, method);
+        } catch (SecurityException e) {
             LogUtils.log(LOG, Level.SEVERE, "INJECTION_SETTER_RAISED_EXCEPTION", e, method);
         } catch (NoSuchMethodException e) {
             LOG.log(Level.SEVERE, "INJECTION_SETTER_METHOD_NOT_FOUND", new Object[] {method.getName()});

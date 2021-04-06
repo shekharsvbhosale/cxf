@@ -139,18 +139,14 @@ public class LoggingOutInterceptor extends AbstractLoggingInterceptor {
         }
 
         public void close() throws IOException {
-            final LogEvent event = eventMapper.map(message, sensitiveProtocolHeaderNames);
+            final LogEvent event = eventMapper.map(message);
             StringWriter w2 = out2;
             if (w2 == null) {
                 w2 = (StringWriter) out;
             }
 
             String payload = shouldLogContent(event) ? getPayload(event, w2) : CONTENT_SUPPRESSED;
-            String maskedContent = maskSensitiveElements(message, payload);
-            if (!logBinary) {
-                maskedContent = stripBinaryParts(event, maskedContent);
-            }
-            event.setPayload(transform(message, maskedContent));
+            event.setPayload(payload);
             sender.send(event);
             message.setContent(Writer.class, out);
             super.close();
@@ -193,7 +189,7 @@ public class LoggingOutInterceptor extends AbstractLoggingInterceptor {
         }
 
         public void onClose(CachedOutputStream cos) {
-            final LogEvent event = eventMapper.map(message, sensitiveProtocolHeaderNames);
+            final LogEvent event = eventMapper.map(message);
             if (shouldLogContent(event)) {
                 copyPayload(cos, event);
             } else {
@@ -216,11 +212,7 @@ public class LoggingOutInterceptor extends AbstractLoggingInterceptor {
                 String encoding = (String) message.get(Message.ENCODING);
                 StringBuilder payload = new StringBuilder();
                 writePayload(payload, cos, encoding, event.getContentType());
-                String maskedContent = maskSensitiveElements(message, payload.toString());
-                if (!logBinary) {
-                    maskedContent = stripBinaryParts(event, maskedContent);
-                }
-                event.setPayload(transform(message, maskedContent));
+                event.setPayload(payload.toString());
                 boolean isTruncated = cos.size() > limit && limit != -1;
                 event.setTruncated(isTruncated);
             } catch (Exception ex) {

@@ -38,7 +38,6 @@ import org.apache.cxf.configuration.security.SecureRandomParameters;
 import org.apache.cxf.configuration.security.TrustManagersType;
 import org.apache.cxf.transport.http.HTTPConduit;
 import org.apache.cxf.transport.http.auth.HttpAuthSupplier;
-import org.apache.cxf.transport.https.InsecureTrustManager;
 import org.apache.cxf.transports.http.configuration.ConnectionType;
 import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
 import org.apache.cxf.transports.http.configuration.ProxyServerType;
@@ -69,8 +68,6 @@ class HttpConduitConfigApplier {
         KeyManagersType kmt = null;
         TrustManagersType tmt = null;
         boolean enableRevocation = false;
-        boolean disableTrustVerification = false;
-
         while (keys.hasMoreElements()) {
             String k = keys.nextElement();
             if (k.startsWith("tlsClientParameters.")) {
@@ -124,9 +121,6 @@ class HttpConduitConfigApplier {
                     while (st.hasMoreTokens()) {
                         p.getCipherSuites().add(st.nextToken());
                     }
-                } else if ("trustManagers.disableTrustVerification".equals(k)
-                    && Boolean.parseBoolean(v)) {
-                    disableTrustVerification = true;
                 } else if (k.startsWith("trustManagers.")) {
                     tmt = getTrustManagers(tmt,
                                           k.substring("trustManagers.".length()),
@@ -146,9 +140,7 @@ class HttpConduitConfigApplier {
             if (kmt != null) {
                 p.setKeyManagers(TLSParameterJaxBUtils.getKeyManagers(kmt));
             }
-            if (disableTrustVerification) {
-                p.setTrustManagers(InsecureTrustManager.getNoOpX509TrustManagers());
-            } else if (tmt != null) {
+            if (tmt != null) {
                 p.setTrustManagers(TLSParameterJaxBUtils.getTrustManagers(tmt, enableRevocation));
             }
         } catch (RuntimeException e) {

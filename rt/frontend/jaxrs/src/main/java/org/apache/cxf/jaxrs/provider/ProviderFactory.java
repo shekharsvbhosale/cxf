@@ -253,7 +253,7 @@ public abstract class ProviderFactory {
 
         Message responseMessage = isRequestor ? m.getExchange().getInMessage()
                                               : m.getExchange().getOutMessage();
-        final Object ctProperty;
+        Object ctProperty = null;
         if (responseMessage != null) {
             ctProperty = responseMessage.get(Message.CONTENT_TYPE);
         } else {
@@ -436,7 +436,7 @@ public abstract class ProviderFactory {
         if (mr != null || size > 0) {
             ReaderInterceptor mbrReader = new ReaderInterceptorMBR(mr, getResponseMessage(m));
 
-            final List<ReaderInterceptor> interceptors;
+            List<ReaderInterceptor> interceptors = null;
             if (size > 0) {
                 interceptors = new ArrayList<>(size + 1);
                 List<ProviderInfo<ReaderInterceptor>> readers =
@@ -474,7 +474,7 @@ public abstract class ProviderFactory {
             })
             WriterInterceptor mbwWriter = new WriterInterceptorMBW((MessageBodyWriter)mw, m);
 
-            final List<WriterInterceptor> interceptors;
+            List<WriterInterceptor> interceptors = null;
             if (size > 0) {
                 interceptors = new ArrayList<>(size + 1);
                 List<ProviderInfo<WriterInterceptor>> writers =
@@ -847,7 +847,7 @@ public abstract class ProviderFactory {
     }
     /**
      * Use for injection of entityProviders
-     * @param userProviders the userProviders to set
+     * @param entityProviders the entityProviders to set
      */
     public void setUserProviders(List<?> userProviders) {
         setProviders(true, false, userProviders.toArray());
@@ -913,16 +913,21 @@ public abstract class ProviderFactory {
     }
 
     protected static int compareCustomStatus(ProviderInfo<?> p1, ProviderInfo<?> p2) {
-        boolean custom1 = p1.isCustom();
-        int result = Boolean.compare(p2.isCustom(), custom1);
+        Boolean custom1 = p1.isCustom();
+        Boolean custom2 = p2.isCustom();
+        int result = custom1.compareTo(custom2) * -1;
         if (result == 0 && custom1) {
-            result = Boolean.compare(p1.isBusGlobal(), p2.isBusGlobal());
+            Boolean busGlobal1 = p1.isBusGlobal();
+            Boolean busGlobal2 = p2.isBusGlobal();
+            result = busGlobal1.compareTo(busGlobal2);
         }
         return result;
     }
 
     static int comparePriorityStatus(Class<?> cl1, Class<?> cl2) {
-        return Integer.compare(AnnotationUtils.getBindingPriority(cl1), AnnotationUtils.getBindingPriority(cl2));
+        Integer value1 = AnnotationUtils.getBindingPriority(cl1);
+        Integer value2 = AnnotationUtils.getBindingPriority(cl2);
+        return value1.compareTo(value2);
     }
 
     private static class ContextResolverComparator
@@ -1237,7 +1242,7 @@ public abstract class ProviderFactory {
                 }
             }
         }
-        final Object instance;
+        Object instance = null;
         try {
             instance = c.newInstance(cArgs);
         } catch (Throwable ex) {

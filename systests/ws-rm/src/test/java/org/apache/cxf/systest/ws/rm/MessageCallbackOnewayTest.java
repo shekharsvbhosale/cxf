@@ -197,11 +197,21 @@ public class MessageCallbackOnewayTest extends AbstractBusClientServerTestBase {
     }
 
     private void initServer(SpringBusFactory bf, String cfgResource) {
-        serverBus = bf.createBus(cfgResource);
-        BusFactory.setDefaultBus(serverBus);
-        LOG.info("Initialised bus " + serverBus + " with cfg file resource: " + cfgResource);
-        LOG.info("serverBus inInterceptors: " + serverBus.getInInterceptors());
-        endpoint = Endpoint.publish(GREETER_ADDRESS, new GreeterProvider());
+        String derbyHome = System.getProperty("derby.system.home");
+        try {
+            System.setProperty("derby.system.home", derbyHome + "-server");
+            serverBus = bf.createBus(cfgResource);
+            BusFactory.setDefaultBus(serverBus);
+            LOG.info("Initialised bus " + serverBus + " with cfg file resource: " + cfgResource);
+            LOG.info("serverBus inInterceptors: " + serverBus.getInInterceptors());
+            endpoint = Endpoint.publish(GREETER_ADDRESS, new GreeterProvider());
+        } finally {
+            if (derbyHome != null) {
+                System.setProperty("derby.system.home", derbyHome);
+            } else {
+                System.clearProperty("derby.system.home");
+            }
+        }
     }
 
     private void initGreeterBus(SpringBusFactory bf,

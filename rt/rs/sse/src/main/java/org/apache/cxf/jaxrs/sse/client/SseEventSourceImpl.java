@@ -41,7 +41,6 @@ import javax.ws.rs.sse.SseEventSource;
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.endpoint.Endpoint;
 import org.apache.cxf.jaxrs.client.WebClient;
-import org.apache.cxf.jaxrs.utils.ExceptionUtils;
 
 /**
  * SSE Event Source implementation 
@@ -62,10 +61,6 @@ public class SseEventSourceImpl implements SseEventSource {
 
     private class InboundSseEventListenerDelegate implements InboundSseEventListener {
         private String lastEventId;
-        
-        InboundSseEventListenerDelegate(String lastEventId) {
-            this.lastEventId = lastEventId;
-        }
         
         @Override
         public void onNext(InboundSseEvent event) {
@@ -184,7 +179,7 @@ public class SseEventSourceImpl implements SseEventSource {
     }
 
     private void connect(String lastEventId) {
-        final InboundSseEventListenerDelegate delegate = new InboundSseEventListenerDelegate(lastEventId);
+        final InboundSseEventListenerDelegate delegate = new InboundSseEventListenerDelegate();
         Response response = null;
         
         try {
@@ -196,18 +191,11 @@ public class SseEventSourceImpl implements SseEventSource {
 
             // A client can be told to stop reconnecting using the HTTP 204 No Content 
             // response code. In this case, we should give up.
-            final int status = response.getStatus();
-            if (status == 204) {
+            if (response.getStatus() == 204) {
                 LOG.fine("SSE endpoint " + target.getUri() + " returns no data, disconnecting");
                 state.set(SseSourceState.CLOSED);
                 response.close();
                 return;
-            }
-
-            // Convert unsuccessful responses to instances of WebApplicationException
-            if (status != 304 && status >= 300) {
-                LOG.fine("SSE connection to " + target.getUri() + " returns " + status);
-                throw ExceptionUtils.toWebApplicationException(response);
             }
 
             // Should not happen but if close() was called from another thread, we could

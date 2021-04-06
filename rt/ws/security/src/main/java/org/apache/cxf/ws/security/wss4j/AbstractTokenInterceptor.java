@@ -64,6 +64,9 @@ public abstract class AbstractTokenInterceptor extends AbstractSoapInterceptor {
     private static final Set<QName> HEADERS =
         Collections.singleton(new QName(WSConstants.WSSE_NS, "Security"));
 
+    /**
+     * @param p
+     */
     public AbstractTokenInterceptor() {
         super(Phase.PRE_PROTOCOL);
         addAfter(PolicyBasedWSS4JOutInterceptor.class.getName());
@@ -149,16 +152,12 @@ public abstract class AbstractTokenInterceptor extends AbstractSoapInterceptor {
     }
 
     protected Header findSecurityHeader(SoapMessage message, boolean create) {
-        String actor = (String)message.getContextualProperty(SecurityConstants.ACTOR);
         for (Header h : message.getHeaders()) {
             QName n = h.getName();
             if ("Security".equals(n.getLocalPart())
                 && (n.getNamespaceURI().equals(WSS4JConstants.WSSE_NS)
                     || n.getNamespaceURI().equals(WSS4JConstants.WSSE11_NS))) {
-                String receivedActor = ((SoapHeader)h).getActor();
-                if (actor == null || actor.equalsIgnoreCase(receivedActor)) {
-                    return h;
-                }
+                return h;
             }
         }
         if (!create) {
@@ -167,12 +166,8 @@ public abstract class AbstractTokenInterceptor extends AbstractSoapInterceptor {
         Document doc = DOMUtils.getEmptyDocument();
         Element el = doc.createElementNS(WSS4JConstants.WSSE_NS, "wsse:Security");
         el.setAttributeNS(WSS4JConstants.XMLNS_NS, "xmlns:wsse", WSS4JConstants.WSSE_NS);
-
         SoapHeader sh = new SoapHeader(new QName(WSS4JConstants.WSSE_NS, "Security"), el);
         sh.setMustUnderstand(true);
-        if (actor != null && actor.length() > 0) {
-            sh.setActor(actor);
-        }
         message.getHeaders().add(sh);
         return sh;
     }
@@ -180,7 +175,7 @@ public abstract class AbstractTokenInterceptor extends AbstractSoapInterceptor {
     protected String getPassword(String userName, AbstractToken info,
                                  int usage, SoapMessage message) {
         //Then try to get the password from the given callback handler
-        final CallbackHandler handler;
+        CallbackHandler handler = null;
         try {
             Object o = SecurityUtils.getSecurityPropertyValue(SecurityConstants.CALLBACK_HANDLER, message);
             handler = SecurityUtils.getCallbackHandler(o);

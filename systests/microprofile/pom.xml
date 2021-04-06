@@ -21,7 +21,7 @@
     <parent>
         <artifactId>cxf-parent</artifactId>
         <groupId>org.apache.cxf</groupId>
-        <version>3.5.0-SNAPSHOT</version>
+        <version>3.4.0-SNAPSHOT</version>
         <relativePath>../../parent/pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -85,8 +85,8 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>jakarta.json</groupId>
-                <artifactId>jakarta.json-api</artifactId>
+                <groupId>javax.json</groupId>
+                <artifactId>javax.json-api</artifactId>
                 <version>${cxf.json.api.version}</version>
                 <scope>test</scope>
             </dependency>

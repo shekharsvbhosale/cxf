@@ -58,7 +58,8 @@ public class ConfigurerImpl extends BeanConfigurerSupport
     private static final Logger LOG = LogUtils.getL7dLogger(ConfigurerImpl.class);
 
     private Set<ApplicationContext> appContexts;
-    private final Map<String, List<MatcherHolder>> wildCardBeanDefinitions = new TreeMap<>();
+    private final Map<String, List<MatcherHolder>> wildCardBeanDefinitions
+        = new TreeMap<>();
     private BeanFactory beanFactory;
 
     static class MatcherHolder implements Comparable<MatcherHolder> {
@@ -68,13 +69,12 @@ public class ConfigurerImpl extends BeanConfigurerSupport
             wildCardId = orig;
             this.matcher = matcher;
         }
-        
         @Override
         public int compareTo(MatcherHolder mh) {
-            int literalCharsLen1 = this.wildCardId.replace("*", "").length();
-            int literalCharsLen2 = mh.wildCardId.replace("*", "").length();
+            Integer literalCharsLen1 = this.wildCardId.replace("*", "").length();
+            Integer literalCharsLen2 = mh.wildCardId.replace("*", "").length();
             // The expression with more literal characters should end up on the top of the list
-            return Integer.compare(literalCharsLen1, literalCharsLen2) * -1;
+            return literalCharsLen1.compareTo(literalCharsLen2) * -1;
         }
     }
 
@@ -86,7 +86,6 @@ public class ConfigurerImpl extends BeanConfigurerSupport
         setApplicationContext(ac);
     }
 
-    @Override
     public void setBeanFactory(BeanFactory beanFactory) {
         this.beanFactory = beanFactory;
         super.setBeanFactory(beanFactory);
@@ -271,7 +270,6 @@ public class ConfigurerImpl extends BeanConfigurerSupport
         }
     }
 
-    @Override
     public void destroy() {
         super.destroy();
         appContexts.clear();

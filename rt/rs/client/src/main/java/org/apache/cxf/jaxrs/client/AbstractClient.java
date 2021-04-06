@@ -23,9 +23,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -47,7 +49,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.InvocationCallback;
-import javax.ws.rs.client.ResponseProcessingException;
 import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.EntityTag;
 import javax.ws.rs.core.Form;
@@ -447,7 +448,7 @@ public abstract class AbstractClient implements Client {
             if (null == entry.getKey()) {
                 continue;
             }
-            if (!entry.getValue().isEmpty()) {
+            if (entry.getValue().size() > 0) {
                 if (HttpUtils.isDateRelatedHeader(entry.getKey())) {
                     currentResponseBuilder.header(entry.getKey(), entry.getValue().get(0));
                     continue;
@@ -455,8 +456,8 @@ public abstract class AbstractClient implements Client {
                 entry.getValue().forEach(valObject -> {
                     if (splitHeaders && valObject instanceof String) {
                         String val = (String) valObject;
-                        final String[] values;
-                        if (val.isEmpty()) {
+                        String[] values;
+                        if (val.length() == 0) {
                             values = new String[]{""};
                         } else if (val.charAt(0) == '"' && val.charAt(val.length() - 1) == '"') {
                             // if the value starts with a quote and ends with a quote, we do a best
@@ -469,7 +470,7 @@ public abstract class AbstractClient implements Client {
                         }
                         for (String s : values) {
                             String theValue = s.trim();
-                            if (!theValue.isEmpty()) {
+                            if (theValue.length() > 0) {
                                 currentResponseBuilder.header(entry.getKey(), theValue);
                             }
                         }
@@ -535,7 +536,14 @@ public abstract class AbstractClient implements Client {
     }
 
     protected WebApplicationException convertToWebApplicationException(Response r) {
-        return ExceptionUtils.toWebApplicationException(r);
+        try {
+            Class<?> exceptionClass = ExceptionUtils.getWebApplicationExceptionClass(r,
+                                       WebApplicationException.class);
+            Constructor<?> ctr = exceptionClass.getConstructor(Response.class);
+            return (WebApplicationException)ctr.newInstance(r);
+        } catch (Throwable ex2) {
+            return new WebApplicationException(r);
+        }
     }
 
     protected <T> T readBody(Response r, Message outMessage, Class<T> cls,
@@ -615,9 +623,7 @@ public abstract class AbstractClient implements Client {
 
         Exchange exchange = outMessage.getExchange();
         Integer responseCode = getResponseCode(exchange);
-        if (actualEx instanceof ResponseProcessingException) {
-            throw (ResponseProcessingException)actualEx;
-        } else if (responseCode == null
+        if (responseCode == null
             || responseCode < 300 && !(actualEx instanceof IOException)
             || actualEx instanceof IOException && exchange.get("client.redirect.exception") != null) {
             if (actualEx instanceof ProcessingException) {
@@ -765,7 +771,7 @@ public abstract class AbstractClient implements Client {
             } else {
                 addMatrixOrQueryToBuilder(ub, paramName, pt, pValues);
             }
-        } else if (pValues != null && pValues.length > 0) {
+        } else {
             Object pValue = pValues[0];
             MultivaluedMap<String, Object> values = InjectionUtils.extractValuesFromBean(pValue, "");
             values.forEach((key, value) -> {
@@ -846,6 +852,19 @@ public abstract class AbstractClient implements Client {
         throw new ProcessingException(errorMessage, actualEx);
     }
 
+    protected static void setAllHeaders(MultivaluedMap<String, String> headers, HttpURLConnection conn) {
+        headers.forEach((key, value) -> {
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < value.size(); i++) {
+                b.append(value.get(i));
+                if (i + 1 < value.size()) {
+                    b.append(',');
+                }
+            }
+            conn.setRequestProperty(key, b.toString());
+        });
+    }
+
     protected String[] parseQuotedHeaderValue(String originalValue) {
         // this algorithm isn't perfect; see CXF-3518 for further discussion.
         List<String> results = new ArrayList<>();
@@ -854,10 +873,10 @@ public abstract class AbstractClient implements Client {
         int lastIndex = chars.length - 1;
 
         boolean quote = false;
-        final StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
 
         for (int pos = 0; pos <= lastIndex; pos++) {
-            final char c = chars[pos];
+            char c = chars[pos];
             if (pos == lastIndex) {
                 sb.append(c);
                 results.add(sb.toString());
@@ -868,7 +887,16 @@ public abstract class AbstractClient implements Client {
                     quote = !quote;
                     break;
                 case '\\':
-                    if (!quote) {
+                    if (quote) {
+                        pos++;
+                        if (pos <= lastIndex) {
+                            c = chars[pos];
+                            sb.append(c);
+                        }
+                        if (pos == lastIndex) {
+                            results.add(sb.toString());
+                        }
+                    } else {
                         sb.append(c);
                     }
                     break;
@@ -877,7 +905,7 @@ public abstract class AbstractClient implements Client {
                         sb.append(c);
                     } else {
                         results.add(sb.toString());
-                        sb.setLength(0);
+                        sb = new StringBuilder();
                     }
                     break;
                 default:
@@ -939,7 +967,6 @@ public abstract class AbstractClient implements Client {
         List<Interceptor<? extends Message>> i3 = cfg.getConduitSelector().getEndpoint().getInInterceptors();
         PhaseInterceptorChain chain = new PhaseChainCache().get(pm.getInPhases(), i1, i2, i3);
         chain.add(new ClientResponseFilterInterceptor());
-        chain.setFaultObserver(setupInFaultObserver(cfg));
         return chain;
     }
 
@@ -1048,7 +1075,7 @@ public abstract class AbstractClient implements Client {
     protected Object checkIfBodyEmpty(Object body, String contentType) {
         //CHECKSTYLE:OFF
         if (body != null
-            && (body.getClass() == String.class && ((String)body).isEmpty()
+            && (body.getClass() == String.class && ((String)body).length() == 0
             || body.getClass() == Form.class && ((Form)body).asMap().isEmpty()
             || Map.class.isAssignableFrom(body.getClass()) && ((Map<?, ?>)body).isEmpty()
                 && !MediaType.APPLICATION_JSON.equals(contentType)
@@ -1187,7 +1214,7 @@ public abstract class AbstractClient implements Client {
         }
     }
 
-    protected abstract static class AbstractBodyWriter extends AbstractOutDatabindingInterceptor {
+    protected abstract class AbstractBodyWriter extends AbstractOutDatabindingInterceptor {
 
         public AbstractBodyWriter() {
             super(Phase.WRITE);

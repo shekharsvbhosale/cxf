@@ -30,7 +30,6 @@ import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
-import org.apache.cxf.binding.soap.SoapBindingConstants;
 import org.apache.cxf.binding.soap.wsdl.extensions.SoapBody;
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.databinding.DataReader;
@@ -72,7 +71,7 @@ public class RPCInInterceptor extends AbstractInDatabindingInterceptor {
             boolean output = !isRequestor(message);
             for (BindingOperationInfo info : service.getOperations()) {
                 if (info.getName().getLocalPart().equals(opName.getLocalPart())) {
-                    final SoapBody body;
+                    SoapBody body = null;
                     if (output) {
                         body = info.getOutput().getExtensor(SoapBody.class);
                     } else {
@@ -94,6 +93,7 @@ public class RPCInInterceptor extends AbstractInDatabindingInterceptor {
         }
         DepthXMLStreamReader xmlReader = getXMLStreamReader(message);
 
+        BindingOperationInfo operation = null;
         if (!StaxUtils.toNextElement(xmlReader)) {
             message.setContent(Exception.class, new RuntimeException("There must be a method name element."));
         }
@@ -102,7 +102,6 @@ public class RPCInInterceptor extends AbstractInDatabindingInterceptor {
             opName = opName.substring(0, opName.length() - 8);
         }
 
-        final BindingOperationInfo operation;
         if (message.getExchange().getBindingOperationInfo() == null) {
             operation = getOperation(message, new QName(xmlReader.getNamespaceURI(), opName));
             if (operation == null) {
@@ -113,10 +112,6 @@ public class RPCInInterceptor extends AbstractInDatabindingInterceptor {
             setMessage(message, operation);
         } else {
             operation = message.getExchange().getBindingOperationInfo();
-            if (!operation.getName().getLocalPart().equals(opName)) {
-                String sa = (String)message.get(SoapBindingConstants.SOAP_ACTION);
-                throw new Fault("SOAP_ACTION_MISMATCH_OP", LOG, null, sa, opName);
-            }
         }
         MessageInfo msg;
         DataReader<XMLStreamReader> dr = getDataReader(message, XMLStreamReader.class);

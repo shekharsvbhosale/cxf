@@ -21,7 +21,7 @@
     <parent>
         <artifactId>cxf-microprofile-tck</artifactId>
         <groupId>org.apache.cxf.systests</groupId>
-        <version>3.5.0-SNAPSHOT</version>
+        <version>3.4.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -77,14 +77,8 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>jakarta.json.bind</groupId>
-                <artifactId>jakarta.json.bind-api</artifactId>
-                <version>${cxf.json.bind-api.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>jakarta.json</groupId>
-                <artifactId>jakarta.json-api</artifactId>
+                <groupId>javax.json</groupId>
+                <artifactId>javax.json-api</artifactId>
                 <version>${cxf.json.api.version}</version>
                 <scope>test</scope>
             </dependency>
@@ -117,12 +111,6 @@
                 <artifactId>microprofile-rest-client-tck</artifactId>
                 <version>${cxf.microprofile.rest.client.version}</version>
                 <scope>test</scope>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.testng</groupId>
-                        <artifactId>testng</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.github.tomakehurst</groupId>

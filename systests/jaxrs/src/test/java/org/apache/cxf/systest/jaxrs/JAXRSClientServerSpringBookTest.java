@@ -19,6 +19,8 @@
 
 package org.apache.cxf.systest.jaxrs;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.annotation.Annotation;
@@ -28,6 +30,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -60,7 +63,7 @@ import org.apache.cxf.testutil.common.AbstractBusClientServerTestBase;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.InputStreamEntity;
+import org.apache.http.entity.FileEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
@@ -479,7 +482,8 @@ public class JAXRSClientServerSpringBookTest extends AbstractBusClientServerTest
         wc.accept("application/xhtml+xml").path(666).matrix("name2", 2).query("name", "Action - ");
         XMLSource source = wc.get(XMLSource.class);
         source.setBuffering();
-        Map<String, String> namespaces = Collections.singletonMap("xhtml", "http://www.w3.org/1999/xhtml");
+        Map<String, String> namespaces = new HashMap<>();
+        namespaces.put("xhtml", "http://www.w3.org/1999/xhtml");
         Book2 b = source.getNode("xhtml:html/xhtml:body/xhtml:ul/xhtml:Book", namespaces, Book2.class);
         assertEquals(666, b.getId());
         assertEquals("CXF in Action - 2", b.getName());
@@ -764,8 +768,15 @@ public class JAXRSClientServerSpringBookTest extends AbstractBusClientServerTest
     }
 
     private void getBookAegis(String endpointAddress, String type) throws Exception {
+        getBookAegis(endpointAddress, type, null);
+    }
+
+    private void getBookAegis(String endpointAddress, String type, String mHeader) throws Exception {
         WebClient client = WebClient.create(endpointAddress,
             Collections.singletonList(new AegisElementProvider<Object>()));
+        if (mHeader != null) {
+            client = client.header("X-HTTP-Method-Override", mHeader);
+        }
         Book book = client.accept(type).get(Book.class);
 
         assertEquals(124L, book.getId());
@@ -832,6 +843,22 @@ public class JAXRSClientServerSpringBookTest extends AbstractBusClientServerTest
     }
 
     @Test
+    public void testRetrieveBookAegis1() throws Exception {
+
+        String endpointAddress =
+            "http://localhost:" + PORT + "/the/thebooks4/bookstore/books/aegis/retrieve?_method=RETRIEVE";
+        getBookAegis(endpointAddress, "application/xml");
+    }
+
+    @Test
+    public void testRetrieveBookAegis2() throws Exception {
+
+        String endpointAddress =
+            "http://localhost:" + PORT + "/the/thebooks4/bookstore/books/aegis/retrieve";
+        getBookAegis(endpointAddress, "application/xml", "RETRIEVE");
+    }
+
+    @Test
     public void testRetrieveGetBookAegis() throws Exception {
 
         String endpointAddress =
@@ -841,13 +868,27 @@ public class JAXRSClientServerSpringBookTest extends AbstractBusClientServerTest
 
     @Test
     public void testRetrieveBookAegis3() throws Exception {
-        try (Socket s = new Socket("localhost", Integer.parseInt(PORT))) {
-            IOUtils.copy(getClass().getResourceAsStream("resources/retrieveRequest.txt"), s.getOutputStream());
 
-            try (InputStream is = s.getInputStream()) {
-                assertTrue(IOUtils.toString(is).contains("CXF in Action - 2"));
+        try (Socket s = new Socket("localhost", Integer.parseInt(PORT));
+            InputStream is = this.getClass().getResourceAsStream("resources/retrieveRequest.txt")) {
+
+            byte[] bytes = IOUtils.readBytesFromStream(is);
+            s.getOutputStream().write(bytes);
+            s.getOutputStream().flush();
+
+            BufferedReader r = new BufferedReader(new InputStreamReader(s.getInputStream()));
+            StringBuilder sb = new StringBuilder();
+            String str = null;
+            while ((str = r.readLine()) != null) {
+                sb.append(str);
             }
+
+            String aegisData = sb.toString();
+            s.getInputStream().close();
+            s.close();
+            assertTrue(aegisData.contains("CXF in Action - 2"));
         }
+
     }
 
     @Test
@@ -965,10 +1006,11 @@ public class JAXRSClientServerSpringBookTest extends AbstractBusClientServerTest
     private void doPost(String endpointAddress, int expectedStatus, String contentType,
                         String inResource, String expectedResource) throws Exception {
 
+        File input = new File(getClass().getResource(inResource).toURI());
         CloseableHttpClient client = HttpClientBuilder.create().build();
         HttpPost post = new HttpPost(endpointAddress);
         post.setHeader("Content-Type", contentType);
-        post.setEntity(new InputStreamEntity(getClass().getResourceAsStream(inResource), ContentType.TEXT_XML));
+        post.setEntity(new FileEntity(input, ContentType.TEXT_XML));
 
         try {
             CloseableHttpResponse response = client.execute(post);

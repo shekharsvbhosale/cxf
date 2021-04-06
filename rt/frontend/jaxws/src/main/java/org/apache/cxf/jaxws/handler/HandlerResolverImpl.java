@@ -78,6 +78,9 @@ public class HandlerResolverImpl implements HandlerResolver {
 
     /**
      * Obtain handler chain from annotations.
+     *
+     * @param obj A endpoint implementation class or a SEI, or a generated
+     *            service class.
      */
     private List<Handler> getHandlersFromAnnotation(Class<?> clazz, PortInfo portInfo) {
         AnnotationHandlerChainBuilder builder = new AnnotationHandlerChainBuilder();

@@ -22,7 +22,6 @@ package org.apache.cxf.common.util;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Dictionary;
-import java.util.Map;
 
 import org.junit.Test;
 
@@ -53,8 +52,7 @@ public class CollectionUtilsTest {
 
     @Test
     public void testIsEmpty() throws Exception {
-        assertTrue(CollectionUtils.isEmpty((Collection) null));
-        assertTrue(CollectionUtils.isEmpty((Map) null));
+        assertTrue(CollectionUtils.isEmpty(null));
 
         Collection<String> l = Arrays.asList(null, null);
         assertTrue(CollectionUtils.isEmpty(l));

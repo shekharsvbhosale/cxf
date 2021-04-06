@@ -29,9 +29,9 @@ import org.apache.cxf.rs.security.jose.jwa.SignatureAlgorithm;
 import org.apache.cxf.rt.security.crypto.CryptoUtils;
 
 public class PrivateKeyJwsSignatureProvider extends AbstractJwsSignatureProvider {
-    private final PrivateKey key;
-    private final SecureRandom random;
-    private final AlgorithmParameterSpec signatureSpec;
+    private PrivateKey key;
+    private SecureRandom random;
+    private AlgorithmParameterSpec signatureSpec;
 
     public PrivateKeyJwsSignatureProvider(PrivateKey key, SignatureAlgorithm algo) {
         this(key, null, algo);

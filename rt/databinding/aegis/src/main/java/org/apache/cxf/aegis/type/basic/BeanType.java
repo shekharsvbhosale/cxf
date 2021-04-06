@@ -44,7 +44,6 @@ import org.apache.cxf.aegis.type.mtom.AbstractXOPType;
 import org.apache.cxf.aegis.xml.MessageReader;
 import org.apache.cxf.aegis.xml.MessageWriter;
 import org.apache.cxf.common.classloader.ClassLoaderUtils;
-import org.apache.cxf.common.util.StringUtils;
 import org.apache.cxf.common.xmlschema.XmlSchemaUtils;
 import org.apache.cxf.helpers.CastUtils;
 import org.apache.cxf.interceptor.Fault;
@@ -315,7 +314,7 @@ public class BeanType extends AegisType {
      */
     private Method getWriteMethodFromImplClass(Class<?> impl, PropertyDescriptor pd) throws Exception {
         String name = pd.getName();
-        name = "set" + StringUtils.capitalize(name);
+        name = "set" + name.substring(0, 1).toUpperCase() + name.substring(1);
 
         return impl.getMethod(name, new Class[] {
             pd.getPropertyType()
@@ -429,7 +428,8 @@ public class BeanType extends AegisType {
                                 AegisType type, MessageWriter writer, Context context) {
 
         if (!type.isFlatArray()) {
-            MessageWriter cwriter = getWriter(writer, name, type);
+            MessageWriter cwriter = null;
+            cwriter = getWriter(writer, name, type);
             type.writeObject(value, cwriter, context);
             cwriter.close();
         } else {

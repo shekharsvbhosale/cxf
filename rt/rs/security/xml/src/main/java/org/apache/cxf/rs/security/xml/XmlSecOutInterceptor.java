@@ -156,7 +156,7 @@ public class XmlSecOutInterceptor extends AbstractPhaseInterceptor<Message> {
         properties.setEncryptionSymAlgorithm(symEncAlgo);
         properties.setEncryptionKey(getSymmetricKey(symEncAlgo));
         if (encryptSymmetricKey) {
-            X509Certificate sendingCert;
+            X509Certificate sendingCert = null;
             String userName =
                 (String)SecurityUtils.getSecurityPropertyValue(SecurityConstants.ENCRYPT_USERNAME, message);
             if (RSSecurityUtils.USE_REQUEST_SIGNATURE_CERT.equals(userName)
@@ -203,7 +203,7 @@ public class XmlSecOutInterceptor extends AbstractPhaseInterceptor<Message> {
             }
         }
 
-        properties.addAction(XMLSecurityConstants.ENCRYPTION);
+        properties.addAction(XMLSecurityConstants.ENCRYPT);
 
         if (elementsToEncrypt == null || elementsToEncrypt.isEmpty()) {
             LOG.fine("No Elements to encrypt are specified, so the entire request is encrypt");
@@ -294,7 +294,7 @@ public class XmlSecOutInterceptor extends AbstractPhaseInterceptor<Message> {
         }
 
         properties.setSignatureAlgorithm(sigAlgo);
-        final PrivateKey privateKey;
+        PrivateKey privateKey = null;
         try {
             privateKey = crypto.getPrivateKey(user, password);
         } catch (Exception ex) {

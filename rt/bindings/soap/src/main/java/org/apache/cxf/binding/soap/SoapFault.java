@@ -90,7 +90,7 @@ public class SoapFault extends Fault {
     }
 
     private String getFaultCodeString(String prefix, String defaultPrefix, QName fCode) {
-        String codePrefix;
+        String codePrefix = null;
         if (StringUtils.isEmpty(prefix)) {
             codePrefix = fCode.getPrefix();
             if (StringUtils.isEmpty(codePrefix)) {
@@ -100,7 +100,7 @@ public class SoapFault extends Fault {
             codePrefix = prefix;
         }
 
-        return codePrefix + ':' + fCode.getLocalPart();
+        return codePrefix + ":" + fCode.getLocalPart();
     }
 
     private QName getRootSubCode() {
@@ -178,7 +178,7 @@ public class SoapFault extends Fault {
     /**
      * Sets the SubCode list for the Fault Code.
      *
-     * @param subCodes The SubCode element list as detailed by the SOAP 1.2 spec.
+     * @param subCode The SubCode element list as detailed by the SOAP 1.2 spec.
      */
     public void setSubCodes(List<QName> subCodes) {
         this.subCodes = subCodes;

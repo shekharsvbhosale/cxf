@@ -22,9 +22,9 @@ package org.apache.cxf.metrics.codahale;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
+import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.jmx.JmxReporter;
-import com.codahale.metrics.jmx.ObjectNameFactory;
+import com.codahale.metrics.ObjectNameFactory;
 
 import org.apache.cxf.Bus;
 import org.apache.cxf.common.injection.NoJSR250Annotations;
@@ -33,6 +33,7 @@ import org.apache.cxf.management.InstrumentationManager;
 import org.apache.cxf.management.ManagementConstants;
 import org.apache.cxf.metrics.MetricsContext;
 import org.apache.cxf.metrics.MetricsProvider;
+import org.apache.cxf.service.Service;
 import org.apache.cxf.service.model.BindingOperationInfo;
 
 /**
@@ -50,8 +51,9 @@ public class CodahaleMetricsProvider implements MetricsProvider {
      *
      */
     public CodahaleMetricsProvider(Bus b) {
-        bus = b;
+        this.bus = b;
         registry = b.getExtension(MetricRegistry.class);
+        bus = b;
         if (registry == null) {
             registry = new MetricRegistry();
             setupJMXReporter(b, registry);
@@ -89,18 +91,25 @@ public class CodahaleMetricsProvider implements MetricsProvider {
     StringBuilder getBaseServiceName(Endpoint endpoint, boolean isClient, String clientId) {
         StringBuilder buffer = new StringBuilder();
         if (endpoint.get("org.apache.cxf.management.service.counter.name") != null) {
-            buffer.append(endpoint.get("org.apache.cxf.management.service.counter.name"));
+            buffer.append((String)endpoint.get("org.apache.cxf.management.service.counter.name"));
         } else {
+            Service service = endpoint.getService();
+
+            String serviceName = "\"" + escapePatternChars(service.getName().toString()) + "\"";
+            String portName = "\"" + endpoint.getEndpointInfo().getName().getLocalPart() + "\"";
+
             buffer.append(ManagementConstants.DEFAULT_DOMAIN_NAME).append(':');
-            buffer.append(ManagementConstants.BUS_ID_PROP).append('=').append(bus.getId()).append(',');
+            buffer.append(ManagementConstants.BUS_ID_PROP + "=" + bus.getId() + ",");
             buffer.append(ManagementConstants.TYPE_PROP).append("=Metrics");
-            buffer.append(isClient ? ".Client," : ".Server,");
-            buffer.append(ManagementConstants.SERVICE_NAME_PROP)
-                .append("=\"").append(escapePatternChars(endpoint.getService().getName().toString())).append("\",");
-            buffer.append(ManagementConstants.PORT_NAME_PROP)
-                .append("=\"").append(endpoint.getEndpointInfo().getName().getLocalPart()).append("\",");
+            if (isClient) {
+                buffer.append(".Client,");
+            } else {
+                buffer.append(".Server,");
+            }
+            buffer.append(ManagementConstants.SERVICE_NAME_PROP + "=" + serviceName + ",");
+            buffer.append(ManagementConstants.PORT_NAME_PROP + "=" + portName + ",");
             if (clientId != null) {
-                buffer.append("Client=").append(clientId).append(',');
+                buffer.append("Client=" + clientId + ",");
             }
         }
         return buffer;
