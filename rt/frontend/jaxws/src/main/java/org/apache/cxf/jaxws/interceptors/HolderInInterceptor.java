@@ -37,7 +37,7 @@ import org.apache.cxf.service.model.OperationInfo;
 public class HolderInInterceptor extends AbstractPhaseInterceptor<Message> {
 
     public static final String CLIENT_HOLDERS = "client.holders";
-
+    
     public HolderInInterceptor() {
         super(Phase.PRE_INVOKE);
     }
@@ -54,9 +54,9 @@ public class HolderInInterceptor extends AbstractPhaseInterceptor<Message> {
         if (op == null || !op.hasOutput() || op.getOutput().size() == 0) {
             return;
         }
-
+        
         List<MessagePartInfo> parts = op.getOutput().getMessageParts();
-
+        
         boolean client = Boolean.TRUE.equals(message.get(Message.REQUESTOR_ROLE));
         if (client) {
             List<Holder<?>> outHolders = CastUtils.cast((List<?>)message.getExchange()
@@ -66,8 +66,15 @@ public class HolderInInterceptor extends AbstractPhaseInterceptor<Message> {
                     @SuppressWarnings("unchecked")
                     Holder<Object> holder = (Holder<Object>)outHolders.get(part.getIndex() - 1);
                     if (holder != null) {
-                        holder.value = inObjects.get(part);
-                        inObjects.put(part, holder);
+                        if (part.getIndex() >= inObjects.size()) {
+                            // Even though the message part is mandatory and it must be sent
+                            // some servers (e.g. Windows 2008 WinRM) are not sending all the parts.
+                            // Tolerate this behavior.
+                            holder.value = null;
+                        } else {
+                            holder.value = inObjects.get(part);
+                            inObjects.put(part, holder);
+                        }
                     }
                 }
             }
