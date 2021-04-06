@@ -24,7 +24,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.cxf.common.util.StringUtils;
 import org.apache.cxf.common.util.URIParserUtil;
 import org.apache.cxf.maven_plugin.WsdlArtifact;
 import org.apache.cxf.tools.common.ToolConstants;
@@ -132,7 +131,7 @@ public class WsdlOption extends Option implements org.apache.cxf.maven_plugin.Ge
     }
 
     public String toString() {
-        StringBuilder builder = new StringBuilder(128);
+        StringBuilder builder = new StringBuilder();
         builder.append("WSDL: ").append(wsdl).append('\n');
         builder.append("OutputDir: ").append(outputDir).append('\n');
         builder.append("Extraargs: ").append(extraargs).append('\n');
@@ -170,9 +169,9 @@ public class WsdlOption extends Option implements org.apache.cxf.maven_plugin.Ge
             list.add("-validate=" + getValidateWsdl());
         }
         addIfTrue(list, isMarkGenerated() != null && isMarkGenerated(),
-            "-" + ToolConstants.CFG_MARK_GENERATED_OPTION);
+            "-" + ToolConstants.CFG_MARK_GENERATED);
         addIfTrue(list, isSuppressGeneratedDate() != null && isSuppressGeneratedDate(),
-            "-" + ToolConstants.CFG_SUPPRESS_GENERATED_DATE_OPTION);
+            "-" + ToolConstants.CFG_SUPPRESS_GENERATED_DATE);
         addIfNotNull(list, getDefaultExcludesNamespace(), "-dex");
         addIfNotNull(list, getDefaultNamespacePackageMapping(), "-dns");
         addIfNotNull(list, getServiceName(), "-sn");
@@ -228,10 +227,7 @@ public class WsdlOption extends Option implements org.apache.cxf.maven_plugin.Ge
             } else {
                 // Maven makes empty tags into null
                 // instead of empty strings. so replace null by ""
-                String v = key + ((value == null) ? "" : value);
-                if (!StringUtils.isEmpty(v)) {
-                    destList.add(v);
-                }
+                destList.add(key + ((value == null) ? "" : value));
             }
         }
     }
@@ -266,5 +262,36 @@ public class WsdlOption extends Option implements org.apache.cxf.maven_plugin.Ge
 
     public void setUri(String uri) {
         wsdl = uri;
+    }
+    
+    /**
+     * Calls {@link Option#merge(Option)} and checks afterwards, if a classpath
+     * replacement string has been set as default option.<br>
+     * <br>
+     * A classpath replacement string in the format
+     * "classpath;/path/to/replace/" will be processed to replace the local
+     * file-Url of the WSDL-files with the classpath URL.<br>
+     * <br>
+     * Example: "file:/path/to/package1/package2/myservice.wsdl" will be converted
+     * to "classpath:/package1/package2/myservice.wsdl", if "classpath;/path/to/"
+     * has been set<br>
+     * 
+     * @see org.apache.cxf.maven_plugin.wsdl2java.Option#merge(org.apache.cxf.maven_plugin.wsdl2java.Option)
+     */
+    @Override
+    public void merge(Option defaultOptions) {
+        super.merge(defaultOptions);
+        if (!isSetWsdlLocation() && defaultOptions.isSetWsdlLocation()) {
+            String defaultWsdlLocation = defaultOptions.getWsdlLocation();
+            if (defaultWsdlLocation != null && defaultWsdlLocation.startsWith("classpath;")) {
+                try {
+                    String[] replacer = defaultWsdlLocation.split(";");
+                    String filePath = new File(replacer[1]).toURI().toURL().toExternalForm();
+                    this.wsdlLocation = this.getWsdl().replace(filePath, "classpath:/");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }
