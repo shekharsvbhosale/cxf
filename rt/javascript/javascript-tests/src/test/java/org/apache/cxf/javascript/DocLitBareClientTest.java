@@ -29,16 +29,12 @@ import org.apache.cxf.javascript.fortest.SimpleDocLitBareImpl;
 import org.apache.cxf.javascript.fortest.TestBean1;
 import org.apache.cxf.javascript.fortest.TestBean2;
 import org.apache.cxf.testutil.common.TestUtil;
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.Scriptable;
-import org.springframework.context.support.GenericApplicationContext;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import org.mozilla.javascript.Context;
+import org.mozilla.javascript.Scriptable;
+import org.springframework.context.support.GenericApplicationContext;
 
 /*
  * We end up here with a part with isElement == true, a non-array element,
@@ -291,7 +287,7 @@ public class DocLitBareClientTest extends JavascriptRhinoTest {
         testUtilities.rhinoCallMethod(rv, "setLongItem", testUtilities.javaToJS(b1.longItem));
         testUtilities.rhinoCallMethod(rv, "setBase64Item", testUtilities.javaToJS(b1.base64Item));
         testUtilities.rhinoCallMethod(rv, "setOptionalIntItem", testUtilities.javaToJS(b1.optionalIntItem));
-        testUtilities.rhinoCallMethod(rv, "setOptionalIntArrayItem",
+        testUtilities.rhinoCallMethod(rv, "addOptionalIntArrayItem",
                                       testUtilities.javaToJS(b1.optionalIntArrayItem));
         testUtilities.rhinoCallMethod(rv, "setDoubleItem", testUtilities.javaToJS(b1.doubleItem));
         testUtilities.rhinoCallMethod(rv, "setBeanTwoItem", testBean2ToJS(testUtilities,

@@ -40,7 +40,6 @@ import org.apache.cxf.javascript.UnsupportedConstruct;
 import org.apache.ws.commons.schema.XmlSchema;
 import org.apache.ws.commons.schema.XmlSchemaAnnotated;
 import org.apache.ws.commons.schema.XmlSchemaAny;
-import org.apache.ws.commons.schema.XmlSchemaAttributeOrGroupRef;
 import org.apache.ws.commons.schema.XmlSchemaCollection;
 import org.apache.ws.commons.schema.XmlSchemaComplexType;
 import org.apache.ws.commons.schema.XmlSchemaElement;
@@ -91,9 +90,9 @@ public class SchemaJavascriptBuilder {
         xmlSchema = schema;
         code = new StringBuilder();
         code.append("//\n");
-        code.append("// Definitions for schema: ").append(schema.getTargetNamespace());
+        code.append("// Definitions for schema: " + schema.getTargetNamespace());
         if (schema.getSourceURI() != null) {
-            code.append("\n//  ").append(schema.getSourceURI());
+            code.append("\n//  " + schema.getSourceURI());
         }
         code.append("\n//\n");
 
@@ -118,10 +117,10 @@ public class SchemaJavascriptBuilder {
                 if (XmlSchemaUtils.isEumeration(simpleType)) {
                     List<String> values = XmlSchemaUtils.enumeratorValues(simpleType);
                     code.append("//\n");
-                    code.append("// Simple type (enumeration) ").append(simpleType.getQName()).append('\n');
+                    code.append("// Simple type (enumeration) " + simpleType.getQName() + "\n");
                     code.append("//\n");
                     for (String value : values) {
-                        code.append("// - ").append(value).append('\n');
+                        code.append("// - " + value + "\n");
                     }
                 }
             }
@@ -182,9 +181,9 @@ public class SchemaJavascriptBuilder {
 
         String typeObjectName = nameManager.getJavascriptName(name);
         code.append("//\n");
-        code.append("// Constructor for XML Schema item ").append(name.toString()).append('\n');
+        code.append("// Constructor for XML Schema item " + name.toString() + "\n");
         code.append("//\n");
-        code.append("function ").append(typeObjectName).append(" () {\n");
+        code.append("function " + typeObjectName + " () {\n");
         // to assist in debugging we put a type property into every object.
         utils.appendLine("this.typeMarker = '" + typeObjectName + "';");
         for (XmlSchemaObject thing : items) {
@@ -220,17 +219,17 @@ public class SchemaJavascriptBuilder {
 
         String accessorSuffix = StringUtils.capitalize(itemInfo.getJavascriptName());
 
-        String accessorName = typeObjectName + "_get" + accessorSuffix;
         String getFunctionProperty = typeObjectName + ".prototype.get" + accessorSuffix;
-        String setFunctionProperty = typeObjectName + ".prototype.set" + accessorSuffix;
+        String setFunctionProperty = typeObjectName + ".prototype." + (itemInfo.isArray() ? "add" : "set") 
+                + accessorSuffix;
         accessors.append("//\n");
-        accessors.append("// accessor is ").append(getFunctionProperty).append('\n');
-        accessors.append("// element get for ").append(itemInfo.getJavascriptName()).append('\n');
+        accessors.append("// accessor is " + getFunctionProperty + "\n");
+        accessors.append("// element get for " + itemInfo.getJavascriptName() + "\n");
         if (itemInfo.isAny()) {
             accessors.append("// - xs:any\n");
         } else {
             if (itemInfo.getType() != null) {
-                accessors.append("// - element type is ").append(itemInfo.getType().getQName()).append('\n');
+                accessors.append("// - element type is " + itemInfo.getType().getQName() + "\n");
             }
         }
 
@@ -238,30 +237,52 @@ public class SchemaJavascriptBuilder {
             accessors.append("// - optional element\n");
         } else {
             accessors.append("// - required element\n");
-
         }
 
         if (itemInfo.isArray()) {
             accessors.append("// - array\n");
-
         }
 
         if (itemInfo.isNillable()) {
             accessors.append("// - nillable\n");
         }
-
+        
+        String valueType = "value"; 
+        if (itemInfo.getType() != null) {
+            valueType = "value_" + itemInfo.getType().getName().toString();
+        }
+        
         accessors.append("//\n");
-        accessors.append("// element set for ").append(itemInfo.getJavascriptName()).append('\n');
-        accessors.append("// setter function is is ").append(setFunctionProperty).append('\n');
+        accessors.append("// element set for " + itemInfo.getJavascriptName() + "\n");
+        accessors.append("// setter function is is " + setFunctionProperty + "\n");
         accessors.append("//\n");
-        accessors.append("function ").append(accessorName).append("() { return this._")
-                        .append(itemInfo.getJavascriptName()).append(";}\n\n");
-        accessors.append(getFunctionProperty).append(" = ").append(accessorName).append(";\n\n");
-        accessorName = typeObjectName + "_set" + accessorSuffix;
-        accessors.append("function ").append(accessorName).append("(value) { this._")
-                        .append(itemInfo.getJavascriptName()).append(" = value;}\n\n");
-        accessors.append(setFunctionProperty).append(" = ").append(accessorName).append(";\n");
 
+        // Getter
+        accessors.append(getFunctionProperty + " = function () { return this._" 
+                         + itemInfo.getJavascriptName() + "; };\n\n");
+        
+        // Setter
+        if (itemInfo.isArray()) {
+            accessors.append(setFunctionProperty + " = function (" + valueType + ") {\n");
+            accessors.append("    var value = " + valueType + ";\n");
+            accessors.append("    if (value !== null && value !== \"undefined\") {\n");
+            accessors.append("        if (value instanceof Array) {\n");
+            accessors.append("            for(var i in value)\n");
+            accessors.append("                this._" + itemInfo.getJavascriptName() + ".push(value[i]);\n");
+            accessors.append("        } else {\n");
+            accessors.append("            if (value.raw) this._" + itemInfo.getJavascriptName() + " = value; "
+                                              + "else this._" + itemInfo.getJavascriptName() + ".push(value);\n");
+            accessors.append("        }\n");
+            accessors.append("    }\n");
+            accessors.append("    return this;\n"); // for method chaining
+            accessors.append("}\n\n");
+        } else {           
+            accessors.append(setFunctionProperty + " = function (" + valueType + ") { ");
+            accessors.append("this._" + itemInfo.getJavascriptName() + " = " + valueType + "; ");
+            accessors.append("return this; "); // for method chaining
+            accessors.append("}\n\n");
+        }
+        
         if (itemInfo.isOptional() || (itemInfo.isNillable() && !itemInfo.isArray())) {
             utils.appendLine("this._" + itemInfo.getJavascriptName() + " = null;");
         } else if (itemInfo.isArray()) {
@@ -272,7 +293,6 @@ public class SchemaJavascriptBuilder {
             // application code is responsible for this.
             utils.appendLine("this._" + itemInfo.getJavascriptName() + " = null;");
         } else {
-
             if (itemInfo.getDefaultValue() == null) {
                 itemInfo.setDefaultValue(utils.getDefaultValueForSimpleType(itemInfo.getType()));
             }
@@ -300,9 +320,9 @@ public class SchemaJavascriptBuilder {
         utils = new JavascriptUtils(code);
         String functionName = nameManager.getJavascriptName(name) + "_" + "serialize";
         code.append("//\n");
-        code.append("// Serialize ").append(name).append('\n');
+        code.append("// Serialize " + name + "\n");
         code.append("//\n");
-        code.append("function ").append(functionName).append("(cxfjsutils, elementName, extraNamespaces) {\n");
+        code.append("function " + functionName + "(cxfjsutils, elementName, extraNamespaces) {\n");
         utils.startXmlStringAccumulator("xml");
         utils.startIf("elementName !== null");
         utils.appendString("<");
@@ -328,14 +348,24 @@ public class SchemaJavascriptBuilder {
         utils.endBlock();
         utils.appendLine("return xml;");
         code.append("}\n\n");
-        code.append(nameManager.getJavascriptName(name)).append(".prototype.serialize = ")
-            .append(functionName).append(";\n\n");
+        code.append(nameManager.getJavascriptName(name) + ".prototype.serialize = " + functionName + ";\n\n");
     }
 
-    private void complexTypeSerializeAttributes(XmlSchemaComplexType type, String string) {
-        @SuppressWarnings("unused")
-        List<XmlSchemaAttributeOrGroupRef> attributes = type.getAttributes();
-        // work in progress.
+    private void complexTypeSerializeAttributes(XmlSchemaComplexType type, String attrPrefix) {
+        List<XmlSchemaAnnotated> attrs = XmlSchemaUtils.getContentAttributes(type, xmlSchemaCollection);
+
+        for (XmlSchemaAnnotated thing : attrs) {
+            AttributeInfo itemInfo = AttributeInfo.forLocalItem(thing, xmlSchema, xmlSchemaCollection,
+                                                                prefixAccumulator, type.getQName());
+            String attrName = itemInfo.getJavascriptName();
+            utils.startIf(attrPrefix + attrName + " !== null");
+            utils.appendExpression("'" + attrName + "=\"' + " + attrPrefix + attrName + " + '\" '");
+            if (itemInfo.getDefaultValue() != null && !itemInfo.isOptional()) {
+                utils.appendElse();
+                utils.appendExpression("'" + attrName + "=\"" + itemInfo.getDefaultValue() + "\" '");
+            }
+            utils.endBlock();
+        }
     }
 
     /**
@@ -345,7 +375,7 @@ public class SchemaJavascriptBuilder {
      *
      * @param type
      * @param elementPrefix
-     * @param bodyUtils
+     * @param bodyNamespaceURIs
      * @return
      */
     protected void complexTypeSerializerBody(XmlSchemaComplexType type, String elementPrefix,
@@ -381,13 +411,31 @@ public class SchemaJavascriptBuilder {
         utils = new JavascriptUtils(code);
 
         List<XmlSchemaObject> contentElements = JavascriptUtils.getContentElements(type, xmlSchemaCollection);
+        List<XmlSchemaAnnotated> attributes = XmlSchemaUtils.getContentAttributes(type, xmlSchemaCollection);
+        
         String typeObjectName = nameManager.getJavascriptName(name);
-        code.append("function ").append(typeObjectName).append("_deserialize (cxfjsutils, element) {\n");
+        code.append("function " + typeObjectName + "_deserialize (cxfjsutils, element) {\n");
         // create the object we are deserializing into.
         utils.appendLine("var newobject = new " + typeObjectName + "();");
         utils.appendLine("cxfjsutils.trace('element: ' + cxfjsutils.traceElementName(element));");
-        utils.appendLine("var curElement = cxfjsutils.getFirstElementChild(element);");
 
+        // create attributes
+        utils.appendLine("var attributes = element.attributes;");
+        utils.startFor("var i = 0", "i < attributes.length", "i++");
+        for (XmlSchemaAnnotated thing : attributes) {
+            AttributeInfo itemInfo = AttributeInfo.forLocalItem(thing, xmlSchema, xmlSchemaCollection,
+                                                                prefixAccumulator, type.getQName());
+
+            String attrName = itemInfo.getJavascriptName();
+            String setFunctionProperty = (itemInfo.isArray() ? "add" : "set") + StringUtils.capitalize(attrName);
+
+            utils.startIf("attributes[i] && attributes[i].nodeName === '" + attrName + "'");
+            utils.appendLine("newobject." + setFunctionProperty + "(attributes[i].nodeValue)");
+            utils.endBlock();
+        }
+        utils.endBlock();
+        
+        utils.appendLine("var curElement = cxfjsutils.getFirstElementChild(element);");
         utils.appendLine("var item;");
 
         int nContentElements = contentElements.size();
@@ -423,7 +471,7 @@ public class SchemaJavascriptBuilder {
         nslist.append("[ ");
         for (int x = 0; x < namespaces.length; x++) {
             String ns = namespaces[x];
-            nslist.append('\'');
+            nslist.append("'");
             if ("##targetNamespace".equals(ns)) {
                 nslist.append(xmlSchema.getTargetNamespace());
             } else if ("##local".equals(ns)) {
@@ -431,12 +479,12 @@ public class SchemaJavascriptBuilder {
             } else {
                 nslist.append(ns);
             }
-            nslist.append('\'');
+            nslist.append("'");
             if (x < namespaces.length - 1) {
-                nslist.append(',');
+                nslist.append(",");
             }
         }
-        nslist.append(']');
+        nslist.append("]");
         return nslist.toString();
     }
 
@@ -450,7 +498,6 @@ public class SchemaJavascriptBuilder {
             utils.appendLine("var anyObject = [];");
         } else {
             utils.appendLine("var anyObject = null;");
-
         }
 
         String anyNamespaceSpec = any.getNamespace();
@@ -541,7 +588,12 @@ public class SchemaJavascriptBuilder {
         utils.endBlock(); // while
 
         utils.appendLine("var anyHolder = new org_apache_cxf_any_holder(anyURI, anyLocalPart, anyValue);");
-        utils.appendLine("newobject.setAny(anyHolder);");
+        
+        if (array) {
+            utils.appendLine("newobject.addAny(anyHolder);");
+        } else {
+            utils.appendLine("newobject.setAny(anyHolder);");
+        }
     }
 
     private void deserializeElement(XmlSchemaComplexType type, ParticleInfo itemInfo) {
@@ -556,7 +608,12 @@ public class SchemaJavascriptBuilder {
         boolean simple = itemType instanceof XmlSchemaSimpleType
                          || JavascriptUtils.notVeryComplexType(itemType);
         boolean mtomCandidate = JavascriptUtils.mtomCandidateType(itemType);
-        String accessorName = "set" + StringUtils.capitalize(itemInfo.getJavascriptName());
+        String accessorName;
+        if (itemInfo.isArray()) {
+            accessorName = "add" + StringUtils.capitalize(itemInfo.getJavascriptName());
+        } else {
+            accessorName = "set" + StringUtils.capitalize(itemInfo.getJavascriptName());
+        }
         utils.appendLine("cxfjsutils.trace('processing " + itemInfo.getJavascriptName() + "');");
         XmlSchemaElement element = (XmlSchemaElement)itemInfo.getParticle();
         QName elementQName = XmlSchemaUtils.getElementQualifiedName(element, xmlSchema);
