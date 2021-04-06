@@ -22,6 +22,7 @@ package org.apache.cxf.transport.http;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.ServerSocket;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -34,7 +35,6 @@ import java.util.logging.Logger;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
-import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.namespace.QName;
@@ -119,7 +119,6 @@ public abstract class AbstractHTTPDestination
     protected boolean fixedParameterOrder;
     protected boolean multiplexWithAddress;
     protected CertConstraints certConstraints;
-    protected boolean isServlet3;
     protected boolean decodeBasicAuthWithIso8859;
     protected ContinuationProviderFactory cproviderFactory;
     protected boolean enableWebSocket;
@@ -146,12 +145,6 @@ public abstract class AbstractHTTPDestination
         this.bus = b;
         this.registry = registry;
         this.path = path;
-        try {
-            ServletRequest.class.getMethod("isAsyncSupported");
-            isServlet3 = true;
-        } catch (Throwable t) {
-            //servlet 2.5 or earlier, no async support
-        }
         decodeBasicAuthWithIso8859 = PropertyUtils.isTrue(bus.getProperty(DECODE_BASIC_AUTH_WITH_ISO8859));
 
         initConfig();
@@ -181,7 +174,7 @@ public abstract class AbstractHTTPDestination
                     ? new String(authBytes, StandardCharsets.ISO_8859_1) : new String(authBytes);
 
                 int idx = authDecoded.indexOf(':');
-                final String username;
+                String username = null;
                 String password = null;
                 if (idx == -1) {
                     username = authDecoded;
@@ -234,7 +227,8 @@ public abstract class AbstractHTTPDestination
      * @return true iff the message has been marked as oneway
      */
     protected final boolean isOneWay(Message message) {
-        return MessageUtils.isOneWay(message);
+        Exchange ex = message.getExchange();
+        return ex != null && ex.isOneWay();
     }
 
     public void invoke(final ServletConfig config,
@@ -458,12 +452,6 @@ public abstract class AbstractHTTPDestination
         return contentType;
     }
     protected Message retrieveFromContinuation(HttpServletRequest req) {
-        if (!isServlet3) {
-            if (cproviderFactory != null) {
-                return cproviderFactory.retrieveFromContinuation(req);
-            }
-            return null;
-        }
         return retrieveFromServlet3Async(req);
     }
 
@@ -480,7 +468,7 @@ public abstract class AbstractHTTPDestination
                                      final HttpServletRequest req,
                                      final HttpServletResponse resp) {
         try {
-            if (isServlet3 && req.isAsyncSupported()) {
+            if (req.isAsyncSupported()) {
                 inMessage.put(ContinuationProvider.class.getName(),
                               new Servlet3ContinuationProvider(req, resp, inMessage));
             } else if (cproviderFactory != null) {
@@ -630,7 +618,7 @@ public abstract class AbstractHTTPDestination
 
         HttpServletResponse response = getHttpResponseFromMessage(outMessage);
 
-        int responseCode = MessageUtils.getReponseCodeFromMessage(outMessage);
+        int responseCode = getReponseCodeFromMessage(outMessage);
         if (responseCode >= 300) {
             String ec = (String)outMessage.get(Message.ERROR_MESSAGE);
             if (!StringUtils.isEmpty(ec)) {
@@ -643,7 +631,7 @@ public abstract class AbstractHTTPDestination
 
         outMessage.put(RESPONSE_HEADERS_COPIED, "true");
 
-        if (MessageUtils.hasNoResponseContent(outMessage)) {
+        if (hasNoResponseContent(outMessage)) {
             response.setContentLength(0);
             response.flushBuffer();
             closeResponseOutputStream(response);
@@ -667,6 +655,38 @@ public abstract class AbstractHTTPDestination
         }
     }
 
+    private int getReponseCodeFromMessage(Message message) {
+        Integer i = (Integer)message.get(Message.RESPONSE_CODE);
+        if (i != null) {
+            return i.intValue();
+        }
+        int code = hasNoResponseContent(message) ? HttpURLConnection.HTTP_ACCEPTED : HttpURLConnection.HTTP_OK;
+        // put the code in the message so that others can get it
+        message.put(Message.RESPONSE_CODE, code);
+        return code;
+    }
+
+    /**
+     * Determines if the current message has no response content.
+     * The message has no response content if either:
+     *  - the request is oneway and the current message is no partial
+     *    response or an empty partial response.
+     *  - the request is not oneway but the current message is an empty partial
+     *    response.
+     * @param message
+     * @return
+     */
+    private boolean hasNoResponseContent(Message message) {
+        final boolean ow = isOneWay(message);
+        final boolean pr = MessageUtils.isPartialResponse(message);
+        final boolean epr = MessageUtils.isEmptyPartialResponse(message);
+
+        //REVISIT may need to provide an option to choose other behavior?
+        // old behavior not suppressing any responses  => ow && !pr
+        // suppress empty responses for oneway calls   => ow && (!pr || epr)
+        // suppress additionally empty responses for decoupled twoway calls =>
+        return (ow && !pr) || epr;
+    }
 
     private HttpServletResponse getHttpResponseFromMessage(Message message) throws IOException {
         Object responseObj = message.get(HTTP_RESPONSE);
@@ -831,7 +851,7 @@ public abstract class AbstractHTTPDestination
      * @see org.apache.cxf.transport.AbstractMultiplexDestination#getAddressWithId(java.lang.String)
      */
     public EndpointReferenceType getAddressWithId(String id) {
-        final EndpointReferenceType ref;
+        EndpointReferenceType ref = null;
 
         if (isMultiplexWithAddress()) {
             String address = EndpointReferenceUtils.getAddress(reference);
