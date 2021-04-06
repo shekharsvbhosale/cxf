@@ -22,8 +22,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -33,10 +31,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.DataFormatException;
 
-import javax.annotation.PreDestroy;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
+import jakarta.annotation.PreDestroy;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
 
 import org.w3c.dom.Document;
 
@@ -183,7 +181,7 @@ public abstract class AbstractRequestAssertionConsumerHandler extends AbstractSS
 
         long currentTime = System.currentTimeMillis();
         Instant notOnOrAfter = validatorResponse.getSessionNotOnOrAfter();
-        final long expiresAt;
+        long expiresAt = 0;
         if (notOnOrAfter != null) {
             expiresAt = notOnOrAfter.toEpochMilli();
         } else {
@@ -275,24 +273,23 @@ public abstract class AbstractRequestAssertionConsumerHandler extends AbstractSS
             }
         }
         */
-        final Reader reader;
+        InputStream tokenStream = null;
         if (isSupportBase64Encoding()) {
             try {
                 byte[] deflatedToken = Base64Utility.decode(samlResponseDecoded);
-                final InputStream tokenStream = !postBinding && isSupportDeflateEncoding()
+                tokenStream = !postBinding && isSupportDeflateEncoding()
                     ? new DeflateEncoderDecoder().inflateToken(deflatedToken)
                     : new ByteArrayInputStream(deflatedToken);
-                reader = new InputStreamReader(tokenStream, StandardCharsets.UTF_8);
             } catch (Base64Exception | DataFormatException ex) {
                 throw ExceptionUtils.toBadRequestException(ex, null);
             }
         } else {
-            reader = new StringReader(samlResponseDecoded);
+            tokenStream = new ByteArrayInputStream(samlResponseDecoded.getBytes(StandardCharsets.UTF_8));
         }
 
-        final Document responseDoc;
+        Document responseDoc = null;
         try {
-            responseDoc = StaxUtils.read(reader);
+            responseDoc = StaxUtils.read(new InputStreamReader(tokenStream, StandardCharsets.UTF_8));
         } catch (Exception ex) {
             throw new WebApplicationException(400);
         }
@@ -301,7 +298,7 @@ public abstract class AbstractRequestAssertionConsumerHandler extends AbstractSS
             LOG.fine("Received response: " + DOM2Writer.nodeToString(responseDoc.getDocumentElement()));
         }
 
-        final XMLObject responseObject;
+        XMLObject responseObject = null;
         try {
             responseObject = OpenSAMLUtil.fromDom(responseDoc.getDocumentElement());
         } catch (WSSecurityException ex) {

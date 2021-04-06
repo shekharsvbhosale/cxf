@@ -20,6 +20,7 @@
 package org.apache.cxf.jaxrs.impl;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,8 +30,8 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.ext.RuntimeDelegate.HeaderDelegate;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.ext.RuntimeDelegate.HeaderDelegate;
 
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.common.util.StringUtils;
@@ -141,7 +142,9 @@ public class MediaTypeHeaderProvider implements HeaderDelegate<MediaType> {
 
         Map<String, String> params = type.getParameters();
         if (params != null) {
-            for (Map.Entry<String, String> entry : params.entrySet()) {
+            for (Iterator<Map.Entry<String, String>> iter = params.entrySet().iterator();
+                iter.hasNext();) {
+                Map.Entry<String, String> entry = iter.next();
                 if (ignoreParams != null && ignoreParams.contains(entry.getKey())) {
                     continue;
                 }
@@ -174,7 +177,7 @@ public class MediaTypeHeaderProvider implements HeaderDelegate<MediaType> {
         Message message = PhaseInterceptorChain.getCurrentMessage();
         if (message != null
             && !MessageUtils.getContextualBoolean(message, STRICT_MEDIA_TYPE_CHECK, false)) {
-            final MediaType mt;
+            MediaType mt = null;
             if (mType.equals(MediaType.TEXT_PLAIN_TYPE.getType())) {
                 mt = MediaType.TEXT_PLAIN_TYPE;
             } else if (mType.equals(MediaType.APPLICATION_XML_TYPE.getSubtype())) {

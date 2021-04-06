@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.ws.rs.sse.InboundSseEvent;
+import jakarta.ws.rs.sse.InboundSseEvent;
 
 import org.apache.cxf.common.util.SystemPropertyAction;
 import org.reactivestreams.Subscriber;
@@ -60,8 +60,8 @@ public class SseSubscription implements Subscription {
         }
         requested.addAndGet(n);
         synchronized (buffer) {
+            InboundSseEvent bufferedEvent = null;
             synchronized (delivered) {
-                InboundSseEvent bufferedEvent;
                 while (delivered.get() < requested.get()
                        && (bufferedEvent = buffer.pollFirst()) != null) {
 

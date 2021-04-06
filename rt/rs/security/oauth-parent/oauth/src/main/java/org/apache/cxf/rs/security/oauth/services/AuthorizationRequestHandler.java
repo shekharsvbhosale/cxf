@@ -33,11 +33,11 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriBuilder;
 
 import net.oauth.OAuth;
 import net.oauth.OAuthMessage;
@@ -63,9 +63,10 @@ import org.apache.cxf.security.SecurityContext;
 public class AuthorizationRequestHandler {
 
     private static final Logger LOG = LogUtils.getL7dLogger(AuthorizationRequestHandler.class);
-    private static final String[] REQUIRED_PARAMETERS = {
-        OAuth.OAUTH_TOKEN
-    };
+    private static final String[] REQUIRED_PARAMETERS =
+        new String[] {
+            OAuth.OAUTH_TOKEN
+        };
 
     public Response handle(MessageContext mc, OAuthDataProvider dataProvider) {
         HttpServletRequest request = mc.getHttpServletRequest();
@@ -226,7 +227,7 @@ public class AuthorizationRequestHandler {
     private boolean compareRequestSessionTokens(HttpServletRequest request,
             OAuthMessage oAuthMessage) {
         HttpSession session = request.getSession();
-        final String requestToken;
+        String requestToken = null;
         try {
             requestToken = oAuthMessage.getParameter(OAuthConstants.AUTHENTICITY_TOKEN);
         } catch (IOException ex) {

@@ -22,7 +22,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.logging.Logger;
 
-import javax.security.auth.callback.CallbackHandler;
+import jakarta.security.auth.callback.CallbackHandler;
 
 import org.w3c.dom.Element;
 
@@ -87,7 +87,7 @@ public final class SAMLUtils {
 
     private static org.opensaml.saml.saml1.core.Subject getSaml1Subject(SamlAssertionWrapper assertionW) {
         for (Statement stmt : assertionW.getSaml1().getStatements()) {
-            final org.opensaml.saml.saml1.core.Subject samlSubject;
+            org.opensaml.saml.saml1.core.Subject samlSubject = null;
             if (stmt instanceof AttributeStatement) {
                 AttributeStatement attrStmt = (AttributeStatement) stmt;
                 samlSubject = attrStmt.getSubject();

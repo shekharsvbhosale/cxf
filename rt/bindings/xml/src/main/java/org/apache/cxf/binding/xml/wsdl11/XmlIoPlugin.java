@@ -21,8 +21,8 @@ package org.apache.cxf.binding.xml.wsdl11;
 
 import java.util.Map;
 
-import javax.wsdl.WSDLException;
-import javax.wsdl.extensions.ExtensibilityElement;
+import jakarta.wsdl.WSDLException;
+import jakarta.wsdl.extensions.ExtensibilityElement;
 import javax.xml.namespace.QName;
 
 import org.apache.cxf.bindings.xformat.XMLBindingMessageFormat;
@@ -33,7 +33,7 @@ import org.apache.cxf.wsdl.JAXBExtensibilityElement;
 public final class XmlIoPlugin extends AbstractWSDLPlugin {
 
     public ExtensibilityElement createExtension(final Map<String, Object> args) throws WSDLException {
-        final XMLBindingMessageFormat xmlFormat;
+        XMLBindingMessageFormat xmlFormat = null;
 
         Class<?> clz = getOption(args, Class.class);
         QName qname = getOption(args, QName.class);

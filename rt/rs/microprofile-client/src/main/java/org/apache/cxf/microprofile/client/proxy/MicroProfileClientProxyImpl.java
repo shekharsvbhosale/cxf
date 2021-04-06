@@ -30,17 +30,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.ws.rs.client.InvocationCallback;
-import javax.ws.rs.core.Configuration;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.client.InvocationCallback;
+import jakarta.ws.rs.core.Configuration;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
 
 import org.apache.cxf.common.classloader.ClassLoaderUtils;
 import org.apache.cxf.common.logging.LogUtils;
@@ -195,25 +194,16 @@ public class MicroProfileClientProxyImpl extends ClientProxyImpl {
         for (ResponseExceptionMapper<?> mapper : mappers) {
             if (mapper.handles(r.getStatus(), r.getHeaders())) {
                 Throwable t = mapper.toThrowable(r);
-                if (t == null) {
-                    continue;
-                }
                 if (t instanceof RuntimeException) {
                     throw t;
-                } else if (CompletionStage.class.isAssignableFrom(m.getReturnType())) {
-                    throw new CompletionException(t);
-                } else if (m.getExceptionTypes() != null) {
+                } else if (t != null && m.getExceptionTypes() != null) {
                     // its a checked exception, make sure its declared
                     for (Class<?> c : m.getExceptionTypes()) {
                         if (c.isAssignableFrom(t.getClass())) {
                             throw t;
                         }
                     }
-                    if (LOG.isLoggable(Level.FINEST)) {
-                        LOG.log(Level.FINEST, "ResponseExceptionMapper, " + mapper.getClass().getName() + ", handles " 
-                            + "response, but client method does not declare it's Throwable type, " 
-                            + t.getClass().getName());
-                    }
+                    // TODO Log the unhandled declarable
                 }
             }
         }
@@ -365,7 +355,7 @@ public class MicroProfileClientProxyImpl extends ClientProxyImpl {
                     LOG.log(Level.FINEST, "Caught exception invoking compute method", t);
                 }
                 if (t instanceof InvocationTargetException) {
-                    throw t.getCause();
+                    t = t.getCause();
                 }
                 throw t;
             }

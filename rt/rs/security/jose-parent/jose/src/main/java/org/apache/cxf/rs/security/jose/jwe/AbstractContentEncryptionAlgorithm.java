@@ -21,7 +21,7 @@ package org.apache.cxf.rs.security.jose.jwe;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.crypto.SecretKey;
-import javax.security.auth.DestroyFailedException;
+import jakarta.security.auth.DestroyFailedException;
 
 import org.apache.cxf.rs.security.jose.jwa.AlgorithmUtils;
 import org.apache.cxf.rs.security.jose.jwa.ContentAlgorithm;
@@ -50,7 +50,7 @@ public abstract class AbstractContentEncryptionAlgorithm extends AbstractContent
     }
 
     public byte[] getContentEncryptionKey(JweHeaders headers) {
-        final byte[] theCek;
+        byte[] theCek = null;
         if (cek == null) {
             String algoJava = getAlgorithm().getJavaName();
             SecretKey secretKey = CryptoUtils.getSecretKey(AlgorithmUtils.stripAlgoProperties(algoJava),

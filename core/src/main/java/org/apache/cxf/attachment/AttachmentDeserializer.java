@@ -23,7 +23,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PushbackInputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -35,7 +34,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.activation.DataSource;
+import jakarta.activation.DataSource;
 
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.common.util.StringUtils;
@@ -98,6 +97,8 @@ public class AttachmentDeserializer {
 
     private byte[] boundary;
 
+    private String contentType;
+
     private LazyAttachmentCollection attachments;
 
     private Message message;
@@ -140,7 +141,7 @@ public class AttachmentDeserializer {
     }
 
     protected void initializeRootMessage() throws IOException {
-        String contentType = (String) message.get(Message.CONTENT_TYPE);
+        contentType = (String) message.get(Message.CONTENT_TYPE);
 
         if (contentType == null) {
             throw new IllegalStateException("Content-Type can not be empty!");
@@ -159,7 +160,7 @@ public class AttachmentDeserializer {
             if (null == boundaryString) {
                 throw new IOException("Couldn't determine the boundary from the message!");
             }
-            boundary = boundaryString.getBytes(StandardCharsets.UTF_8);
+            boundary = boundaryString.getBytes("utf-8");
 
             stream = new PushbackInputStream(message.getContent(InputStream.class), PUSHBACK_AMOUNT);
             if (!readTillFirstBoundary(stream, boundary)) {
@@ -188,7 +189,7 @@ public class AttachmentDeserializer {
         }
     }
 
-    private String findBoundaryFromContentType(String ct) {
+    private String findBoundaryFromContentType(String ct) throws IOException {
         // Use regex to get the boundary and return null if it's not found
         Matcher m = CONTENT_TYPE_BOUNDARY_PATTERN.matcher(ct);
         return m.find() ? "--" + m.group(1) : null;
@@ -455,7 +456,11 @@ public class AttachmentDeserializer {
             }
             value = line.substring(separator);
         }
-        List<String> v = heads.computeIfAbsent(name, k -> new ArrayList<>(1));
+        List<String> v = heads.get(name);
+        if (v == null) {
+            v = new ArrayList<>(1);
+            heads.put(name, v);
+        }
         v.add(value);
     }
 

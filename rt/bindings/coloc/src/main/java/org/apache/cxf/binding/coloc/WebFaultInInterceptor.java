@@ -19,7 +19,7 @@
 package org.apache.cxf.binding.coloc;
 
 import javax.xml.namespace.QName;
-import javax.xml.ws.WebFault;
+import jakarta.xml.ws.WebFault;
 
 import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.message.Message;
@@ -82,7 +82,7 @@ public class WebFaultInInterceptor extends AbstractPhaseInterceptor<Message> {
 
         for (FaultInfo faultInfo : op.getFaults()) {
             for (MessagePartInfo mpi : faultInfo.getMessageParts()) {
-                final String ns;
+                String ns = null;
                 if (mpi.isElement()) {
                     ns = mpi.getElementQName().getNamespaceURI();
                 } else {

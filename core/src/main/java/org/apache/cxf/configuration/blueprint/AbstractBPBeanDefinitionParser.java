@@ -24,13 +24,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBElement;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Unmarshaller;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
+import javax.xml.stream.XMLStreamWriter;
 
 import org.w3c.dom.Attr;
 import org.w3c.dom.Element;
@@ -357,10 +358,14 @@ public abstract class AbstractBPBeanDefinitionParser {
                                             String propertyName,
                                             Class<?> c) {
         try {
+            XMLStreamWriter xmlWriter = null;
             Unmarshaller u = null;
             try {
-                final StringWriter writer = new StringWriter();
-                StaxUtils.writeTo(data, writer);
+                StringWriter writer = new StringWriter();
+                xmlWriter = StaxUtils.createXMLStreamWriter(writer);
+                StaxUtils.copy(data, xmlWriter);
+                xmlWriter.flush();
+
 
                 MutableBeanMetadata factory = ctx.createMetadata(MutableBeanMetadata.class);
                 factory.setClassName(c.getName());
@@ -388,6 +393,7 @@ public abstract class AbstractBPBeanDefinitionParser {
                     bean.addProperty(propertyName, value);
                 }
             } finally {
+                StaxUtils.close(xmlWriter);
                 JAXBUtils.closeUnmarshaller(u);
             }
         } catch (JAXBException e) {

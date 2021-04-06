@@ -44,8 +44,8 @@ import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.callback.PasswordCallback;
+import jakarta.security.auth.callback.CallbackHandler;
+import jakarta.security.auth.callback.PasswordCallback;
 
 import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
@@ -115,7 +115,7 @@ public final class TLSParameterJaxBUtils {
         if (kst == null) {
             return null;
         }
-        final String type;
+        String type = null;
         if (trustStore) {
             type = SSLUtils.getTrustStoreType(kst.isSetType()
                                      ? kst.getType() : null, LOG, KeyStore.getDefaultType());
@@ -128,7 +128,7 @@ public final class TLSParameterJaxBUtils {
                     ? deobfuscate(kst.getPassword())
                     : null;
         if (password == null) {
-            final String tmp;
+            String tmp = null;
             if (trustStore) {
                 tmp = SSLUtils.getTruststorePassword(null, LOG);
             } else {
@@ -138,7 +138,7 @@ public final class TLSParameterJaxBUtils {
                 password = tmp.toCharArray();
             }
         }
-        final String provider;
+        String provider = null;
         if (trustStore) {
             provider = SSLUtils.getTruststoreProvider(kst.isSetProvider() ? kst.getProvider() : null, LOG);
         } else {
@@ -164,7 +164,7 @@ public final class TLSParameterJaxBUtils {
         } else if (kst.isSetUrl()) {
             keyStore.load(new URL(kst.getUrl()).openStream(), password);
         } else {
-            final String loc;
+            String loc = null;
             if (trustStore) {
                 loc = SSLUtils.getTruststore(null, LOG);
             } else {
@@ -357,9 +357,10 @@ public final class TLSParameterJaxBUtils {
         if (callbackHandlerClass == null) {
             return null;
         }
+        CallbackHandler ch = null;
         try {
-            final CallbackHandler ch = (CallbackHandler) ClassLoaderUtils
-                .loadClass(callbackHandlerClass, TLSParameterJaxBUtils.class).newInstance();
+            ch = (CallbackHandler)ClassLoaderUtils.loadClass(callbackHandlerClass, TLSParameterJaxBUtils.class)
+                .newInstance();
             String prompt = kmc.getKeyStore().getFile();
             if (prompt == null) {
                 prompt = kmc.getKeyStore().getResource();

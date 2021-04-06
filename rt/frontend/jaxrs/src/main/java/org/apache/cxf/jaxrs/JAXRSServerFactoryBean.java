@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.ws.rs.core.Application;
+import jakarta.ws.rs.core.Application;
 
 import org.apache.cxf.Bus;
 import org.apache.cxf.common.classloader.ClassLoaderUtils;
@@ -208,12 +208,7 @@ public class JAXRSServerFactoryBean extends AbstractJAXRSFactoryBean {
                 try {
                     server.start();
                 } catch (RuntimeException re) {
-                    if (!(re instanceof ServiceConstructionException 
-                        && re.getMessage().startsWith("There is an endpoint already running on"))) {
-                        //avoid destroying another server on the same endpoint url
-                        server.destroy(); // prevent resource leak if server really started by itself
-                        
-                    }
+                    server.destroy(); // prevent resource leak
                     throw re;
                 }
             }

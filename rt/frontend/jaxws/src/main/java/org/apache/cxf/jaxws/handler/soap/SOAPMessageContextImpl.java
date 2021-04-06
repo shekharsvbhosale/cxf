@@ -27,16 +27,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
 import javax.xml.namespace.QName;
 import javax.xml.soap.SOAPException;
 import javax.xml.soap.SOAPHeader;
 import javax.xml.soap.SOAPHeaderElement;
 import javax.xml.soap.SOAPMessage;
-import javax.xml.ws.WebServiceException;
-import javax.xml.ws.handler.MessageContext;
-import javax.xml.ws.handler.soap.SOAPMessageContext;
+import jakarta.xml.ws.WebServiceException;
+import jakarta.xml.ws.handler.MessageContext;
+import jakarta.xml.ws.handler.soap.SOAPMessageContext;
 
 import org.apache.cxf.binding.soap.SoapMessage;
 import org.apache.cxf.binding.soap.saaj.SAAJInInterceptor;
@@ -64,7 +64,7 @@ public class SOAPMessageContextImpl extends WrappedMessageContext implements SOA
     }
 
     public SOAPMessage getMessage() {
-        SOAPMessage message;
+        SOAPMessage message = null;
         if (getWrappedMessage().getContent(Object.class) instanceof SOAPMessage) {
             message = (SOAPMessage)getWrappedMessage().getContent(Object.class);
         } else {

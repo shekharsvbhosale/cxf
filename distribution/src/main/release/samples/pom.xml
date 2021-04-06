@@ -30,13 +30,13 @@
         <!-- don't deploy the samples, kind of pointless -->
         <maven.deploy.skip>true</maven.deploy.skip>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring.boot.version>2.4.4</spring.boot.version>
+        <spring.boot.version>2.4.0</spring.boot.version>
         <spring.cloud.eureka.version>3.0.0</spring.cloud.eureka.version>
-        <cxf.jetty9.version>9.4.39.v20210325</cxf.jetty9.version>
+        <cxf.jetty9.version>9.4.34.v20201102</cxf.jetty9.version>
         <cxf.httpcomponents.client.version>4.5.13</cxf.httpcomponents.client.version>
-        <cxf.swagger.ui.version>3.38.0</cxf.swagger.ui.version>
-        <cxf.tika.version>1.26</cxf.tika.version>
-        <cxf.tomcat.version>9.0.44</cxf.tomcat.version>
+        <cxf.swagger.ui.version>3.32.1</cxf.swagger.ui.version>
+        <cxf.tika.version>1.25</cxf.tika.version>
+        <cxf.tomcat.version>9.0.41</cxf.tomcat.version>
     </properties>
     <dependencies>
         <dependency>
@@ -210,7 +210,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-war-plugin</artifactId>
-                    <version>3.3.1</version>
+                    <version>3.3.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -271,7 +271,7 @@
                 <dependency>
                     <groupId>jakarta.activation</groupId>
                     <artifactId>jakarta.activation-api</artifactId>
-                    <version>1.2.2</version>
+                    <version>2.0.0</version>
                 </dependency>
                 <dependency>
                     <groupId>jakarta.jws</groupId>

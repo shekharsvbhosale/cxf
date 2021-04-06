@@ -31,10 +31,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.ws.rs.core.Application;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.ws.rs.core.Application;
 
 import org.apache.cxf.Bus;
 import org.apache.cxf.common.classloader.ClassLoaderUtils;
@@ -89,7 +89,7 @@ public class CXFNonSpringJaxrsServlet extends CXFNonSpringServlet {
     private static final String DEFAULT_PARAMETER_SPLIT_CHAR = ",";
     private static final String SPACE_PARAMETER_SPLIT_CHAR = "space";
 
-    private static final String JAXRS_APPLICATION_PARAM = "javax.ws.rs.Application";
+    private static final String JAXRS_APPLICATION_PARAM = "jakarta.ws.rs.Application";
 
     private ClassLoader classLoader;
     private Application application;
@@ -437,7 +437,7 @@ public class CXFNonSpringJaxrsServlet extends CXFNonSpringServlet {
         }
         boolean isApplication = Application.class.isAssignableFrom(c.getDeclaringClass());
         try {
-            final ProviderInfo<? extends Object> provider;
+            ProviderInfo<? extends Object> provider = null;
             if (c.getParameterTypes().length == 0) {
                 if (isApplication) {
                     provider = new ApplicationInfo((Application)c.newInstance(), getBus());
@@ -608,7 +608,8 @@ public class CXFNonSpringJaxrsServlet extends CXFNonSpringServlet {
 
     protected Class<?> loadClass(String cName, String classType) throws ServletException {
         try {
-            final Class<?> cls;
+
+            Class<?> cls = null;
             if (classLoader == null) {
                 cls = ClassLoaderUtils.loadClass(cName, CXFNonSpringJaxrsServlet.class);
             } else {

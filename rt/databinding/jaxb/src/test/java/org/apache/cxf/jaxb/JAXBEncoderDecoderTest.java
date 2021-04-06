@@ -30,10 +30,10 @@ import java.util.List;
 import java.util.Map;
 
 import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBElement;
+import jakarta.xml.bind.Marshaller;
+import jakarta.xml.bind.Unmarshaller;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLEventWriter;
@@ -43,8 +43,8 @@ import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-import javax.xml.ws.RequestWrapper;
-import javax.xml.ws.ResponseWrapper;
+import jakarta.xml.ws.RequestWrapper;
+import jakarta.xml.ws.ResponseWrapper;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -481,7 +481,7 @@ public class JAXBEncoderDecoderTest {
             // unmarshal with schema should raise exception.
             Unmarshaller m = context.createUnmarshaller();
             m.setSchema(schema);
-            JAXBEncoderDecoder.unmarshall(m, elNode, part, true);
+            obj = JAXBEncoderDecoder.unmarshall(m, elNode, part, true);
             fail("Should have thrown a Fault");
         } catch (Fault ex) {
             // expected - schema validation should fail.
@@ -625,8 +625,8 @@ public class JAXBEncoderDecoderTest {
         className = "org.apache.type_test.doc.TestByteResponse")
     public byte testByte(
         byte x,
-        javax.xml.ws.Holder<java.lang.Byte> y,
-        javax.xml.ws.Holder<java.lang.Byte> z) {
+        jakarta.xml.ws.Holder<java.lang.Byte> y,
+        jakarta.xml.ws.Holder<java.lang.Byte> z) {
         return 24;
     }
 
@@ -638,8 +638,8 @@ public class JAXBEncoderDecoderTest {
         className = "org.apache.type_test.doc.TestBase64BinaryResponse")
     public byte[] testBase64Binary(
         byte[] x,
-        javax.xml.ws.Holder<byte[]> y,
-        javax.xml.ws.Holder<byte[]> z) {
+        jakarta.xml.ws.Holder<byte[]> y,
+        jakarta.xml.ws.Holder<byte[]> z) {
         return null;
     }
 

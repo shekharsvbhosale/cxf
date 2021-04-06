@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import javax.ws.rs.Path;
-import javax.ws.rs.ext.Provider;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.ext.Provider;
 import javax.xml.namespace.QName;
 
 import org.w3c.dom.Element;
@@ -271,7 +271,7 @@ public class JAXRSServerFactoryBeanDefinitionParser extends AbstractBeanDefiniti
             if (serviceClassAnnotation != null && clazz.getAnnotation(serviceClassAnnotation) == null) {
                 continue;
             }
-            Object bean;
+            Object bean = null;
             try {
                 bean = beanFactory.createBean(clazz, AutowireCapableBeanFactory.AUTOWIRE_BY_TYPE, true);
             } catch (Exception ex) {

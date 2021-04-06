@@ -22,16 +22,16 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ResourceBundle;
 
-import javax.jws.WebService;
+import jakarta.jws.WebService;
 import javax.resource.NotSupportedException;
 import javax.resource.ResourceException;
 import javax.resource.spi.ConnectionRequestInfo;
 import javax.resource.spi.LocalTransaction;
 import javax.resource.spi.ManagedConnectionMetaData;
-import javax.security.auth.Subject;
+import jakarta.security.auth.Subject;
 import javax.transaction.xa.XAResource;
-import javax.xml.ws.BindingProvider;
-import javax.xml.ws.WebServiceException;
+import jakarta.xml.ws.BindingProvider;
+import jakarta.xml.ws.WebServiceException;
 
 import org.apache.cxf.Bus;
 import org.apache.cxf.common.i18n.BundleUtils;
@@ -99,7 +99,7 @@ public class ManagedConnectionImpl
 
     public Object getConnection(Subject subject, ConnectionRequestInfo crInfo) throws ResourceException {
 
-        final Object connection;
+        Object connection = null;
 
         if (getCXFService() == null) {
             initializeCXFConnection(crInfo, subject);
@@ -122,7 +122,7 @@ public class ManagedConnectionImpl
         Class<?> serviceInterface = requestInfo.getInterface();
         ClassLoader orig = Thread.currentThread().getContextClassLoader();
         try {
-            final ClientProxyFactoryBean factoryBean;
+            ClientProxyFactoryBean factoryBean = null;
             if (isJaxWsServiceInterface(serviceInterface)) {
                 factoryBean = new JaxWsProxyFactoryBean();
             } else {

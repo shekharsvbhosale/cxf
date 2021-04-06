@@ -34,7 +34,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 
 import org.xml.sax.EntityResolver;
 
@@ -99,8 +99,10 @@ public class OASISCatalogManager {
                 public String getResolvedEntity(String publicId, String systemId) {
                     String s = super.getResolvedEntity(publicId, systemId);
                     if (s != null && s.startsWith("classpath:")) {
-                        try (URIResolver r = new URIResolver(s)) {
+                        try {
+                            URIResolver r = new URIResolver(s);
                             if (r.isResolved()) {
+                                r.getInputStream().close();
                                 return r.getURL().toExternalForm();
                             }
                         } catch (IOException e) {

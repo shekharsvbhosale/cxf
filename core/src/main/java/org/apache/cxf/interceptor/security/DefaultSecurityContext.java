@@ -27,7 +27,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.security.auth.Subject;
+import jakarta.security.auth.Subject;
 
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.common.security.GroupPrincipal;
@@ -110,7 +110,7 @@ public class DefaultSecurityContext implements LoginSecurityContext {
         if (subject != null) {
             for (Principal principal : subject.getPrincipals()) {
                 if (isGroupPrincipal(principal) 
-                    && checkGroup(principal, role)) {
+                    && checkGroup((Principal)principal, role)) {
                     return true;
                 } else if (p != principal
                            && role.equals(principal.getName())) {

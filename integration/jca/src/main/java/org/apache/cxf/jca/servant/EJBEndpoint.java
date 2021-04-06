@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import javax.ejb.EJBHome;
-import javax.jws.WebService;
+import jakarta.jws.WebService;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.resource.spi.work.WorkManager;
@@ -122,7 +122,7 @@ public class EJBEndpoint {
     }
 
     public String getDefaultEJBServantBaseURL() throws Exception {
-        String hostName;
+        String hostName = "";
         try {
             InetAddress addr = InetAddress.getLocalHost();
             hostName = addr.getCanonicalHostName();

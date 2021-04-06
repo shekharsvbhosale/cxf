@@ -46,14 +46,14 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
-import javax.activation.CommandInfo;
-import javax.activation.CommandMap;
-import javax.activation.DataContentHandler;
-import javax.activation.DataHandler;
-import javax.activation.DataSource;
-import javax.activation.FileDataSource;
-import javax.activation.MailcapCommandMap;
-import javax.activation.URLDataSource;
+import jakarta.activation.CommandInfo;
+import jakarta.activation.CommandMap;
+import jakarta.activation.DataContentHandler;
+import jakarta.activation.DataHandler;
+import jakarta.activation.DataSource;
+import jakarta.activation.FileDataSource;
+import jakarta.activation.MailcapCommandMap;
+import jakarta.activation.URLDataSource;
 
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.common.util.StringUtils;
@@ -67,8 +67,6 @@ import org.apache.cxf.message.MessageUtils;
 public final class AttachmentUtil {
     public static final String BODY_ATTACHMENT_ID = "root.message@cxf.apache.org";
 
-    static final String BINARY = "binary";
-    
     private static final Logger LOG = LogUtils.getL7dLogger(AttachmentUtil.class);
 
     private static final AtomicInteger COUNTER = new AtomicInteger();
@@ -77,8 +75,7 @@ public final class AttachmentUtil {
     private static final Random BOUND_RANDOM = new Random();
     private static final CommandMap DEFAULT_COMMAND_MAP = CommandMap.getDefaultCommandMap();
     private static final MailcapCommandMap COMMAND_MAP = new EnhancedMailcapCommandMap();
-    
-    
+
     static final class EnhancedMailcapCommandMap extends MailcapCommandMap {
         @Override
         public synchronized DataContentHandler createDataContentHandler(
@@ -280,7 +277,7 @@ public final class AttachmentUtil {
                 dataHandlers = new DHMap(attachments);
             }
         }
-        return dataHandlers == null ? new LinkedHashMap<>() : dataHandlers;
+        return dataHandlers == null ? new LinkedHashMap<String, DataHandler>() : dataHandlers;
     }
 
     static class DHMap extends AbstractMap<String, DataHandler> {
@@ -316,7 +313,6 @@ public final class AttachmentUtil {
                                 }
                             };
                         }
-                        @Override
                         public void remove() {
                             it.remove();
                         }
@@ -329,8 +325,6 @@ public final class AttachmentUtil {
                 }
             };
         }
-        
-        @Override
         public DataHandler put(String key, DataHandler value) {
             Iterator<Attachment> i = list.iterator();
             DataHandler ret = null;
@@ -366,7 +360,7 @@ public final class AttachmentUtil {
         }
         if (id == null) {
             //no Content-ID, set cxf default ID
-            id =  BODY_ATTACHMENT_ID;
+            id = "root.message@cxf.apache.org";
         }
         return id;
     }
@@ -406,14 +400,14 @@ public final class AttachmentUtil {
             String name = e.getKey();
             if ("Content-Transfer-Encoding".equalsIgnoreCase(name)) {
                 encoding = getHeader(headers, name);
-                if (BINARY.equalsIgnoreCase(encoding)) {
+                if ("binary".equalsIgnoreCase(encoding)) {
                     att.setXOP(true);
                 }
             }
             att.setHeader(name, getHeaderValue(e.getValue()));
         }
         if (encoding == null) {
-            encoding = BINARY;
+            encoding = "binary";
         }
         InputStream ins = decode(stream, encoding);
         if (ins != stream) {
@@ -446,7 +440,7 @@ public final class AttachmentUtil {
         encoding = encoding.toLowerCase();
 
         // some encodings are just pass-throughs, with no real decoding.
-        if (BINARY.equals(encoding)
+        if ("binary".equals(encoding)
             || "7bit".equals(encoding)
             || "8bit".equals(encoding)) {
             return in;

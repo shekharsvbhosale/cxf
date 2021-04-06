@@ -21,7 +21,7 @@ package org.apache.cxf.bus.resource;
 
 import java.util.List;
 
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 
 import org.apache.cxf.Bus;
 import org.apache.cxf.common.injection.NoJSR250Annotations;
@@ -44,8 +44,6 @@ public class ResourceManagerImpl extends DefaultResourceManager implements BusEx
         super();
         setBus(b);
     }
-    
-    @Override
     protected void onFirstResolve() {
         super.onFirstResolve();
         if (bus != null) {

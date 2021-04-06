@@ -23,8 +23,8 @@ import java.lang.reflect.Field;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.xml.ws.Service;
-import javax.xml.ws.WebServiceException;
+import jakarta.xml.ws.Service;
+import jakarta.xml.ws.WebServiceException;
 
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.common.util.ReflectionUtil;
@@ -55,7 +55,7 @@ public final class ServiceDelegateAccessor {
      * @throws WebServiceException if access to the field fails for any reason
      */
     public static ServiceImpl get(Service service) {
-        ServiceImpl delegate;
+        ServiceImpl delegate = null;
         try {
             Field delegateField = Service.class.getDeclaredField(DELEGATE_FIELD_NAME);
             ReflectionUtil.setAccessible(delegateField);

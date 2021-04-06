@@ -22,7 +22,7 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
 
-import javax.ws.rs.ext.ParamConverterProvider;
+import jakarta.ws.rs.ext.ParamConverterProvider;
 
 import org.apache.cxf.common.util.StringUtils;
 import org.apache.cxf.jaxrs.ext.search.ParamConverterUtils;
@@ -236,7 +236,7 @@ public class TikaLuceneContentExtractor {
                 return;
             } else if (Date.class.isAssignableFrom(type)) {
                 final Date date = ParamConverterUtils.getValue(Date.class, provider, value);
-                final Field field;
+                Field field = null;
 
                 if (date != null) {
                     field = new StringField(name,

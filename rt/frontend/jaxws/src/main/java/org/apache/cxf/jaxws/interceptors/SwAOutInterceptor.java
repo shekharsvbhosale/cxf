@@ -41,12 +41,12 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
-import javax.activation.DataHandler;
-import javax.activation.DataSource;
+import jakarta.activation.DataHandler;
+import jakarta.activation.DataSource;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageOutputStream;
-import javax.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBContext;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import javax.xml.transform.Source;
@@ -177,7 +177,7 @@ public class SwAOutInterceptor extends AbstractSoapInterceptor {
                 continue;
             }
             outObjects.set(idx, null);
-            DataHandler dh;
+            DataHandler dh = null;
 
             // This code could probably be refactored out somewhere...
             if (o instanceof Source) {

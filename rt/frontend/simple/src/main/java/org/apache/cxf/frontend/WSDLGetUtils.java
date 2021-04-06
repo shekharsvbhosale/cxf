@@ -34,19 +34,19 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.wsdl.Definition;
-import javax.wsdl.Import;
-import javax.wsdl.Port;
-import javax.wsdl.Service;
-import javax.wsdl.Types;
-import javax.wsdl.WSDLException;
-import javax.wsdl.extensions.ExtensibilityElement;
-import javax.wsdl.extensions.schema.Schema;
-import javax.wsdl.extensions.schema.SchemaImport;
-import javax.wsdl.extensions.schema.SchemaReference;
-import javax.wsdl.extensions.soap.SOAPAddress;
-import javax.wsdl.extensions.soap12.SOAP12Address;
-import javax.wsdl.xml.WSDLWriter;
+import jakarta.wsdl.Definition;
+import jakarta.wsdl.Import;
+import jakarta.wsdl.Port;
+import jakarta.wsdl.Service;
+import jakarta.wsdl.Types;
+import jakarta.wsdl.WSDLException;
+import jakarta.wsdl.extensions.ExtensibilityElement;
+import jakarta.wsdl.extensions.schema.Schema;
+import jakarta.wsdl.extensions.schema.SchemaImport;
+import jakarta.wsdl.extensions.schema.SchemaReference;
+import jakarta.wsdl.extensions.soap.SOAPAddress;
+import jakarta.wsdl.extensions.soap12.SOAP12Address;
+import jakarta.wsdl.xml.WSDLWriter;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.transform.dom.DOMSource;
@@ -243,9 +243,10 @@ public class WSDLGetUtils {
                              Message message,
                              String xsdWsdlPar) {
         Bus bus = message.getExchange().getBus();
+        List<Element> elementList = null;
 
         try {
-            List<Element> elementList = DOMUtils.findAllElementsByTagNameNS(doc.getDocumentElement(),
+            elementList = DOMUtils.findAllElementsByTagNameNS(doc.getDocumentElement(),
                                                               "http://www.w3.org/2001/XMLSchema", "import");
             for (Element el : elementList) {
                 String sl = el.getAttribute("schemaLocation");
@@ -313,7 +314,7 @@ public class WSDLGetUtils {
             for (Element serviceEl : serviceList) {
                 String serviceName = serviceEl.getAttribute("name");
                 if (serviceName.equals(message.getExchange().getService().getName().getLocalPart())) {
-                    List<Element> elementList = DOMUtils.findAllElementsByTagNameNS(doc.getDocumentElement(),
+                    elementList = DOMUtils.findAllElementsByTagNameNS(doc.getDocumentElement(),
                                                                       "http://schemas.xmlsoap.org/wsdl/",
                                                                       "port");
                     for (Element el : elementList) {
@@ -742,7 +743,7 @@ public class WSDLGetUtils {
                                        String xsd,
                                        Map<String, SchemaReference> smp,
                                        String base) throws XMLStreamException {
-        final Document doc;
+        Document doc = null;
         SchemaReference si = lookupSchemaReference(bus, xsd, smp, base);
 
         String uri = si.getReferencedSchema().getDocumentBaseURI();

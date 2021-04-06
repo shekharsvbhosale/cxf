@@ -30,8 +30,8 @@ import java.util.logging.Logger;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamWriter;
 import javax.xml.validation.Schema;
-import javax.xml.ws.WebFault;
-import javax.xml.ws.soap.SOAPFaultException;
+import jakarta.xml.ws.WebFault;
+import jakarta.xml.ws.soap.SOAPFaultException;
 
 import org.apache.cxf.annotations.SchemaValidation.SchemaValidationType;
 import org.apache.cxf.binding.soap.SoapFault;
@@ -136,7 +136,7 @@ public class WebFaultOutInterceptor extends FaultOutInterceptor {
         }
         if (cause instanceof Exception && fault != null) {
             Exception ex = (Exception)cause;
-            Object faultInfo;
+            Object faultInfo = null;
             try {
                 Method method = cause.getClass().getMethod("getFaultInfo", new Class[0]);
                 faultInfo = method.invoke(cause, new Object[0]);
@@ -241,7 +241,7 @@ public class WebFaultOutInterceptor extends FaultOutInterceptor {
     private MessagePartInfo getFaultMessagePart(QName qname, OperationInfo op) {
         for (FaultInfo faultInfo : op.getFaults()) {
             for (MessagePartInfo mpi : faultInfo.getMessageParts()) {
-                final String ns;
+                String ns = null;
                 if (mpi.isElement()) {
                     ns = mpi.getElementQName().getNamespaceURI();
                 } else {

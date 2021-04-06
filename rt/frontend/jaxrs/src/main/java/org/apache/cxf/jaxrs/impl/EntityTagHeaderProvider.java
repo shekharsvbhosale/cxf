@@ -19,8 +19,8 @@
 
 package org.apache.cxf.jaxrs.impl;
 
-import javax.ws.rs.core.EntityTag;
-import javax.ws.rs.ext.RuntimeDelegate.HeaderDelegate;
+import jakarta.ws.rs.core.EntityTag;
+import jakarta.ws.rs.ext.RuntimeDelegate.HeaderDelegate;
 
 public class EntityTagHeaderProvider implements HeaderDelegate<EntityTag> {
 
@@ -37,7 +37,7 @@ public class EntityTagHeaderProvider implements HeaderDelegate<EntityTag> {
             return new EntityTag("*");
         }
 
-        String tag;
+        String tag = null;
         boolean weak = false;
         int i = header.indexOf(WEAK_PREFIX);
         if (i != -1) {

@@ -29,9 +29,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.ws.rs.Path;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.PathSegment;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.PathSegment;
 
 import org.apache.cxf.common.util.SystemPropertyAction;
 import org.apache.cxf.jaxrs.utils.HttpUtils;
@@ -40,7 +40,6 @@ import org.apache.cxf.jaxrs.utils.JAXRSUtils;
 public final class URITemplate {
 
     public static final String TEMPLATE_PARAMETERS = "jaxrs.template.parameters";
-    public static final String URI_TEMPLATE = "jaxrs.template.uri";
     public static final String LIMITED_REGEX_SUFFIX = "(/.*)?";
     public static final String FINAL_MATCH_GROUP = "FINAL_MATCH_GROUP";
     private static final String DEFAULT_PATH_VARIABLE_REGEX = "([^/]+?)";
@@ -196,19 +195,19 @@ public final class URITemplate {
                 List<PathSegment> uList = JAXRSUtils.getPathSegments(uri, false);
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < uList.size(); i++) {
-                    final String segment;
+                    String segment = null;
                     if (pList.size() > i && pList.get(i).getPath().indexOf('{') == -1) {
                         segment = uList.get(i).getPath();
                     } else {
                         segment = HttpUtils.fromPathSegment(uList.get(i));
                     }
-                    if (!segment.isEmpty()) {
+                    if (segment.length() > 0) {
                         sb.append(SLASH);
                     }
                     sb.append(segment);
                 }
                 uri = sb.toString();
-                if (uri.isEmpty()) {
+                if (uri.length() == 0) {
                     uri = SLASH;
                 }
                 m = templateRegexPattern.matcher(uri);

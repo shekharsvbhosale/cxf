@@ -24,7 +24,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 
-import javax.activation.DataSource;
+import jakarta.activation.DataSource;
 import javax.xml.namespace.QName;
 import javax.xml.soap.Detail;
 import javax.xml.soap.MessageFactory;
@@ -290,7 +290,7 @@ public class MessageModeOutInterceptor extends AbstractPhaseInterceptor<Message>
         public void handleMessage(SoapMessage message) throws Fault {
             MessageContentsList list = (MessageContentsList)message.getContent(List.class);
             Object o = list.remove(0);
-            final SOAPMessage soapMessage;
+            SOAPMessage soapMessage = null;
 
             if (o instanceof SOAPMessage) {
                 soapMessage = (SOAPMessage)o;
