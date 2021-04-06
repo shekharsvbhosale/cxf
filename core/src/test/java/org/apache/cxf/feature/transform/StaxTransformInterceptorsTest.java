@@ -19,13 +19,10 @@
 
 package org.apache.cxf.feature.transform;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.io.Writer;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
@@ -36,26 +33,32 @@ import javax.xml.transform.stream.StreamSource;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
+
 import org.xml.sax.SAXException;
 
+import com.ctc.wstx.exc.WstxIOException;
+import com.ctc.wstx.exc.WstxUnexpectedCharException;
+
 import org.apache.cxf.common.classloader.ClassLoaderUtils;
-import org.apache.cxf.helpers.IOUtils;
-import org.apache.cxf.interceptor.Fault;
+import org.apache.cxf.interceptor.transform.TransformInInterceptor;
+import org.apache.cxf.interceptor.transform.TransformOutInterceptor;
 import org.apache.cxf.io.CachedOutputStream;
 import org.apache.cxf.io.CachedWriter;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.message.MessageImpl;
 import org.apache.cxf.staxutils.StaxUtils;
+
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-/* Provides XSLT transformation of incoming message.
- * Interceptor breaks streaming (can be fixed in further versions when XSLT engine supports XML stream)
- */
-public class XSLTInterceptorsTest {
 
-    private static final String TRANSFORMATION_XSL = "transformation.xsl";
+
+
+/* Provides Stax-based transformation of incoming message.
+ */
+public class StaxTransformInterceptorsTest {
 
     /* this message is UTF-8 and states so in the header. Regular case. */
     private static final String MESSAGE_FILE = "message_utf-8.xml";
@@ -81,8 +84,8 @@ public class XSLTInterceptorsTest {
     private InputStream messageInStmLatin1InHeader;
     private Message messageLatin1InHeader;
 
-    private XSLTInInterceptor inInterceptor;
-    private XSLTOutInterceptor outInterceptor;
+    private TransformInInterceptor inInterceptor;
+    private TransformOutInterceptor outInterceptor;
 
     @Before
     public void setUp() throws TransformerConfigurationException {
@@ -126,15 +129,22 @@ public class XSLTInterceptorsTest {
         messageUtf16beInHeader = new MessageImpl();
         messageUtf16beInHeader.put(Message.ENCODING, StandardCharsets.UTF_16BE.name());
 
-        inInterceptor = new XSLTInInterceptor(TRANSFORMATION_XSL);
-        outInterceptor = new XSLTOutInterceptor(TRANSFORMATION_XSL);
+        Map<String, String> staxTransforms = new HashMap<String, String>();
+        staxTransforms.put("{http://customerservice.example.com/}getCustomersByName",
+                "{http://customerservice.example.com/}getCustomersByName1");
+
+        inInterceptor = new TransformInInterceptor();
+        inInterceptor.setInTransformElements(staxTransforms);
+
+        outInterceptor = new TransformOutInterceptor();
+        outInterceptor.setOutTransformElements(staxTransforms);
     }
 
     private void inStreamTest(Message message, InputStream messageIS) throws Exception {
         message.setContent(InputStream.class, messageIS);
         inInterceptor.handleMessage(message);
-        InputStream transformedIS = message.getContent(InputStream.class);
-        Document doc = StaxUtils.read(transformedIS);
+        XMLStreamReader transformedXReader = message.getContent(XMLStreamReader.class);
+        Document doc = StaxUtils.read(transformedXReader);
         Assert.assertTrue("Message was not transformed", checkTransformedXML(doc));
     }
 
@@ -150,32 +160,32 @@ public class XSLTInterceptorsTest {
         inStreamTest(messageUtf8Unannounced, messageInStmUtf8Unannounced);
     }
 
-    @Test(expected = Fault.class)
+    @Test(expected = WstxIOException.class)
     public void inStreamTestLatin1Explicit() throws Exception {
         /* the header encoding (or its lack, interpreted as UTF-8) trumps the encoding declaration within the XML
         payload */
         inStreamTest(messageLatin1Explicit, messageInStmLatin1Explicit);
     }
 
-    @Test(expected = Fault.class)
+    @Test(expected = WstxIOException.class)
     public void inStreamTestLatin1PayloadBogusUtf8Header() throws Exception {
         /* the header encoding trumps the encoding declaration within the XML payload */
         inStreamTest(messageUtf8InHeader, messageInStmLatin1Explicit);
     }
 
-    @Test(expected = Fault.class)
-    public void inStreamTestLatin1PayloadBogusUtf16BeHeader() throws Exception {
+    @Test(expected = WstxUnexpectedCharException.class)
+    public void inStreamTestLatin1PayloadBogusUtf16beHeader() throws Exception {
         /* the header encoding trumps the encoding declaration within the XML payload */
         inStreamTest(messageUtf16beInHeader, messageInStmLatin1Explicit);
     }
 
-    @Test(expected = Fault.class)
-    public void inStreamTestUtf8PayloadBogusUtf16BeHeader() throws Exception {
+    @Test(expected = WstxUnexpectedCharException.class)
+    public void inStreamTestUtf8PayloadBogusUtf16beHeader() throws Exception {
         /* the header encoding trumps the encoding declaration within the XML payload */
         inStreamTest(messageUtf16beInHeader, messageInStmUtf8);
     }
 
-    @Test(expected = Fault.class) /* we expect an unannounced Latin1 document to fail */
+    @Test(expected = WstxIOException.class) /* we expect an unannounced Latin1 document to fail */
     public void inStreamTestLatin1Implicit() throws Exception {
         /* failure expected as an XML payload which isn't UTF-8 and doesn't announce its encoding and where
         the message header itself lacks encoding info cannot be safely decoded */
@@ -188,10 +198,12 @@ public class XSLTInterceptorsTest {
         inStreamTest(messageLatin1InHeader, messageInStmLatin1InHeader);
     }
 
+
     private void inXMLStreamTest(Message message,
                                  String messageEncoding, InputStream messageIS) throws XMLStreamException {
         XMLStreamReader xReader = StaxUtils.createXMLStreamReader(messageIS, messageEncoding);
         message.setContent(XMLStreamReader.class, xReader);
+        message.setContent(InputStream.class, messageIS);
         inInterceptor.handleMessage(message);
         XMLStreamReader transformedXReader = message.getContent(XMLStreamReader.class);
         Document doc = StaxUtils.read(transformedXReader);
@@ -219,63 +231,41 @@ public class XSLTInterceptorsTest {
         inXMLStreamTest(messageLatin1Explicit, StandardCharsets.ISO_8859_1.name(), messageInStmLatin1Explicit);
     }
 
-    private void inReaderTest(Message message, String messageEncoding, InputStream messageIS) throws Exception {
-        Reader reader = new InputStreamReader(messageIS, messageEncoding);
-        message.setContent(Reader.class, reader);
-        inInterceptor.handleMessage(message);
-        Reader transformedReader = message.getContent(Reader.class);
-        Document doc = StaxUtils.read(transformedReader);
-        Assert.assertTrue("Message was not transformed", checkTransformedXML(doc));
-    }
-
-    @Test
-    public void inReaderTest() throws Exception {
-        inReaderTest(messageUtf8, StandardCharsets.UTF_8.name(), messageInStmUtf8);
-    }
-
-    @Test
-    public void inReaderTestUtf8Unannounced() throws Exception {
-        inReaderTest(messageUtf8Unannounced, StandardCharsets.UTF_8.name(), messageInStmUtf8Unannounced);
-    }
-
-    @Test
-    public void inReaderTestLatin1InHeader() throws Exception {
-        inReaderTest(messageLatin1InHeader, StandardCharsets.ISO_8859_1.name(), messageInStmLatin1InHeader);
-    }
-
-    @Test
-    public void inReaderTestLatin1Explicit() throws Exception {
-        inReaderTest(messageLatin1Explicit, StandardCharsets.ISO_8859_1.name(), messageInStmLatin1Explicit);
-    }
-
-
-    private void outStreamTest(Message message, InputStream messageIS) throws Exception {
+    private void outStreamTest(Message message, String encoding, InputStream messageIS) throws Exception {
         CachedOutputStream cos = new CachedOutputStream();
         cos.holdTempFile();
         message.setContent(OutputStream.class, cos);
         outInterceptor.handleMessage(message);
-        OutputStream os = message.getContent(OutputStream.class);
-        IOUtils.copy(messageIS, os);
-        os.close();
+
+        XMLStreamWriter tXWriter = message.getContent(XMLStreamWriter.class);
+        StaxUtils.copy(new StreamSource(messageIS), tXWriter);
+        tXWriter.close();
         cos.releaseTempFileHold();
-        Document doc = StaxUtils.read(cos.getInputStream());
+        Document doc = StaxUtils.read(cos.getInputStream(), encoding);
         Assert.assertTrue("Message was not transformed", checkTransformedXML(doc));
     }
 
     @Test
     public void outStreamTest() throws Exception {
-        outStreamTest(messageUtf8, messageInStmUtf8);
-    }
-
-    @Test(expected = Fault.class)
-    public void outStreamTestLatin1Explicit() throws Exception {
-        /* even though the payload says "encoding=latin1" we must have this set in the headers as well. */
-        outStreamTest(messageLatin1Explicit, messageInStmLatin1Explicit);
+        outStreamTest(messageUtf8, StandardCharsets.UTF_8.name(), messageInStmUtf8);
     }
 
     @Test
-    public void outStreamTestLatin1InHeader() throws Exception {
-        outStreamTest(messageLatin1InHeader, messageInStmLatin1InHeader);
+    public void outStreamTestLatin1Explicit() throws Exception {
+        /* as soon as the payload says encoding=latin1, this is fine */
+        outStreamTest(messageLatin1Explicit, StandardCharsets.ISO_8859_1.name(), messageInStmLatin1Explicit);
+    }
+
+    @Test
+    public void outStreamTestLatin1InHeaderExplicit() throws Exception {
+        /* Note that we DO NOT test/send XML without specifying the encoding within the header */
+        outStreamTest(messageLatin1InHeader, StandardCharsets.ISO_8859_1.name(), messageInStmLatin1Explicit);
+    }
+
+    @Test(expected = WstxIOException.class)
+    public void outStreamTestLatin1InHeaderUnannounced() throws Exception {
+        /* Note that we DO NOT test/send XML without specifying the encoding within the header */
+        outStreamTest(messageLatin1InHeader, StandardCharsets.ISO_8859_1.name(), messageInStmLatin1InHeader);
     }
 
 
@@ -294,21 +284,9 @@ public class XSLTInterceptorsTest {
         Assert.assertTrue("Message was not transformed", checkTransformedXML(doc));
     }
 
-    @Test
-    public void outWriterStreamTest() throws Exception {
-        CachedWriter cWriter = new CachedWriter();
-        messageUtf8.setContent(Writer.class, cWriter);
-        outInterceptor.handleMessage(messageUtf8);
-        Writer tWriter = messageUtf8.getContent(Writer.class);
-        IOUtils.copy(new InputStreamReader(messageInStmUtf8), tWriter, IOUtils.DEFAULT_BUFFER_SIZE);
-        tWriter.close();
-        Document doc = StaxUtils.read(cWriter.getReader());
-        Assert.assertTrue("Message was not transformed", checkTransformedXML(doc));
-    }
-    
     private boolean checkTransformedXML(Document doc) {
         NodeList list = doc.getDocumentElement()
-            .getElementsByTagNameNS("http://customerservice.example.com/", "getCustomersByName1");
+                .getElementsByTagNameNS("http://customerservice.example.com/", "getCustomersByName1");
         return list.getLength() == 1;
     }
 }

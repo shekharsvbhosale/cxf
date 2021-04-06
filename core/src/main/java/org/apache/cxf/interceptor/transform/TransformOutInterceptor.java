@@ -21,34 +21,32 @@ package org.apache.cxf.interceptor.transform;
 
 
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
 import javax.xml.stream.XMLStreamWriter;
 
+import org.apache.cxf.interceptor.AbstractOutDatabindingInterceptor;
+import org.apache.cxf.interceptor.LoggingOutInterceptor;
 import org.apache.cxf.interceptor.StaxOutEndingInterceptor;
 import org.apache.cxf.interceptor.StaxOutInterceptor;
-import org.apache.cxf.message.Exchange;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.message.MessageUtils;
 import org.apache.cxf.phase.AbstractPhaseInterceptor;
 import org.apache.cxf.phase.Phase;
-import org.apache.cxf.phase.PhaseInterceptorChain;
 import org.apache.cxf.staxutils.transform.TransformUtils;
 
-import static org.apache.cxf.interceptor.AbstractOutDatabindingInterceptor.DISABLE_OUTPUTSTREAM_OPTIMIZATION;
 
 /**
- * Creates an XMLStreamReader from the InputStream on the Message.
+ * Creates an XMLStreamWriter from the OutputStream on the Message.
  */
 public class TransformOutInterceptor extends AbstractPhaseInterceptor<Message> {
-
-    private static final String OUTPUT_STREAM_HOLDER =
+    
+    private static final String OUTPUT_STREAM_HOLDER = 
         TransformOutInterceptor.class.getName() + ".outputstream";
     private static final String TRANSFORM_SKIP = "transform.skip";
     private static final StaxOutEndingInterceptor ENDING = new StaxOutEndingInterceptor(OUTPUT_STREAM_HOLDER);
-
+    
     private Map<String, String> outElementsMap;
     private Map<String, String> outAppendMap;
     private List<String> outDropElements;
@@ -57,18 +55,17 @@ public class TransformOutInterceptor extends AbstractPhaseInterceptor<Message> {
     private boolean skipOnFault;
     private String contextPropertyName;
     private String defaultNamespace;
-
+    
     public TransformOutInterceptor() {
         this(Phase.PRE_STREAM);
     }
-
+    
     public TransformOutInterceptor(String phase) {
         super(phase);
         addBefore(StaxOutInterceptor.class.getName());
-        addAfter("org.apache.cxf.interceptor.LoggingOutInterceptor");
-        addAfter("org.apache.cxf.ext.logging.LoggingOutInterceptor");
+        addAfter(LoggingOutInterceptor.class.getName());
     }
-
+    
     @Override
     public void handleFault(Message message) {
         super.handleFault(message);
@@ -77,73 +74,55 @@ public class TransformOutInterceptor extends AbstractPhaseInterceptor<Message> {
             message.setContent(OutputStream.class, os);
         }
     }
-
+    
     public void handleMessage(Message message) {
         if (!isHttpVerbSupported(message)) {
             return;
         }
-
-        if (contextPropertyName != null
+        
+        if (contextPropertyName != null 
             && !MessageUtils.getContextualBoolean(message.getExchange().getInMessage(),
-                                               contextPropertyName,
+                                               contextPropertyName, 
                                                false)) {
             return;
         }
-
+        
         if (skipOnFault && null != message.getContent(Exception.class)
-            || MessageUtils.getContextualBoolean(message, TRANSFORM_SKIP, false)) {
+            || MessageUtils.isTrue(message.getContextualProperty(TRANSFORM_SKIP))) {
             return;
         }
 
         XMLStreamWriter writer = message.getContent(XMLStreamWriter.class);
         OutputStream out = message.getContent(OutputStream.class);
 
-        XMLStreamWriter transformWriter = createTransformWriterIfNeeded(writer, out);
+        final String encoding = MessageUtils.getMessageEncoding(message);
+        XMLStreamWriter transformWriter = createTransformWriterIfNeeded(writer, out, encoding);
         if (transformWriter != null) {
             message.setContent(XMLStreamWriter.class, transformWriter);
-            if (message.getContextualProperty(DISABLE_OUTPUTSTREAM_OPTIMIZATION) == null) {
-                message.put(DISABLE_OUTPUTSTREAM_OPTIMIZATION, Boolean.TRUE);
-            }
             if (MessageUtils.isRequestor(message)) {
                 message.removeContent(OutputStream.class);
                 message.put(OUTPUT_STREAM_HOLDER, out);
+                message.put(AbstractOutDatabindingInterceptor.DISABLE_OUTPUTSTREAM_OPTIMIZATION,
+                            Boolean.TRUE);
                 message.getInterceptorChain().add(ENDING);
             }
         }
     }
-
-    private String getEncoding(Message message) {
-        Exchange ex = message.getExchange();
-        String encoding = (String)message.get(Message.ENCODING);
-        if (encoding == null && ex.getInMessage() != null) {
-            encoding = (String) ex.getInMessage().get(Message.ENCODING);
-            message.put(Message.ENCODING, encoding);
-        }
-
-        if (encoding == null) {
-            encoding = StandardCharsets.UTF_8.name();
-            message.put(Message.ENCODING, encoding);
-        }
-        return encoding;
-    }
-
-    protected XMLStreamWriter createTransformWriterIfNeeded(XMLStreamWriter writer, OutputStream os) {
-        Message m = PhaseInterceptorChain.getCurrentMessage();
-        String encoding = getEncoding(m);
-        return TransformUtils.createTransformWriterIfNeeded(writer, os,
+   
+    protected XMLStreamWriter createTransformWriterIfNeeded(XMLStreamWriter writer, OutputStream os, String encoding) {
+        return TransformUtils.createTransformWriterIfNeeded(writer, os, encoding,
                                                       outElementsMap,
                                                       outDropElements,
                                                       outAppendMap,
                                                       outAttributesMap,
                                                       attributesToElements,
-                                                      defaultNamespace,
-                                                      encoding);
+                                                      defaultNamespace);
     }
-
+    
     public void setOutTransformElements(Map<String, String> outElements) {
         this.outElementsMap = outElements;
     }
-
+    
     public void setOutAppendElements(Map<String, String> map) {
         this.outAppendMap = map;
     }
@@ -159,15 +138,15 @@ public class TransformOutInterceptor extends AbstractPhaseInterceptor<Message> {
     public void setAttributesToElements(boolean value) {
         this.attributesToElements = value;
     }
-
+    
     public void setSkipOnFault(boolean value) {
         this.skipOnFault = value;
     }
-
+    
     protected boolean isHttpVerbSupported(Message message) {
-        return isRequestor(message) && isGET(message) ? false : true;
+        return  isRequestor(message) && isGET(message) ? false : true;
     }
-
+    
     public void setContextPropertyName(String propertyName) {
         contextPropertyName = propertyName;
     }
@@ -175,5 +154,5 @@ public class TransformOutInterceptor extends AbstractPhaseInterceptor<Message> {
     public void setDefaultNamespace(String defaultNamespace) {
         this.defaultNamespace = defaultNamespace;
     }
-
+    
 }

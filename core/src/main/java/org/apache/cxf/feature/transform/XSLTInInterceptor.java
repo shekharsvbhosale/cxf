@@ -33,6 +33,7 @@ import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.interceptor.StaxInInterceptor;
 import org.apache.cxf.io.CachedOutputStream;
 import org.apache.cxf.message.Message;
+import org.apache.cxf.message.MessageUtils;
 import org.apache.cxf.phase.Phase;
 import org.apache.cxf.staxutils.StaxUtils;
 
@@ -41,7 +42,7 @@ import org.apache.cxf.staxutils.StaxUtils;
  * Actually it breaks streaming (can be fixed in further versions when XSLT engine supports XML stream)
  */
 public class XSLTInInterceptor extends AbstractXSLTInterceptor {
-    private static final Logger LOG = LogUtils.getL7dLogger(XSLTInInterceptor.class);
+    private static final Logger LOG = LogUtils.getL7dLogger(XSLTInInterceptor.class);    
 
     public XSLTInInterceptor(String xsltPath) {
         super(Phase.POST_STREAM, StaxInInterceptor.class, null, xsltPath);
@@ -79,9 +80,11 @@ public class XSLTInInterceptor extends AbstractXSLTInterceptor {
     protected void transformXReader(Message message, XMLStreamReader xReader) {
         CachedOutputStream cachedOS = new CachedOutputStream();
         try {
-            StaxUtils.copy(xReader, cachedOS);
-            InputStream transformedIS = XSLTUtils.transform(getXSLTTemplate(), cachedOS.getInputStream());
-            XMLStreamReader transformedReader = StaxUtils.createXMLStreamReader(transformedIS);
+            final String encoding = MessageUtils.getMessageEncoding(message);
+
+            StaxUtils.copy(xReader, cachedOS, encoding);
+            InputStream transformedIS = XSLTUtils.transform(getXSLTTemplate(), cachedOS.getInputStream(), encoding);
+            XMLStreamReader transformedReader = StaxUtils.createXMLStreamReader(transformedIS, encoding);
             message.setContent(XMLStreamReader.class, transformedReader);
         } catch (XMLStreamException e) {
             throw new Fault("STAX_COPY", LOG, e, e.getMessage());
@@ -100,20 +103,31 @@ public class XSLTInInterceptor extends AbstractXSLTInterceptor {
             }
         }
     }
-
+    
     protected void transformIS(Message message, InputStream is) {
-        try (InputStream inputStream = is) {
-            message.setContent(InputStream.class, XSLTUtils.transform(getXSLTTemplate(), inputStream));
-        } catch (IOException e) {
-            LOG.warning("Cannot close stream after transformation: " + e.getMessage());
+        try {
+            InputStream transformedIS = XSLTUtils.transform(getXSLTTemplate(), is,
+                    MessageUtils.getMessageEncoding(message));
+            message.setContent(InputStream.class, transformedIS);
+        } finally {
+            try {
+                is.close();
+            } catch (IOException e) {
+                LOG.warning("Cannot close stream after transformation: " + e.getMessage());
+            }
         }
     }
 
     protected void transformReader(Message message, Reader reader) {
-        try (Reader r = reader) {
-            message.setContent(Reader.class, XSLTUtils.transform(getXSLTTemplate(), r));
-        } catch (IOException e) {
-            LOG.warning("Cannot close stream after transformation: " + e.getMessage());
+        try {
+            Reader transformedReader = XSLTUtils.transform(getXSLTTemplate(), reader); // reader encapsulates encoding
+            message.setContent(Reader.class, transformedReader);
+        } finally {
+            try {
+                reader.close();
+            } catch (IOException e) {
+                LOG.warning("Cannot close stream after transformation: " + e.getMessage());
+            }
         }
     }
 }
