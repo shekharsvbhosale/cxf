@@ -108,7 +108,7 @@ public final class JMSUtil {
      */
     public static Message createAndSetPayload(Object payload, Session session, String messageType)
         throws JMSException {
-        final Message message;
+        Message message = null;
         if (JMSConstants.TEXT_MESSAGE_TYPE.equals(messageType)) {
             message = session.createTextMessage((String)payload);
         } else if (JMSConstants.BYTE_MESSAGE_TYPE.equals(messageType)) {
@@ -122,14 +122,8 @@ public final class JMSUtil {
     }
 
     public static Queue createQueue(Connection connection, String name) throws JMSException {
-        Session session = null;
-        try {
-            session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        try (Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)) {
             return session.createQueue(name);
-        } finally {
-            if (session != null) {
-                session.close();
-            }
         }
     }
 
