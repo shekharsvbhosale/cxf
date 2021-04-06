@@ -351,13 +351,6 @@ public class BookStore {
     public Book echoXmlBook(Book book) {
         return book;
     }
-    
-    @POST
-    @Path("/echoxmlbook-i18n")
-    @Produces("application/xml")
-    public Response echoXmlBooki18n(Book book, @HeaderParam(HttpHeaders.CONTENT_LANGUAGE) String language) {
-        return Response.ok(new Book(book.getName() + "-" + language, book.getId())).build();
-    }
 
     // Only books with id consisting of 3 or 4 digits of the numbers between 5 and 9 are accepted
     @POST
@@ -1516,8 +1509,7 @@ public class BookStore {
         String ct1 = httpHeaders.getMediaType().toString();
         String ct2 = httpHeaders.getRequestHeader("Content-Type").get(0);
         String ct3 = httpHeaders.getRequestHeaders().getFirst("Content-Type");
-        if (!(ct1.startsWith("application/xml") && ct2.startsWith("application/xml")
-            && ct3.startsWith("application/xml"))) {
+        if (!("application/xml".equals(ct1) && ct1.equals(ct2) && ct1.equals(ct3))) {
             throw new RuntimeException("Unexpected content type");
         }
 
@@ -1541,6 +1533,12 @@ public class BookStore {
         if (!PhaseInterceptorChain.getCurrentMessage().getExchange().isOneWay()) {
             throw new WebApplicationException();
         }
+    }
+
+    @POST
+    @Path("/oneway/propogateExceptionVar/{i}")
+    @Oneway
+    public void onewayRequestPropogateExceptionWithVar() {
     }
 
     @POST
@@ -1712,7 +1710,7 @@ public class BookStore {
         return Response.accepted(name).build();
     }
 
-
+    
     @POST
     @Path("/empty202")
     @Consumes("text/plain")
@@ -1751,7 +1749,7 @@ public class BookStore {
                 header("SomeHeader1", "\"some text, some more text\"").
                 header("SomeHeader2", "\"some text\"").
                 header("SomeHeader2", "\"quoted,text\"").
-                header("SomeHeader2", "\"and backslash\\\"").
+                header("SomeHeader2", "\"even more text\"").
                 header("SomeHeader3", "\"some text, some more text with inlined \\\"\"").
                 header("SomeHeader4", "\"\"").
                 build();
